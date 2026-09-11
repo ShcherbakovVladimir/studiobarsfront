@@ -14,12 +14,14 @@ interface UserFilesPanelProps {
   selectedSources: string[];
   onSelectionChange: (sources: string[]) => void;
   onReady?: (file: UserFile) => void;
+  compact?: boolean;
 }
 
 const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   selectedSources,
   onSelectionChange,
   onReady,
+  compact = false,
 }) => {
   const [files, setFiles] = useState<UserFile[]>([]);
   const [loading, setLoading] = useState(true);

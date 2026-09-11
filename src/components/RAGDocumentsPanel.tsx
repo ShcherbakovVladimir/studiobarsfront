@@ -212,6 +212,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       <UserFilesPanel
         selectedSources={selectedSources}
         onSelectionChange={onSelectionChange}
+        compact={compact}
         onReady={() => {
           void load(true);
           onDocumentsChange?.();
