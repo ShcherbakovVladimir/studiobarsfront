@@ -1,5 +1,5 @@
 import type { ChatMessage, ChatSummary, PersistedChat, UnknownRecord } from '../types';
-import { api, getToken } from './apiClient';
+import { api, getToken, ApiError } from './apiClient';
 import { getErrorMessage } from '../utils/errorUtils';
 import { LEGACY_STORAGE_KEYS } from '../constants/auth';
 import { persistableVisionContent } from '../utils/chatVision';
@@ -87,6 +87,7 @@ const SYNC_DEBOUNCE_MS = 600;
 let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingSyncChat: ChatData | null = null;
 let lastServerSyncSnapshot = '';
+const deletedChatIds = new Set<string>();
 
 function chatSyncSnapshot(chat: ChatData): string {
   return JSON.stringify({
@@ -149,6 +150,7 @@ export function loadChatFromLocal(chatId: string): ChatData | null {
 }
 
 export function saveChatToLocal(chat: ChatData): void {
+  if (deletedChatIds.has(chat.id)) return;
   const userId = currentUserId();
   const next: ChatData = userId
     ? {
@@ -186,7 +188,12 @@ function messagesForSync(messages: ChatMessage[]): ChatMessage[] {
   });
 }
 
+export function isDeletedChatId(chatId: string): boolean {
+  return deletedChatIds.has(chatId);
+}
+
 export async function getChatFromServer(chatId: string): Promise<ChatData | null> {
+  if (deletedChatIds.has(chatId)) return null;
   try {
     const data = await api<{ success: boolean; chat: ChatData }>(`/chats/${encodeURIComponent(chatId)}`);
     const chat = data.chat;
@@ -200,6 +207,7 @@ export async function getChatFromServer(chatId: string): Promise<ChatData | null
 }
 
 export async function saveChatToServer(chat: ChatData): Promise<boolean> {
+  if (deletedChatIds.has(chat.id)) return false;
   try {
     const payload = {
       chat: {
@@ -240,6 +248,7 @@ export async function flushPendingChatSync(): Promise<void> {
 }
 
 export function scheduleChatSync(chat: ChatData): void {
+  if (deletedChatIds.has(chat.id)) return;
   const snapshot = chatSyncSnapshot(chat);
   saveChatToLocal(chat);
 
@@ -299,7 +308,9 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
     }));
   }
 
-  const chats = summaries.map(summaryToChat);
+  const chats = summaries
+    .map(summaryToChat)
+    .filter((chat) => !deletedChatIds.has(chat.id));
   const preferredId = activeChatId || getLastActiveChat() || chats[0]?.id || null;
   let active = preferredId ? chats.find((chat) => chat.id === preferredId) ?? chats[0] ?? null : chats[0] ?? null;
 
@@ -357,17 +368,21 @@ export function cancelPendingChatSync(chatId?: string): void {
 }
 
 export async function deleteChat(chatId: string): Promise<void> {
+  deletedChatIds.add(chatId);
   cancelPendingChatSync(chatId);
   deleteChatFromLocal(chatId);
   try {
     await api(`/chats/${encodeURIComponent(chatId)}`, { method: 'DELETE' });
   } catch (error) {
-    console.warn('deleteChat server error:', getErrorMessage(error));
+    if (error instanceof ApiError && error.status === 404) return;
+    deletedChatIds.delete(chatId);
+    throw error;
   }
 }
 
 export function createNewChat(modelId: string, sessionId?: string, title?: string): ChatData {
   const id = createChatId();
+  deletedChatIds.delete(id);
   const now = new Date().toISOString();
   return {
     id,
@@ -384,6 +399,7 @@ export function createNewChat(modelId: string, sessionId?: string, title?: strin
 }
 
 export async function persistChat(chat: ChatData, immediate = false): Promise<boolean> {
+  if (deletedChatIds.has(chat.id)) return false;
   const messages = messagesForSync(chat.messages ?? []);
   const next: ChatData = {
     ...chat,
@@ -484,6 +500,7 @@ export const chatSyncService = {
   getChatFromServer,
   listChatSummaries,
   deleteChat,
+  isDeletedChatId,
   setLastActiveChat,
   getLastActiveChat,
   cleanupLegacyStorage,

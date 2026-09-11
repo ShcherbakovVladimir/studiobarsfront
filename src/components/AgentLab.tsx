@@ -1111,6 +1111,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const chat = currentChatRef.current;
     const liveMessages = messagesRef.current;
     if (!chat || liveMessages.length === 0) return;
+    if (chatSyncService.isDeletedChatId(chat.id)) return;
 
     const messagesSnapshot = JSON.stringify(liveMessages);
     if (messagesSnapshot === lastSavedMessagesRef.current) return;
@@ -1159,7 +1160,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const switchToChat = useCallback(async (chat: ChatData) => {
     const outgoing = currentChatRef.current;
     const outgoingMessages = messagesRef.current;
-    if (outgoing && outgoing.id !== chat.id && outgoingMessages.length > 0) {
+    if (
+      outgoing &&
+      outgoing.id !== chat.id &&
+      outgoingMessages.length > 0 &&
+      !chatSyncService.isDeletedChatId(outgoing.id)
+    ) {
       await chatSyncService.persistChat({
         ...outgoing,
         messages: outgoingMessages,
@@ -1195,12 +1201,22 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const chatToDelete = availableChats.find(c => c.id === chatId);
     if (!chatToDelete) return;
 
-    await chatSyncService.deleteChat(chatId);
+    const wasCurrent = currentChatRef.current?.id === chatId;
+    if (wasCurrent) {
+      currentChatRef.current = null;
+    }
+
+    try {
+      await chatSyncService.deleteChat(chatId);
+    } catch (error) {
+      showErrorToast(error instanceof Error ? error.message : 'Не удалось удалить чат');
+      return;
+    }
 
     const updatedChats = availableChats.filter(c => c.id !== chatId);
     setAvailableChats(updatedChats);
 
-    if (currentChat?.id === chatId) {
+    if (wasCurrent) {
       const nextChat = updatedChats[0];
       if (nextChat) {
         await switchToChat(nextChat);
@@ -1208,9 +1224,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         await createNewChat();
       }
     }
-
-    console.log(`🗑️ Удален чат: ${chatToDelete.title}`);
-  }, [availableChats, currentChat, createNewChat, switchToChat]);
+  }, [availableChats, createNewChat, switchToChat]);
 
   const renameChat = useCallback(async (chatId: string, newTitle: string) => {
     const liveMessages =

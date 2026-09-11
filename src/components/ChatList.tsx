@@ -81,7 +81,7 @@ export const ChatList: React.FC<ChatListProps> = ({
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="w-4 h-4 text-blue-500 shrink-0" />
-          <h2 className="text-sm font-semibold truncate">Чаты</h2>
+          <h2 className="text-sm font-semibold truncate">Чаты ({sortedChats.length})</h2>
         </div>
         <div className="flex items-center gap-1">
           {onRefresh && (
@@ -133,10 +133,13 @@ export const ChatList: React.FC<ChatListProps> = ({
               key={chat.id}
               className={`group relative rounded-lg border transition-colors ${
                 isActive
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
               }`}
             >
+              {isActive && (
+                <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-blue-500" aria-hidden />
+              )}
               {isEditing ? (
                 <div className="p-2">
                   <input
@@ -161,7 +164,10 @@ export const ChatList: React.FC<ChatListProps> = ({
                     onClick={() => onSelectChat(chat)}
                     className="w-full text-left p-3 pr-16"
                   >
-                    <div className="text-sm font-medium truncate" title={chat.title}>
+                    <div
+                      className={`text-sm truncate ${isActive ? 'font-semibold text-blue-700 dark:text-blue-300' : 'font-medium'}`}
+                      title={chat.title}
+                    >
                       {chat.title || 'Новый чат'}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2">
@@ -169,7 +175,11 @@ export const ChatList: React.FC<ChatListProps> = ({
                       {count > 0 && <span>· {count} сообщ.</span>}
                     </div>
                   </button>
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity ${
+                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={(e) => {
