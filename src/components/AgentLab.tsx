@@ -311,7 +311,7 @@ const FormattedMessageBase: React.FC<{
               <span className="text-xs text-purple-500 animate-pulse">пишется...</span>
             )}
           </summary>
-          <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 rounded-lg text-purple-900 dark:text-purple-100 text-sm italic whitespace-pre-wrap">
+          <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 rounded-lg text-purple-900 dark:text-purple-100 text-sm italic whitespace-pre-wrap break-words">
             {thinkingContent}
             {isStreaming && !isThinkingComplete && (
               <span className="inline-block w-2 h-4 ml-0.5 bg-purple-500 animate-pulse align-middle" />
@@ -333,7 +333,7 @@ const FormattedMessageBase: React.FC<{
                   const syntaxStyle = isDarkMode ? vscDarkPlus : vs;
                   
                   return (
-                    <div className="relative group my-4">
+                    <div className="relative group my-4 min-w-0 max-w-full overflow-x-auto">
                       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                         <button
                           onClick={() => navigator.clipboard.writeText(codeString)}
@@ -573,7 +573,7 @@ const FormattedMessageBase: React.FC<{
               const syntaxStyle = isDarkMode ? vscDarkPlus : vs;
               
               return (
-                <div className="relative group my-4">
+                <div className="relative group my-4 min-w-0 max-w-full overflow-x-auto">
                   <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
                       onClick={() => navigator.clipboard.writeText(codeString)}
@@ -2245,11 +2245,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             </header>
             
             {/* Active Tool View */}
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 min-w-0 overflow-hidden relative">
                 {activeTool === 'chat' && (
-                    <div className="flex flex-col h-full">
-                        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3" ref={scrollRef}>
-                            <div className={cn(celestia.chatColumn, 'space-y-4')}>
+                    <div className="flex flex-col h-full min-w-0">
+                        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-3 sm:px-4 py-3" ref={scrollRef}>
+                            <div className={cn(celestia.chatColumn, 'space-y-4 min-w-0')}>
                             {messages.length === 0 && (
                                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted-foreground">
                                     <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center mb-3">
@@ -2284,8 +2284,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 </div>
                             )}
                             {messages.map((msg, idx) => (
-                                <div key={idx} className={cn('flex w-full', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                                    <div className={msg.role === 'user' ? celestia.chatBubbleUser : celestia.chatBubbleAi}>
+                                <div key={idx} className={cn('flex w-full min-w-0 max-w-full', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                    <div className={cn(msg.role === 'user' ? celestia.chatBubbleUser : celestia.chatBubbleAi, 'min-w-0')}>
                                         <FormattedMessage 
                                           content={msg.content} 
                                           isDarkMode={isDarkMode}

@@ -288,8 +288,71 @@ h1,
 
 .chat-column {
   width: 100%;
-  max-width: 52rem;
+  max-width: min(52rem, 100%);
+  min-width: 0;
   margin-inline: auto;
+}
+
+.chat-msg-user,
+.chat-msg-ai {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.chat-msg-user {
+  max-width: min(85%, 40rem);
+  padding: 0.5rem 0.875rem;
+  border-radius: 1.125rem;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  box-shadow: none;
+  border: none;
+}
+
+.dark .chat-msg-user {
+  background: oklch(28% 0.028 255);
+  color: var(--foreground);
+}
+
+.chat-msg-ai {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.125rem 0.125rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.dark .chat-msg-ai {
+  background: transparent;
+  border: none;
+}
+
+.chat-msg-ai img,
+.chat-msg-user img {
+  max-width: 100%;
+  height: auto;
+}
+
+.chat-msg-ai pre,
+.chat-msg-user pre,
+.chat-msg-ai table,
+.chat-msg-user table,
+.chat-msg-ai .katex-display {
+  max-width: 100%;
+}
+
+.chat-msg-ai pre,
+.chat-msg-ai .overflow-x-auto,
+.chat-msg-user .overflow-x-auto {
+  min-width: 0;
 }
 
 .chat-composer {
@@ -341,41 +404,6 @@ h1,
 .chat-composer-stop {
   align-self: center;
   flex-shrink: 0;
-}
-
-.chat-msg-user {
-  max-width: min(85%, 40rem);
-  padding: 0.5rem 0.875rem;
-  border-radius: 1.125rem;
-  background: var(--muted);
-  color: var(--foreground);
-  font-size: 0.9375rem;
-  line-height: 1.65;
-  box-shadow: none;
-  border: none;
-}
-
-.dark .chat-msg-user {
-  background: oklch(28% 0.028 255);
-  color: var(--foreground);
-}
-
-.chat-msg-ai {
-  width: 100%;
-  max-width: 100%;
-  padding: 0.125rem 0.125rem;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  color: var(--foreground);
-  font-size: 0.9375rem;
-  line-height: 1.75;
-}
-
-.dark .chat-msg-ai {
-  background: transparent;
-  border: none;
 }
 
 .btn-gradient {
