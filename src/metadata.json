@@ -1,0 +1,5 @@
+{
+  "name": "xLAM Agent Workspace",
+  "description": "A workspace for xLAM agent interaction, benchmarking, and finetuning.",
+  "requestFramePermissions": []
+}
