@@ -8,7 +8,7 @@ export const inputErrorClass =
   'border-red-500 dark:border-red-500 focus:ring-red-500/30';
 
 export const selectBaseClass =
-  'w-full glass-input rounded-3xl px-4 py-2.5 text-sm focus:outline-none';
+  'w-full glass-input rounded-2xl px-4 py-2.5 pr-10 text-sm focus:outline-none appearance-none bg-no-repeat bg-[length:1rem] bg-[right_0.9rem_center] cursor-pointer';
 
 interface FormLabelProps extends React.LabelHTMLAttributes<HTMLLabelElement> {
   required?: boolean;

@@ -96,7 +96,7 @@ export function MenuPopover({
 }
 
 export const fieldControlClass =
-  'inline-flex items-center gap-2 h-8 min-w-0 px-3 rounded-xl text-xs glass-input text-left';
+  'inline-flex items-center gap-2 h-10 min-w-0 px-3.5 rounded-2xl text-sm glass-input text-left transition-colors hover:bg-accent/40 disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const fieldInputClass = 'h-8 min-w-0 w-full px-3 rounded-xl text-xs glass-input';
 

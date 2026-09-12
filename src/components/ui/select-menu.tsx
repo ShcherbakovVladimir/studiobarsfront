@@ -18,6 +18,7 @@ interface SelectMenuProps {
   triggerClassName?: string;
   disabled?: boolean;
   zIndex?: number;
+  size?: 'sm' | 'md';
   'aria-label'?: string;
 }
 
@@ -30,7 +31,8 @@ export function SelectMenu({
   className,
   triggerClassName,
   disabled = false,
-  zIndex,
+  zIndex = 140,
+  size = 'md',
   'aria-label': ariaLabel,
 }: SelectMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -39,6 +41,7 @@ export function SelectMenu({
     () => options.find((option) => option.value === value),
     [options, value]
   );
+  const compact = size === 'sm';
 
   return (
     <div className={cn('relative min-w-0', className)}>
@@ -54,12 +57,24 @@ export function SelectMenu({
           if (disabled) return;
           setOpen((prev) => !prev);
         }}
-        className={cn(fieldControlClass, 'w-full justify-between', triggerClassName)}
+        className={cn(
+          fieldControlClass,
+          'w-full justify-between',
+          compact && 'h-8 rounded-xl px-3 text-xs',
+          open && 'ring-2 ring-ring/30',
+          triggerClassName
+        )}
       >
         <span className={cn('truncate', !selected && 'text-muted-foreground')}>
           {selected?.label ?? placeholder}
         </span>
-        <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+        <ChevronDown
+          className={cn(
+            'w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            compact && 'w-3.5 h-3.5',
+            open && 'rotate-180'
+          )}
+        />
       </button>
       <MenuPopover
         open={open}
@@ -67,7 +82,7 @@ export function SelectMenu({
         triggerRef={triggerRef}
         minWidth={180}
         zIndex={zIndex}
-        className="rounded-xl border-border bg-popover p-1 shadow-lg"
+        className="rounded-2xl border-border/80 bg-popover/95 backdrop-blur-xl p-1.5 shadow-2xl"
       >
         <ul role="listbox" className="max-h-64 overflow-y-auto overflow-x-hidden scroll-clip py-0.5">
           {options.map((option) => {
@@ -83,14 +98,19 @@ export function SelectMenu({
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-lg px-2.5 h-8 text-xs text-left transition-colors',
+                    'flex w-full items-center gap-2 rounded-xl px-3 text-left transition-colors',
+                    compact ? 'h-8 text-xs' : 'h-9 text-sm',
                     active
-                      ? 'bg-accent text-foreground font-medium'
+                      ? 'bg-accent text-foreground font-medium shadow-sm'
                       : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {active && <Check className="w-3.5 h-3.5 shrink-0" />}
+                  {active && (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-foreground/10">
+                      <Check className="w-3 h-3" />
+                    </span>
+                  )}
                 </button>
               </li>
             );

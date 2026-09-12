@@ -48,6 +48,16 @@ import { InlineError, InlineSuccess } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { StatusPill } from './ui/status-pill';
 import { MenuPopover } from './ui/menu-popover';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
+import { FormInput, FormLabel } from './ui/form-field';
+import { SelectMenu } from './ui/select-menu';
 import { isWorkspaceOverlay, WORKSPACE_OVERLAY_MQ, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 
 interface RAGChatProps {
@@ -1664,19 +1674,16 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 
                 <div className="space-y-2">
                   <label htmlFor="rag-qwen-mode" className="block text-sm font-medium mb-1">🎯 Режим работы</label>
-                  <select
+                  <SelectMenu
                     id="rag-qwen-mode"
-                    name="qwenMode"
+                    aria-label="Режим работы Qwen"
                     value={qwenMode}
-                    onChange={(e) => setQwenMode(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg text-sm glass-input focus:outline-none focus:ring-2 focus:ring-ring/40"
-                  >
-                    {availableModes.map(mode => (
-                      <option key={mode} value={mode}>
-                        {getModeDisplayName(mode)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setQwenMode}
+                    options={availableModes.map((mode) => ({
+                      value: mode,
+                      label: getModeDisplayName(mode),
+                    }))}
+                  />
                   <p className="text-xs text-muted-foreground">
                     {getModeDescription(qwenMode)}
                   </p>
@@ -2046,436 +2053,396 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         </div>
       </div>
 
-      {/* Modal для загрузки данных - адаптивный */}
-      {showUploadModal && (
-        <div className="fixed inset-0 modal-scrim flex items-center justify-center z-50 p-4" onClick={() => setShowUploadModal(false)}>
-          <div className="max-w-md w-full max-h-[90vh] overflow-y-auto rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="glass-modal rounded-3xl">
-              <div className="flex justify-between items-center p-4 border-b border-border sticky top-0 bg-inherit z-10">
-                <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                  <UploadIcon />
-                  <span className="hidden sm:inline">Загрузка данных в БД</span>
-                  <span className="inline sm:hidden">Загрузка</span>
-                </h3>
-                <button 
-                  onClick={() => setShowUploadModal(false)} 
-                  className="p-1 hover:bg-accent/70 rounded-lg transition-colors"
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              
-              <div className="p-4 space-y-4">
-                <label htmlFor="rag-upload-batch-mode" className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    id="rag-upload-batch-mode"
-                    name="batchMode"
-                    type="checkbox"
-                    checked={batchMode}
-                    onChange={(e) => {
-                      setBatchMode(e.target.checked);
-                      setSelectedFile(null);
-                      setSelectedFiles([]);
-                      setDocumentPreview(null);
-                    }}
-                  />
-                  Пакетная загрузка (до 20 файлов)
-                </label>
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto gap-0 p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 pr-12 border-b border-border/60 text-left">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <UploadIcon />
+              Загрузка данных в БД
+            </DialogTitle>
+            <DialogDescription>
+              Документы в векторный индекс или файлы в SQL-таблицы.
+            </DialogDescription>
+          </DialogHeader>
 
-                {/* Drag & Drop область */}
-                <div
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-colors cursor-pointer ${
- dragActive 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                      : 'border-border'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    id="rag-upload-file"
-                    name="file"
-                    multiple={batchMode}
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      if (batchMode) {
-                        setSelectedFiles(files.slice(0, 20));
-                        setSelectedFile(null);
-                        setDocumentPreview(null);
-                      } else {
-                        const file = files[0] ?? null;
-                        setSelectedFile(file);
-                        setSelectedFiles([]);
-                        if (file) void loadDocumentPreview(file);
-                      }
-                      setUploadError(null);
-                    }}
-                    accept={
-                      uploadType === 'vector'
-                        ? '.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.rtf,.html,.htm,.xml'
-                        : '.csv,.json,.xlsx,.xls'
-                    }
-                    className="hidden"
-                  />
-                  <label htmlFor="rag-upload-file" className="cursor-pointer block">
-                    <FolderIcon />
-                    <p className="text-xs sm:text-sm mt-2 break-words">
-                      {batchMode
-                        ? selectedFiles.length > 0
-                          ? `${selectedFiles.length} файл(ов) выбрано`
-                          : 'Выберите несколько файлов'
-                        : selectedFile
-                          ? selectedFile.name
-                          : 'Перетащите файл или нажмите для выбора'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {uploadType === 'vector'
-                        ? 'PDF (OCR), DOCX, PPTX, TXT, MD, HTML, XML'
-                        : 'CSV, JSON, Excel (SQL-таблицы)'}
-                    </p>
-                  </label>
-                </div>
+          <div className="p-6 space-y-5">
+            <label htmlFor="rag-upload-batch-mode" className="flex items-center gap-3 text-sm cursor-pointer">
+              <input
+                id="rag-upload-batch-mode"
+                name="batchMode"
+                type="checkbox"
+                checked={batchMode}
+                onChange={(e) => {
+                  setBatchMode(e.target.checked);
+                  setSelectedFile(null);
+                  setSelectedFiles([]);
+                  setDocumentPreview(null);
+                }}
+                className="h-4 w-4 rounded-md border-border accent-foreground"
+              />
+              Пакетная загрузка (до 20 файлов)
+            </label>
 
-                {/* Превью документа */}
-                {uploadType === 'vector' && !batchMode && selectedFile && (
-                  <div className="rounded-lg border border-border p-3 text-xs bg-muted/40 dark:bg-muted/50">
-                    <div className="font-medium mb-1">Превью индексации</div>
-                    {isPreviewLoading && <p className="text-muted-foreground">Анализ файла...</p>}
-                    {!isPreviewLoading && documentPreview && (
-                      <>
-                        {documentPreview.error && (
-                          <InlineError message={documentPreview.error} className="text-xs" />
-                        )}
-                        {documentPreview.estimated_chunks != null && (
-                          <p>Ожидается чанков: {documentPreview.estimated_chunks}</p>
-                        )}
-                        {documentPreview.preview && (
-                          <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap text-muted-foreground">
-                            {documentPreview.preview.slice(0, 800)}
-                            {documentPreview.preview.length > 800 ? '…' : ''}
-                          </pre>
-                        )}
-                        {documentPreview.message && (
-                          <p className="text-muted-foreground mt-1">{documentPreview.message}</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Выбор типа загрузки */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">Тип загрузки</label>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <label htmlFor="rag-upload-type-vector" className={`flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-all ${
- uploadType === 'vector' 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                        : 'border-border'
-                    }`}>
-                      <input
-                        id="rag-upload-type-vector"
-                        name="uploadType"
-                        type="radio"
-                        value="vector"
-                        checked={uploadType === 'vector'}
-                        onChange={() => handleUploadTypeChange('vector')}
-                        className="w-4 h-4 shrink-0"
-                      />
-                      <VectorIcon />
-                      <div className="text-left min-w-0">
-                        <div className="text-xs sm:text-sm font-medium">🔍 Векторный поиск</div>
-                        <div className="text-xs text-muted-foreground hidden sm:block">Для запросов "из файлов"</div>
-                      </div>
-                    </label>
-                    <label htmlFor="rag-upload-type-sql" className={`flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-all ${
- uploadType === 'sql' 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                        : 'border-border'
-                    }`}>
-                      <input
-                        id="rag-upload-type-sql"
-                        name="uploadType"
-                        type="radio"
-                        value="sql"
-                        checked={uploadType === 'sql'}
-                        onChange={() => handleUploadTypeChange('sql')}
-                        className="w-4 h-4 shrink-0"
-                      />
-                      <TableIcon />
-                      <div className="text-left min-w-0">
-                        <div className="text-xs sm:text-sm font-medium">📊 SQL аналитика</div>
-                        <div className="text-xs text-muted-foreground hidden sm:block">Прямые SQL запросы</div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Название таблицы */}
-                <div>
-                  <label htmlFor="rag-upload-table-name" className="block text-sm font-medium mb-1">
-                    Название таблицы
-                    {uploadType === 'vector' && (
-                      <span className="text-xs text-blue-500 ml-2">(фиксировано: vector_store)</span>
-                    )}
-                  </label>
-                  <input
-                    id="rag-upload-table-name"
-                    name="tableName"
-                    type="text"
-                    value={tableName}
-                    onChange={(e) => {
-                      setTableName(e.target.value);
-                      if (uploadType === 'vector') {
-                        setUseAutoTableName(false);
-                      }
-                    }}
-                    placeholder={uploadType === 'vector' ? "vector_store" : "например: customers, orders"}
-                    disabled={uploadType === 'vector' && useAutoTableName}
-                    className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                      uploadType === 'vector' && useAutoTableName
-                        ? 'bg-accent text-muted-foreground'
-                        : 'border-border glass-input'
-                    } focus:outline-none focus:ring-2 focus:ring-ring/40`}
-                  />
-                  {uploadType === 'vector' && (
-                    <p className="text-xs text-blue-500 mt-1">
-                      PDF-сканы идут в репозиторий: OCR → Markdown → RAG. Остальные документы — через /api/rag/upload/document.
-                    </p>
-                  )}
-                </div>
-
-                {/* Настройки для Excel */}
-                {uploadType === 'vector' && selectedFile && 
-                 (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <label htmlFor="rag-upload-excel-to-text" className="text-sm font-medium">Конвертировать Excel в текст</label>
-                      <input
-                        id="rag-upload-excel-to-text"
-                        name="excelToText"
-                        type="checkbox"
-                        checked={excelToText}
-                        onChange={(e) => setExcelToText(e.target.checked)}
-                        className="w-4 h-4"
-                      />
-                    </div>
-                    
-                    {excelToText && (
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Режим индексации</label>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSummaryMode('summary')}
-                            className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-colors ${
- summaryMode === 'summary'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-accent text-foreground/80'
-                            }`}
-                          >
-                            Краткий (итоги)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSummaryMode('detailed')}
-                            className={`flex-1 px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-colors ${
- summaryMode === 'detailed'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-accent text-foreground/80'
-                            }`}
-                          >
-                            Детальный (построчно)
-                          </button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {summaryMode === 'summary' 
-                            ? 'Создаст общее описание для каждого листа (меньше записей, быстрее поиск)'
-                            : 'Создаст отдельную запись для каждой строки (точнее поиск, но больше данных)'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Действие при существовании таблицы */}
-                <div>
-                  <label htmlFor="rag-upload-if-exists" className="block text-sm font-medium mb-1">Если таблица существует</label>
-                  <select
-                    id="rag-upload-if-exists"
-                    name="ifExists"
-                    value={ifExists}
-                    onChange={(e) => setIfExists(e.target.value as 'replace' | 'append' | 'skip')}
-                    className="w-full px-3 py-2 rounded-lg text-sm glass-input focus:outline-none focus:ring-2 focus:ring-ring/40"
-                  >
-                    <option value="replace">Заменить (удалить и создать заново)</option>
-                    <option value="append">Добавить (дополнить существующую)</option>
-                    <option value="skip">Пропустить, если уже есть</option>
-                  </select>
-                </div>
-
-                {/* Прогресс загрузки */}
-                {isUploading && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        {uploadProgress < 20 && uploadType === 'vector' ? 'Конвертация...' : 'Загрузка...'}
-                      </span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full bg-border dark:bg-muted rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-blue-500 h-full transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Кнопка загрузки */}
-                <button
-                  onClick={handleUpload}
-                  disabled={
-                    isUploading ||
-                    (batchMode ? selectedFiles.length === 0 : !selectedFile) ||
-                    (uploadType === 'sql' && !batchMode && !tableName.trim()) ||
-                    (uploadType === 'sql' && batchMode && !tableName.trim())
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={cn(
+                'rounded-3xl border-2 border-dashed p-5 sm:p-6 text-center transition-colors cursor-pointer glass-input',
+                dragActive ? 'border-foreground/40 bg-accent/50' : 'border-border'
+              )}
+            >
+              <input
+                type="file"
+                id="rag-upload-file"
+                name="file"
+                multiple={batchMode}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (batchMode) {
+                    setSelectedFiles(files.slice(0, 20));
+                    setSelectedFile(null);
+                    setDocumentPreview(null);
+                  } else {
+                    const file = files[0] ?? null;
+                    setSelectedFile(file);
+                    setSelectedFiles([]);
+                    if (file) void loadDocumentPreview(file);
                   }
-                  className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
-                >
-                  {isUploading ? 'Загрузка...' : 'Загрузить в базу данных'}
-                </button>
+                  setUploadError(null);
+                }}
+                accept={
+                  uploadType === 'vector'
+                    ? '.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.rtf,.html,.htm,.xml'
+                    : '.csv,.json,.xlsx,.xls'
+                }
+                className="hidden"
+              />
+              <label htmlFor="rag-upload-file" className="cursor-pointer block">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-foreground">
+                  <FolderIcon />
+                </span>
+                <p className="text-sm mt-3 break-words font-medium">
+                  {batchMode
+                    ? selectedFiles.length > 0
+                      ? `${selectedFiles.length} файл(ов) выбрано`
+                      : 'Выберите несколько файлов'
+                    : selectedFile
+                      ? selectedFile.name
+                      : 'Перетащите файл или нажмите для выбора'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {uploadType === 'vector'
+                    ? 'PDF (OCR), DOCX, PPTX, TXT, MD, HTML, XML'
+                    : 'CSV, JSON, Excel (SQL-таблицы)'}
+                </p>
+              </label>
+            </div>
 
-                {/* Список таблиц */}
-                <div className="rounded-lg border border-border">
-                  <button
-                    onClick={() => {
-                      setShowTableList(!showTableList);
-                      if (!showTableList) loadTables();
-                    }}
-                    className="w-full p-3 flex justify-between items-center hover:bg-accent/70 transition-colors rounded-lg"
-                  >
-                    <span className="font-medium flex items-center gap-2 text-sm">
-                      <TableIcon />
-                      <span className="hidden sm:inline">Таблицы в БД</span>
-                      <span className="inline sm:hidden">Таблицы</span>
-                      <span className="text-xs text-muted-foreground">({tables.length})</span>
-                    </span>
-                    <svg 
-                      className={`w-4 h-4 transition-transform ${showTableList ? 'rotate-180' : ''}`}
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  
-                  {showTableList && (
-                    <div className="border-t p-3 space-y-2 max-h-64 overflow-y-auto">
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
-                        SQL-таблицы могут быть общими для инстанса. Не считайте их строго приватными без проверки бэкенда.
-                      </p>
-                      {isLoadingTables ? (
-                        <div className="text-center py-4 text-muted-foreground">Загрузка...</div>
-                      ) : tables.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          Нет таблиц. Загрузите данные для создания таблиц.
-                        </p>
-                      ) : (
-                        tables.map((table) => (
-                          <div 
-                            key={table.name}
-                            className="rounded-lg transition-colors bg-muted/50 dark:bg-muted/70"
-                          >
-                            <div className="flex justify-between items-center p-2 gap-2 flex-wrap">
-                              <input
-                                type="checkbox"
-                                checked={selectedTableNames.includes(table.name)}
-                                onChange={() => {
-                                  setSelectedTableNames((prev) =>
-                                    prev.includes(table.name)
-                                      ? prev.filter((name) => name !== table.name)
-                                      : [...prev, table.name]
-                                  );
-                                }}
-                                title="Использовать в SQL-запросе"
-                                className="shrink-0"
-                              />
-                              <button
-                                onClick={() => toggleTableExpand(table.name)}
-                                className="flex-1 flex items-center gap-2 text-left min-w-0"
-                              >
-                                <svg 
-                                  className={`w-4 h-4 transition-transform shrink-0 ${expandedTables.has(table.name) ? 'rotate-90' : ''}`}
-                                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                                <div className="min-w-0">
-                                  <div className="font-mono text-xs sm:text-sm font-medium break-words">
-                                    {table.name}
-                                    {table.name === 'vector_store' && (
-                                      <span className="ml-2 text-xs text-blue-500">(векторный)</span>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">{table.columnCount} колонок, {table.rowCount} строк</div>
-                                </div>
-                              </button>
-                              <div className="flex gap-1 shrink-0">
-                                <button
-                                  onClick={() => handleClearTable(table.name)}
-                                  className="p-1.5 text-xs bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded hover:bg-yellow-500/20 transition-colors"
-                                  title="Очистить таблицу"
-                                >
-                                  <ClearIcon />
-                                </button>
-                                <IconButton
-                                  variant="danger"
-                                  size="sm"
-                                  label="Удалить таблицу"
-                                  onClick={() => handleDeleteTable(table.name)}
-                                  className="text-xs"
-                                >
-                                  <TrashIcon />
-                                </IconButton>
-                              </div>
-                            </div>
-                            {expandedTables.has(table.name) && table.columns && (
-                              <div className="border-t px-3 py-2">
-                                <div className="text-xs font-semibold text-muted-foreground mb-1">Колонки:</div>
-                                <div className="flex flex-wrap gap-1">
-                                  {table.columns.slice(0, 10).map((col, idx) => (
-                                    <span key={idx} className="text-xs px-1.5 py-0.5 bg-accent dark:bg-muted rounded break-words" title={col.type}>
-                                      {col.name}
-                                    </span>
-                                  ))}
-                                  {table.columns.length > 10 && (
-                                    <span className="text-xs text-muted-foreground">+{table.columns.length - 10}</span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
+            {uploadType === 'vector' && !batchMode && selectedFile && (
+              <div className="rounded-2xl border border-border/70 p-3 text-xs bg-muted/40">
+                <div className="font-medium mb-1">Превью индексации</div>
+                {isPreviewLoading && <p className="text-muted-foreground">Анализ файла...</p>}
+                {!isPreviewLoading && documentPreview && (
+                  <>
+                    {documentPreview.error && (
+                      <InlineError message={documentPreview.error} className="text-xs" />
+                    )}
+                    {documentPreview.estimated_chunks != null && (
+                      <p>Ожидается чанков: {documentPreview.estimated_chunks}</p>
+                    )}
+                    {documentPreview.preview && (
+                      <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap text-muted-foreground">
+                        {documentPreview.preview.slice(0, 800)}
+                        {documentPreview.preview.length > 800 ? '…' : ''}
+                      </pre>
+                    )}
+                    {documentPreview.message && (
+                      <p className="text-muted-foreground mt-1">{documentPreview.message}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            <div>
+              <FormLabel>Тип загрузки</FormLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleUploadTypeChange('vector')}
+                  className={cn(
+                    'flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors',
+                    uploadType === 'vector'
+                      ? 'border-foreground/25 bg-accent shadow-sm'
+                      : 'border-border hover:bg-accent/50'
                   )}
-                </div>
-
-                {/* Сообщения об ошибках и успехе */}
-                {uploadError && (
-                  <InlineError message={`❌ ${uploadError}`} onDismiss={() => setUploadError(null)} />
-                )}
-
-                {uploadSuccess && (
-                  <InlineSuccess message={uploadSuccess} onDismiss={() => setUploadSuccess(null)} />
-                )}
+                >
+                  <VectorIcon />
+                  <span>
+                    <span className="block text-sm font-medium">Векторный поиск</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Запросы «из файлов»</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleUploadTypeChange('sql')}
+                  className={cn(
+                    'flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors',
+                    uploadType === 'sql'
+                      ? 'border-foreground/25 bg-accent shadow-sm'
+                      : 'border-border hover:bg-accent/50'
+                  )}
+                >
+                  <TableIcon />
+                  <span>
+                    <span className="block text-sm font-medium">SQL-аналитика</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Прямые SQL-запросы</span>
+                  </span>
+                </button>
               </div>
             </div>
+
+            <div>
+              <FormLabel htmlFor="rag-upload-table-name">
+                Название таблицы
+                {uploadType === 'vector' && (
+                  <span className="text-xs text-muted-foreground font-normal ml-2">vector_store</span>
+                )}
+              </FormLabel>
+              <FormInput
+                id="rag-upload-table-name"
+                name="tableName"
+                type="text"
+                value={tableName}
+                onChange={(e) => {
+                  setTableName(e.target.value);
+                  if (uploadType === 'vector') {
+                    setUseAutoTableName(false);
+                  }
+                }}
+                placeholder={uploadType === 'vector' ? 'vector_store' : 'например: customers, orders'}
+                disabled={uploadType === 'vector' && useAutoTableName}
+                className={cn(
+                  'rounded-2xl',
+                  uploadType === 'vector' && useAutoTableName && 'opacity-70'
+                )}
+              />
+              {uploadType === 'vector' && (
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  PDF-сканы: OCR → Markdown → RAG. Остальные документы — через /api/rag/upload/document.
+                </p>
+              )}
+            </div>
+
+            {uploadType === 'vector' && selectedFile &&
+              (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) && (
+              <div className="space-y-3">
+                <label htmlFor="rag-upload-excel-to-text" className="flex items-center justify-between gap-3 cursor-pointer">
+                  <span className="text-sm font-medium">Конвертировать Excel в текст</span>
+                  <input
+                    id="rag-upload-excel-to-text"
+                    name="excelToText"
+                    type="checkbox"
+                    checked={excelToText}
+                    onChange={(e) => setExcelToText(e.target.checked)}
+                    className="h-4 w-4 rounded-md border-border accent-foreground"
+                  />
+                </label>
+
+                {excelToText && (
+                  <div>
+                    <FormLabel>Режим индексации</FormLabel>
+                    <SelectMenu
+                      aria-label="Режим индексации Excel"
+                      value={summaryMode}
+                      onChange={(value) => setSummaryMode(value as 'summary' | 'detailed')}
+                      options={[
+                        { value: 'summary', label: 'Краткий (итоги по листам)' },
+                        { value: 'detailed', label: 'Детальный (построчно)' },
+                      ]}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      {summaryMode === 'summary'
+                        ? 'Общее описание каждого листа — меньше записей, быстрее поиск.'
+                        : 'Отдельная запись на каждую строку — точнее поиск, больше данных.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <FormLabel htmlFor="rag-upload-if-exists">Если таблица существует</FormLabel>
+              <SelectMenu
+                id="rag-upload-if-exists"
+                aria-label="Если таблица существует"
+                value={ifExists}
+                onChange={(value) => setIfExists(value as 'replace' | 'append' | 'skip')}
+                options={[
+                  { value: 'replace', label: 'Заменить (удалить и создать заново)' },
+                  { value: 'append', label: 'Добавить к существующей' },
+                  { value: 'skip', label: 'Пропустить, если уже есть' },
+                ]}
+              />
+            </div>
+
+            {isUploading && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {uploadProgress < 20 && uploadType === 'vector' ? 'Конвертация…' : 'Загрузка…'}
+                  </span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-border/80 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-foreground/70 h-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleUpload}
+              disabled={
+                isUploading ||
+                (batchMode ? selectedFiles.length === 0 : !selectedFile) ||
+                (uploadType === 'sql' && !tableName.trim())
+              }
+            >
+              {isUploading ? 'Загрузка…' : 'Загрузить в базу данных'}
+            </Button>
+
+            <div className="rounded-2xl border border-border/70 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTableList(!showTableList);
+                  if (!showTableList) loadTables();
+                }}
+                className="w-full px-4 py-3 flex justify-between items-center hover:bg-accent/50 transition-colors"
+              >
+                <span className="font-medium flex items-center gap-2 text-sm">
+                  <TableIcon />
+                  Таблицы в БД
+                  <span className="text-xs text-muted-foreground font-normal">({tables.length})</span>
+                </span>
+                <svg
+                  className={`w-4 h-4 text-muted-foreground transition-transform ${showTableList ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showTableList && (
+                <div className="border-t border-border/60 p-3 space-y-2 max-h-64 overflow-y-auto">
+                  <p className="text-[11px] text-muted-foreground">
+                    SQL-таблицы могут быть общими для инстанса.
+                  </p>
+                  {isLoadingTables ? (
+                    <div className="text-center py-4 text-muted-foreground text-sm">Загрузка...</div>
+                  ) : tables.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Нет таблиц. Загрузите данные, чтобы создать таблицы.
+                    </p>
+                  ) : (
+                    tables.map((table) => (
+                      <div
+                        key={table.name}
+                        className="rounded-xl bg-muted/40"
+                      >
+                        <div className="flex justify-between items-center p-2 gap-2 flex-wrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedTableNames.includes(table.name)}
+                            onChange={() => {
+                              setSelectedTableNames((prev) =>
+                                prev.includes(table.name)
+                                  ? prev.filter((name) => name !== table.name)
+                                  : [...prev, table.name]
+                              );
+                            }}
+                            title="Использовать в SQL-запросе"
+                            className="h-4 w-4 shrink-0 rounded-md border-border accent-foreground"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleTableExpand(table.name)}
+                            className="flex-1 flex items-center gap-2 text-left min-w-0"
+                          >
+                            <svg
+                              className={`w-4 h-4 transition-transform shrink-0 ${expandedTables.has(table.name) ? 'rotate-90' : ''}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            <div className="min-w-0">
+                              <div className="font-mono text-xs sm:text-sm font-medium break-words">
+                                {table.name}
+                                {table.name === 'vector_store' && (
+                                  <span className="ml-2 text-xs text-muted-foreground">(векторный)</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">{table.columnCount} колонок, {table.rowCount} строк</div>
+                            </div>
+                          </button>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleClearTable(table.name)}
+                              className="p-1.5 text-xs rounded-xl hover:bg-accent text-muted-foreground transition-colors"
+                              title="Очистить таблицу"
+                            >
+                              <ClearIcon />
+                            </button>
+                            <IconButton
+                              variant="danger"
+                              size="sm"
+                              label="Удалить таблицу"
+                              onClick={() => handleDeleteTable(table.name)}
+                              className="text-xs"
+                            >
+                              <TrashIcon />
+                            </IconButton>
+                          </div>
+                        </div>
+                        {expandedTables.has(table.name) && table.columns && (
+                          <div className="border-t border-border/50 px-3 py-2">
+                            <div className="text-xs font-semibold text-muted-foreground mb-1">Колонки:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {table.columns.slice(0, 10).map((col, idx) => (
+                                <span key={idx} className="text-xs px-1.5 py-0.5 bg-accent rounded-lg break-words" title={col.type}>
+                                  {col.name}
+                                </span>
+                              ))}
+                              {table.columns.length > 10 && (
+                                <span className="text-xs text-muted-foreground">+{table.columns.length - 10}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {uploadError && (
+              <InlineError message={uploadError} onDismiss={() => setUploadError(null)} />
+            )}
+            {uploadSuccess && (
+              <InlineSuccess message={uploadSuccess} onDismiss={() => setUploadSuccess(null)} />
+            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
       </div>
 
       <button
