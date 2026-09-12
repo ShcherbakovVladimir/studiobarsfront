@@ -16,14 +16,52 @@ function asRecord(value: unknown): UnknownRecord | undefined {
     : undefined;
 }
 
-/** Chat tokens live only in `choices[0].delta.content`. Nothing else is a token. */
-function extractDeltaContent(parsed: UnknownRecord): string {
+function extractOpenAiDelta(parsed: UnknownRecord): string {
   const choices = parsed.choices;
   if (!Array.isArray(choices)) return '';
 
-  const delta = asRecord(asRecord(choices[0])?.delta);
-  const content = delta?.content;
-  return typeof content === 'string' ? content : '';
+  const choice = asRecord(choices[0]);
+  const delta = asRecord(choice?.delta);
+  if (delta) {
+    if (typeof delta.content === 'string' && delta.content) return delta.content;
+    if (typeof delta.reasoning_content === 'string' && delta.reasoning_content) {
+      return delta.reasoning_content;
+    }
+    if (typeof delta.text === 'string' && delta.text) return delta.text;
+    return '';
+  }
+
+  const message = asRecord(choice?.message);
+  if (typeof message?.content === 'string') return message.content;
+  if (typeof choice?.text === 'string') return choice.text;
+  return '';
+}
+
+function extractToken(parsed: UnknownRecord, already: string): string {
+  const openai = extractOpenAiDelta(parsed);
+  if (openai) {
+    if (already && openai.startsWith(already) && openai.length >= already.length) {
+      return openai.slice(already.length);
+    }
+    return openai;
+  }
+
+  const accumulated =
+    (typeof parsed.response === 'string' && parsed.response) ||
+    (typeof parsed.completion === 'string' && parsed.completion) ||
+    '';
+  if (accumulated) {
+    if (already && accumulated.startsWith(already)) return accumulated.slice(already.length);
+    if (!already) return accumulated;
+  }
+
+  for (const key of ['token', 'chunk', 'content', 'text'] as const) {
+    const value = parsed[key];
+    if (typeof value !== 'string' || !value) continue;
+    if (already && value.startsWith(already)) return value.slice(already.length);
+    return value;
+  }
+  return '';
 }
 
 /** Without `stream: true` the backend answers with plain JSON `{ success, response }`. */
@@ -154,7 +192,7 @@ export async function consumeChatStream(
         return;
       }
 
-      const token = extractDeltaContent(parsed);
+      const token = extractToken(parsed, fullResponse);
       if (!token) return;
 
       const now = performance.now();

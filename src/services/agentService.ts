@@ -421,8 +421,8 @@ export async function chatStream(
           mode: options.mode
         })
       }),
-      signal: abort.signal
-    });
+      signal: abort.signal,
+    }, STREAM_TIMEOUT_MS);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -591,8 +591,8 @@ export async function chatStreamWithTools(
         }),
         stream: true
       }),
-      signal: abort.signal
-    });
+      signal: abort.signal,
+    }, STREAM_TIMEOUT_MS);
     
     if (!response.ok) {
       const errorText = await response.text();

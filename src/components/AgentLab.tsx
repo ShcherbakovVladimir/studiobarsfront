@@ -1300,6 +1300,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   }, [currentModelId, dispatch, messages.length]);
 
   useEffect(() => {
+    if (isStreaming) return;
     if (!currentChatRef.current || messages.length === 0 || !isChatLoadedRef.current) {
       return;
     }
@@ -1308,7 +1309,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [messages, saveCurrentChat]);
+  }, [messages, saveCurrentChat, isStreaming]);
 
   const initializeSession = useCallback(async (forceReinit = false) => {
     if (initInProgressRef.current) {
@@ -1392,7 +1393,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     } finally {
       initInProgressRef.current = false;
     }
-  }, [isServerReady, currentModelId, sessionId, selectedWrapper, currentModel, isInitialized, systemPrompt, productMode]);
+  }, [isServerReady, currentModelId, sessionId, selectedWrapper, currentModel?.id, isInitialized, systemPrompt, productMode]);
 
   useEffect(() => {
     if (currentModel) {
@@ -1414,15 +1415,16 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   useEffect(() => {
     isMountedRef.current = true;
-    if (!isInitialized && !initInProgressRef.current) {
-      initializeSession();
-    }
     return () => {
       isMountedRef.current = false;
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
     };
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialized && !initInProgressRef.current) {
+      void initializeSession();
+    }
   }, [initializeSession, isInitialized]);
   
   useEffect(() => {
