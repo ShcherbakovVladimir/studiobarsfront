@@ -35,7 +35,14 @@ import { PANEL_IDS } from '../store/workspaceUiSlice';
 import RAGSessionSidebar from './RAGSessionSidebar';
 import RAGFilesSidebar from './RAGFilesSidebar';
 import ragService, { type QwenInfoResponse } from '../services/ragService';
-import userFilesService, { isPdfFile, userFileStatusLabel } from '../services/userFilesService';
+import userFilesService, {
+  isPdfFile,
+  userFileStatusLabel,
+  userFileDisplayName,
+  ragSourceFromFileName,
+  FileExistsError,
+  FileUploadCancelledError,
+} from '../services/userFilesService';
 import {
   formatLoadedModelLabel,
   formatQwenApiModelLabel,
@@ -221,7 +228,24 @@ async function ingestPdfFile(
   onProgress: (percent: number) => void,
   onStatus: (message: string) => void
 ) {
-  const uploaded = await userFilesService.uploadPdf(file, onProgress);
+  let uploaded;
+  try {
+    uploaded = await userFilesService.uploadPdf(file, onProgress);
+  } catch (error) {
+    if (!(error instanceof FileExistsError)) throw error;
+    const replace = await confirmDialog({
+      title: 'Файл уже загружен',
+      description: `«${error.existing.originalName}» уже есть в репозитории. Заменить исходник, OCR и чанки RAG?`,
+      confirmLabel: 'Заменить',
+      cancelLabel: 'Отменить',
+      destructive: true,
+    });
+    if (!replace) return null;
+    uploaded = await userFilesService.uploadPdf(file, onProgress, { replace: true });
+  }
+  if (!uploaded.id) {
+    throw new Error('Сервер не вернул id файла');
+  }
   notifyRagLibraryChanged();
   onStatus(uploaded.statusMessage || 'PDF принят, запущен OCR…');
   const done = await userFilesService.poll(uploaded.id, (current) => {
@@ -229,7 +253,10 @@ async function ingestPdfFile(
     onStatus(current.statusMessage || userFileStatusLabel(current.status));
   });
   if (done.status === 'error') {
-    throw new Error(done.error || `Ошибка обработки «${file.name}»`);
+    throw new Error(done.error || `Ошибка обработки «${userFileDisplayName(done)}»`);
+  }
+  if (!done.ragSource) {
+    done.ragSource = ragSourceFromFileName(userFileDisplayName(done));
   }
   notifyRagLibraryChanged();
   return done;
@@ -798,12 +825,16 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               (progress) => setUploadProgress(progress),
               (message) => setUploadSuccess(`${pdf.name}: ${message}`)
             );
+            if (!done) continue;
             pdfDone += 1;
             if (done.ragSource) {
               setSelectedDocumentSources((prev) =>
                 prev.includes(done.ragSource!) ? prev : [...prev, done.ragSource!]
               );
             }
+          }
+          if (pdfDone === 0 && others.length === 0) {
+            return;
           }
           if (others.length > 0) {
             const result = await ragService.uploadDocumentsBatch(
@@ -844,6 +875,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           setUploadSuccess(null);
         }, 2000);
       } catch (err) {
+        if (err instanceof FileUploadCancelledError) return;
         setUploadError(err instanceof Error ? err.message : 'Ошибка пакетной загрузки');
       } finally {
         setIsUploading(false);
@@ -887,13 +919,17 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             (progress) => setUploadProgress(progress),
             (message) => setUploadSuccess(message)
           );
+          if (!done) {
+            return;
+          }
           if (done.ragSource) {
             setSelectedDocumentSources((prev) =>
               prev.includes(done.ragSource!) ? prev : [...prev, done.ragSource!]
             );
           }
+          const label = userFileDisplayName(done);
           setUploadSuccess(
-            `✅ PDF «${selectedFile.name}» готов` +
+            `✅ PDF «${label}» готов` +
               (done.ragSource ? ` → ${done.ragSource}` : '')
           );
           setSelectedFile(null);
@@ -961,6 +997,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         }, 2000);
       }
     } catch (err) {
+      if (err instanceof FileUploadCancelledError) return;
       setUploadError(err instanceof Error ? err.message : 'Ошибка загрузки');
     } finally {
       setIsUploading(false);
@@ -2280,7 +2317,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               />
               {uploadType === 'vector' && (
                 <p className="text-xs text-muted-foreground mt-1.5">
-                  PDF-сканы: OCR → Markdown → RAG. Остальные документы — через /api/rag/upload/document.
+                  PDF-сканы идут в POST /api/files/upload/pdf (не /api/rag/upload/document). После ready в запросе: ragSource (.md).
                 </p>
               )}
             </div>
@@ -2339,11 +2376,11 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
             {isUploading && (
               <div className="space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {uploadProgress < 20 && uploadType === 'vector' ? 'Конвертация…' : 'Загрузка…'}
+                <div className="flex justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground truncate">
+                    {uploadSuccess || (uploadType === 'sql' ? 'Загрузка…' : 'Обработка…')}
                   </span>
-                  <span>{uploadProgress}%</span>
+                  <span className="shrink-0 tabular-nums">{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-border/80 rounded-full h-2 overflow-hidden">
                   <div
@@ -2364,7 +2401,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 (uploadType === 'sql' && !tableName.trim())
               }
             >
-              {isUploading ? 'Загрузка…' : 'Загрузить в базу данных'}
+              {isUploading ? 'Обработка…' : 'Загрузить в базу данных'}
             </Button>
 
             <div className="rounded-2xl border border-border/70 overflow-hidden">

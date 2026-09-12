@@ -3,6 +3,7 @@ import { Download, FileText, FileType, RefreshCw, RotateCcw, Trash2, CheckSquare
 import { confirmDialog } from '../services/dialogService';
 import userFilesService, {
   isUserFileActive,
+  userFileDisplayName,
   userFileStatusLabel,
 } from '../services/userFilesService';
 import { notifyRagLibraryChanged, subscribeRagLibraryChanged } from '../services/ragLibrarySync';
@@ -119,7 +120,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   const handleDelete = async (file: UserFile) => {
     const confirmed = await confirmDialog({
       title: 'Удалить PDF?',
-      description: `Удалить «${file.originalName}» и связанные чанки RAG?`,
+      description: `Удалить «${userFileDisplayName(file)}» и связанные чанки RAG?`,
       destructive: true,
       confirmLabel: 'Удалить',
     });
@@ -157,7 +158,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       const url = URL.createObjectURL(pdfBlob);
       setPdfPreview((current) => {
         if (current?.url) URL.revokeObjectURL(current.url);
-        return { name: file.originalName, url };
+        return { name: userFileDisplayName(file), url };
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось открыть PDF');
@@ -170,7 +171,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
     setActionId(file.id);
     try {
       const text = await userFilesService.getMarkdown(file.id);
-      setMarkdownPreview({ name: file.originalName, text });
+      setMarkdownPreview({ name: userFileDisplayName(file), text });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось открыть Markdown');
     } finally {
@@ -181,7 +182,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   const handleDownload = async (file: UserFile) => {
     setActionId(file.id);
     try {
-      await userFilesService.downloadOriginal(file.id, file.originalName);
+      await userFilesService.downloadOriginal(file.id, userFileDisplayName(file));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка скачивания PDF');
     } finally {
@@ -207,7 +208,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Исходники на диске: original.pdf. OCR пишет Markdown в индекс, PDF не удаляется.
+        В списке — исходное имя (например Договор.pdf). В аналитике: documentSources = ragSource (.md).
       </p>
 
       {error && <InlineError message={error} className="text-xs" onDismiss={() => setError(null)} />}
@@ -225,6 +226,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
 
       <div className={compact ? 'space-y-2' : 'space-y-2 max-h-56 overflow-y-auto'}>
         {files.map((file) => {
+          const label = userFileDisplayName(file);
           const selected = Boolean(file.ragSource && selectedSources.includes(file.ragSource));
           const busy = actionId === file.id;
           const ready = file.status === 'ready' && Boolean(file.ragSource);
@@ -249,9 +251,14 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
                   {selected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate" title={file.originalName}>
-                    {file.originalName}
+                  <div className="text-sm font-medium truncate" title={label}>
+                    {label}
                   </div>
+                  {file.ragSource && (
+                    <div className="text-[11px] text-muted-foreground truncate" title={file.ragSource}>
+                      RAG: {file.ragSource}
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1">
                     <span
                       className={

@@ -235,6 +235,7 @@ export type UserFileStatus =
 export interface UserFile {
   id: string;
   originalName: string;
+  displayName?: string;
   status: UserFileStatus;
   progress: number;
   statusMessage?: string;
@@ -244,6 +245,7 @@ export interface UserFile {
   size?: number;
   createdAt?: string;
   updatedAt?: string;
+  replaced?: boolean;
 }
 
 export interface RagDocumentPreview {

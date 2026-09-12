@@ -12,6 +12,34 @@ const ACTIVE_STATUSES = new Set<UserFileStatus>([
   'indexing',
 ]);
 
+export class FileExistsError extends Error {
+  code = 'FILE_EXISTS' as const;
+  existing: { id: string; originalName: string };
+
+  constructor(existing: { id: string; originalName: string }) {
+    super(`Файл «${existing.originalName}» уже есть в репозитории`);
+    this.name = 'FileExistsError';
+    this.existing = existing;
+  }
+}
+
+export class FileUploadCancelledError extends Error {
+  constructor() {
+    super('UPLOAD_CANCELLED');
+    this.name = 'FileUploadCancelledError';
+  }
+}
+
+export function userFileDisplayName(file: Pick<UserFile, 'originalName' | 'displayName'>): string {
+  return (file.displayName || file.originalName || 'document.pdf').trim();
+}
+
+export function ragSourceFromFileName(name: string): string {
+  const base = name.replace(/\\/g, '/').split('/').pop() || name;
+  const stem = base.replace(/\.pdf$/i, '').trim() || 'document';
+  return `${stem}.md`;
+}
+
 export function isPdfFile(file: File): boolean {
   return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 }
@@ -53,18 +81,29 @@ export function normalizeUserFile(raw: unknown): UserFile {
   const originalName = String(
     source.originalName ?? source.original_name ?? source.filename ?? source.name ?? 'document.pdf'
   );
+  const displayRaw = source.displayName ?? source.display_name;
+  const displayName = typeof displayRaw === 'string' && displayRaw.trim() ? displayRaw.trim() : originalName;
   const progressRaw = source.progress;
   const progress =
     typeof progressRaw === 'number'
       ? progressRaw
       : Number.parseFloat(String(progressRaw ?? '0')) || 0;
-  const ragSource = source.ragSource ?? source.rag_source;
+  const ragSourceRaw = source.ragSource ?? source.rag_source;
+  const ragSource =
+    typeof ragSourceRaw === 'string' && ragSourceRaw.trim()
+      ? ragSourceRaw.toLowerCase().endsWith('.pdf')
+        ? ragSourceFromFileName(ragSourceRaw)
+        : ragSourceRaw.trim()
+      : String(source.status) === 'ready'
+        ? ragSourceFromFileName(displayName)
+        : undefined;
   const pageCount = source.pageCount ?? source.page_count ?? source.pages;
   const size = source.size ?? source.bytes ?? source.filesize;
 
   return {
     id,
     originalName,
+    displayName,
     status: (String(source.status ?? 'queued') as UserFileStatus),
     progress: Math.max(0, Math.min(100, progress)),
     statusMessage:
@@ -74,7 +113,8 @@ export function normalizeUserFile(raw: unknown): UserFile {
           ? source.message
           : undefined,
     error: typeof source.error === 'string' ? source.error : undefined,
-    ragSource: typeof ragSource === 'string' && ragSource ? ragSource : undefined,
+    ragSource,
+    replaced: source.replaced === true,
     pageCount: typeof pageCount === 'number' ? pageCount : Number(pageCount) || undefined,
     size: typeof size === 'number' ? size : Number(size) || undefined,
     createdAt:
@@ -101,14 +141,52 @@ function triggerDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(objectUrl);
 }
 
+function parseExistingFile(data: Record<string, unknown>): { id: string; originalName: string } {
+  const existingRaw = asRecord(data.existing ?? data.file ?? data);
+  const originalName = String(
+    existingRaw.displayName ??
+      existingRaw.display_name ??
+      existingRaw.originalName ??
+      existingRaw.original_name ??
+      existingRaw.name ??
+      'document.pdf'
+  );
+  return {
+    id: String(existingRaw.id ?? existingRaw.fileId ?? existingRaw.file_id ?? ''),
+    originalName,
+  };
+}
+
+function uploadErrorFromBody(status: number, data: Record<string, unknown>): Error {
+  const code = typeof data.code === 'string' ? data.code : '';
+  if (
+    status === 409 &&
+    (code === 'FILE_EXISTS' || code === 'file_exists' || data.existing != null)
+  ) {
+    return new FileExistsError(parseExistingFile(data));
+  }
+  if (code === 'PDF_REQUIRED') return new Error('Нужен файл PDF');
+  if (code === 'NO_FILE') return new Error('Выберите файл');
+  const message =
+    (typeof data.error === 'string' && data.error) ||
+    (typeof data.message === 'string' && data.message) ||
+    `Загрузка PDF не удалась: HTTP ${status}`;
+  return new Error(message);
+}
+
 function uploadPdfWithProgress(
   file: File,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  options: { replace?: boolean } = {}
 ): Promise<UserFile> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
     formData.append('file', file);
+    if (options.replace) {
+      formData.append('replace', 'true');
+      formData.append('ifExists', 'replace');
+    }
 
     xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && onProgress) {
@@ -118,12 +196,14 @@ function uploadPdfWithProgress(
 
     xhr.addEventListener('load', () => {
       try {
-        const data = JSON.parse(xhr.responseText) as Record<string, unknown> & { error?: string };
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(normalizeUserFile(data.file ?? data));
-        } else {
-          reject(new Error(data.error ?? `Загрузка PDF не удалась: HTTP ${xhr.status}`));
+        const data = JSON.parse(xhr.responseText || '{}') as Record<string, unknown>;
+        if (xhr.status === 202 || (xhr.status >= 200 && xhr.status < 300)) {
+          const uploaded = normalizeUserFile(data.file ?? data);
+          uploaded.replaced = data.replaced === true || uploaded.replaced;
+          resolve(uploaded);
+          return;
         }
+        reject(uploadErrorFromBody(xhr.status, data));
       } catch {
         reject(new Error(`Загрузка PDF не удалась: HTTP ${xhr.status}`));
       }
@@ -131,7 +211,8 @@ function uploadPdfWithProgress(
 
     xhr.addEventListener('error', () => reject(new Error('Сеть: не удалось загрузить PDF')));
     xhr.addEventListener('abort', () => reject(new Error('Загрузка PDF отменена')));
-    xhr.open('POST', buildFilesApiUrl('/upload/pdf'));
+    const path = options.replace ? '/upload/pdf?replace=true' : '/upload/pdf';
+    xhr.open('POST', buildFilesApiUrl(path));
     const token = getToken();
     if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     xhr.send(formData);
@@ -169,14 +250,18 @@ export const userFilesService = {
     return normalizeUserFile(data.file ?? data);
   },
 
-  async uploadPdf(file: File, onProgress?: (percent: number) => void): Promise<UserFile> {
+  async uploadPdf(
+    file: File,
+    onProgress?: (percent: number) => void,
+    options: { replace?: boolean } = {}
+  ): Promise<UserFile> {
     if (!isPdfFile(file)) {
       throw new Error('Нужен файл PDF');
     }
     if (file.size > USER_FILES_MAX_BYTES) {
       throw new Error(`PDF больше ${USER_FILES_MAX_MB} МБ`);
     }
-    return uploadPdfWithProgress(file, onProgress);
+    return uploadPdfWithProgress(file, onProgress, options);
   },
 
   async poll(
