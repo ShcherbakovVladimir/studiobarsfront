@@ -438,12 +438,17 @@ function parseDocumentsPayload(data: unknown): RagDocument[] {
   const candidates = [row.documents, row.files, row.items, nested.documents, nested.files, nested.items];
   const raw = candidates.find((item) => Array.isArray(item)) as unknown[] | undefined;
   if (!raw) return [];
+  const seen = new Set<string>();
   return raw.map((item) => {
     const doc = asPayloadRecord(item);
     const sourceValue = doc.source ?? doc.source_name ?? doc.name ?? doc.filename ?? doc.id;
     const source = typeof sourceValue === 'string' ? sourceValue : String(sourceValue ?? '');
     return { ...(item as RagDocument), source };
-  }).filter((doc) => doc.source);
+  }).filter((doc) => {
+    if (!doc.source || seen.has(doc.source)) return false;
+    seen.add(doc.source);
+    return true;
+  });
 }
 
 async function downloadRagBlob(path: string, filename: string): Promise<void> {

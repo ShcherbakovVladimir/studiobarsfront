@@ -10,27 +10,34 @@ import type { UserFile } from '../types';
 import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { EmptyState, LoadingState } from './ui/page-states';
+import MarkdownContent from './MarkdownContent';
 
 interface UserFilesPanelProps {
   selectedSources: string[];
   onSelectionChange: (sources: string[]) => void;
   onReady?: (file: UserFile) => void;
+  onFilesChange?: (files: UserFile[]) => void;
   compact?: boolean;
   active?: boolean;
+  isDarkMode?: boolean;
 }
 
 const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   selectedSources,
   onSelectionChange,
   onReady,
+  onFilesChange,
   compact = false,
   active = true,
+  isDarkMode = false,
 }) => {
   const [files, setFiles] = useState<UserFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [markdownPreview, setMarkdownPreview] = useState<{ name: string; text: string } | null>(null);
+  const onFilesChangeRef = useRef(onFilesChange);
+  onFilesChangeRef.current = onFilesChange;
   const readyNotified = useRef(new Set<string>());
   const seededReady = useRef(false);
 
@@ -42,6 +49,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
     try {
       const res = await userFilesService.list();
       setFiles(res.files);
+      onFilesChangeRef.current?.(res.files);
     } catch (err) {
       if (!silent) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить репозиторий PDF');
@@ -292,21 +300,23 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       </div>
 
       {markdownPreview && (
-        <div className="rounded-lg border border-border p-3 max-h-56 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs font-medium">Markdown: {markdownPreview.name}</p>
+        <div className="rounded-lg border border-border p-3 max-h-80 overflow-y-auto">
+          <div className="flex justify-between items-center mb-2 gap-2">
+            <p className="text-xs font-medium truncate">Просмотр: {markdownPreview.name}</p>
             <button
               type="button"
-              className="text-xs text-muted-foreground hover:underline"
+              className="text-xs text-muted-foreground hover:underline shrink-0"
               onClick={() => setMarkdownPreview(null)}
             >
               Закрыть
             </button>
           </div>
-          <pre className="whitespace-pre-wrap text-[11px] text-muted-foreground">
-            {markdownPreview.text.slice(0, 8000)}
-            {markdownPreview.text.length > 8000 ? '…' : ''}
-          </pre>
+          <MarkdownContent
+            content={markdownPreview.text}
+            isDarkMode={isDarkMode}
+            compact
+            className="text-sm"
+          />
         </div>
       )}
     </div>

@@ -143,10 +143,18 @@ function extractUserFileRows(data: unknown): { files: UserFile[]; total: number 
   const nested = asRecord(row.data);
   const candidates = [row.files, row.items, nested.files, nested.items, Array.isArray(row.data) ? row.data : null];
   const rows = (candidates.find((item) => Array.isArray(item)) as unknown[] | undefined) ?? [];
+  const seen = new Set<string>();
+  const files = rows
+    .map(normalizeUserFile)
+    .filter((file) => {
+      if (!file.id || file.id === 'undefined' || seen.has(file.id)) return false;
+      seen.add(file.id);
+      return true;
+    });
   const totalRaw = row.total ?? nested.total ?? row.count ?? nested.count;
   return {
-    files: rows.map(normalizeUserFile).filter((file) => file.id),
-    total: typeof totalRaw === 'number' ? totalRaw : Number(totalRaw) || rows.length,
+    files,
+    total: typeof totalRaw === 'number' ? totalRaw : Number(totalRaw) || files.length,
   };
 }
 

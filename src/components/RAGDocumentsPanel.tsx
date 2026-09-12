@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { confirmDialog } from '../services/dialogService';
 import {
   Download,
@@ -16,6 +16,7 @@ import UserFilesPanel from './UserFilesPanel';
 import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { EmptyState, LoadingState } from './ui/page-states';
+import MarkdownContent from './MarkdownContent';
 
 interface RAGDocumentsPanelProps {
   isDarkMode: boolean;
@@ -58,6 +59,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   const [actionId, setActionId] = useState<string | null>(null);
   const [previewSource, setPreviewSource] = useState<string | null>(null);
   const [previewChunks, setPreviewChunks] = useState<unknown[]>([]);
+  const [ocrRagSources, setOcrRagSources] = useState<string[]>([]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) {
@@ -88,6 +90,11 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     (doc) => doc.indexing_in_progress || (doc.completion_percentage ?? 0) < 100
   );
 
+  const libraryDocuments = useMemo(() => {
+    const ocr = new Set(ocrRagSources);
+    return documents.filter((doc) => !ocr.has(doc.source));
+  }, [documents, ocrRagSources]);
+
   useEffect(() => {
     if (!pollIndexing || !indexingInProgress) return;
     const timer = window.setInterval(() => {
@@ -108,7 +115,10 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     }
   };
 
-  const selectAll = () => onSelectionChange(documents.map((d) => d.source));
+  const selectAll = () => {
+    const ocrSelected = selectedSources.filter((source) => ocrRagSources.includes(source));
+    onSelectionChange([...new Set([...ocrSelected, ...libraryDocuments.map((d) => d.source)])]);
+  };
   const clearSelection = () => onSelectionChange([]);
 
   const handleDelete = async (source: string) => {
@@ -175,7 +185,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 text-sm font-medium">
           <FileText className="w-4 h-4 text-blue-500" />
-          Документы ({documents.length})
+          Документы ({libraryDocuments.length})
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -218,21 +228,29 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       {error && <InlineError message={error} className="mb-2 text-xs" />}
 
       <UserFilesPanel
+        isDarkMode={isDarkMode}
         selectedSources={selectedSources}
         onSelectionChange={onSelectionChange}
         compact={compact}
         active={active}
+        onFilesChange={(files) => {
+          setOcrRagSources(
+            files
+              .map((file) => file.ragSource)
+              .filter((source): source is string => Boolean(source))
+          );
+        }}
         onReady={() => {
           void load(true);
           onDocumentsChange?.();
         }}
       />
 
-      {loading && documents.length === 0 && (
+      {loading && libraryDocuments.length === 0 && ocrRagSources.length === 0 && (
         <LoadingState message="Загрузка документов..." className="py-6" />
       )}
 
-      {!loading && documents.length === 0 && (
+      {!loading && libraryDocuments.length === 0 && ocrRagSources.length === 0 && (
         <EmptyState
           message="Нет загруженных документов. Загрузите файлы через кнопку «Загрузить»."
           className="py-6 text-sm"
@@ -240,7 +258,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       )}
 
       <div className={compact ? 'space-y-2' : 'space-y-2 max-h-80 overflow-y-auto'}>
-        {documents.map((doc) => {
+        {libraryDocuments.map((doc) => {
           const selected = selectedSources.includes(doc.source);
           const busy = actionId === doc.source;
           const pct = doc.completion_percentage ?? (doc.is_fully_indexed ? 100 : 0);
@@ -346,14 +364,15 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
               Закрыть
             </button>
           </div>
-          <div className="space-y-2 text-[11px] text-muted-foreground">
-            {previewChunks.slice(0, 5).map((chunk, index) => {
+          <div className="space-y-3">
+            {previewChunks.slice(0, 8).map((chunk, index) => {
               const row = chunk as { content?: string; metadata?: unknown };
+              const text = row.content ?? '';
+              if (!text.trim()) return null;
               return (
-                <pre key={index} className="whitespace-pre-wrap surface-elevated p-2 rounded-lg text-sm">
-                  {(row.content ?? '').slice(0, 400)}
-                  {(row.content?.length ?? 0) > 400 ? '…' : ''}
-                </pre>
+                <div key={index} className="surface-elevated p-2 rounded-lg">
+                  <MarkdownContent content={text} isDarkMode={isDarkMode} compact />
+                </div>
               );
             })}
             {previewChunks.length === 0 && <p>Чанки не найдены</p>}

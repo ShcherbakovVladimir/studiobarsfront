@@ -13,6 +13,7 @@ interface MarkdownContentProps {
   isDarkMode: boolean;
   isStreaming?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 function getCodeStyles(isDarkMode: boolean): React.CSSProperties {
@@ -32,6 +33,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   isDarkMode,
   isStreaming = false,
   className = '',
+  compact = false,
 }) => {
   if (!content.trim()) {
     return null;
@@ -162,41 +164,54 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
               </blockquote>
             );
           },
-          ul({ children }) {
-            return <ul className="list-disc pl-5 my-3 space-y-1.5">{children}</ul>;
-          },
-          ol({ children }) {
-            return <ol className="list-decimal pl-5 my-3 space-y-1.5">{children}</ol>;
-          },
-          li({ children }) {
-            return <li className="my-1 leading-relaxed">{children}</li>;
-          },
           h1({ children }) {
             return (
-              <h1 className="text-2xl font-bold my-4 pb-2 border-b-2 border-border">
+              <h1 className={compact
+                ? 'text-base font-bold mt-3 mb-2 pb-1 border-b border-border'
+                : 'text-2xl font-bold my-4 pb-2 border-b-2 border-border'}
+              >
                 {children}
               </h1>
             );
           },
           h2({ children }) {
             return (
-              <h2 className="text-xl font-bold my-3 pb-1.5 border-b border-border">
+              <h2 className={compact
+                ? 'text-sm font-bold mt-3 mb-1.5'
+                : 'text-xl font-bold my-3 pb-1.5 border-b border-border'}
+              >
                 {children}
               </h2>
             );
           },
           h3({ children }) {
             return (
-              <h3 className="text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300">{children}</h3>
+              <h3 className={compact
+                ? 'text-sm font-semibold mt-2.5 mb-1 text-blue-700 dark:text-blue-300'
+                : 'text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300'}
+              >
+                {children}
+              </h3>
             );
           },
           h4({ children }) {
             return (
-              <h4 className="text-base font-semibold my-2 text-foreground">{children}</h4>
+              <h4 className={compact ? 'text-sm font-semibold mt-2 mb-1' : 'text-base font-semibold my-2 text-foreground'}>
+                {children}
+              </h4>
             );
           },
           p({ children }) {
-            return <p className="my-2.5 leading-relaxed">{children}</p>;
+            return <p className={compact ? 'my-1.5 leading-relaxed' : 'my-2.5 leading-relaxed'}>{children}</p>;
+          },
+          ul({ children }) {
+            return <ul className={compact ? 'list-disc pl-4 my-2 space-y-1' : 'list-disc pl-5 my-3 space-y-1.5'}>{children}</ul>;
+          },
+          ol({ children }) {
+            return <ol className={compact ? 'list-decimal pl-4 my-2 space-y-1' : 'list-decimal pl-5 my-3 space-y-1.5'}>{children}</ol>;
+          },
+          li({ children }) {
+            return <li className="my-1 leading-relaxed">{children}</li>;
           },
           hr() {
             return <hr className="my-4 border-t border-border" />;
