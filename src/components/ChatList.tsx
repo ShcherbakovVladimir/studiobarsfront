@@ -155,7 +155,7 @@ export const ChatList: React.FC<ChatListProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 pb-2 space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 pt-2 pb-2 space-y-1">
         {!isLoaded && (
           <div className="text-xs text-muted-foreground text-center py-8">Загрузка чатов…</div>
         )}
