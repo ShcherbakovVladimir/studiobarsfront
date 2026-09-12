@@ -38,6 +38,7 @@ import RAGSessionSidebar from './RAGSessionSidebar';
 import RAGFilesSidebar from './RAGFilesSidebar';
 import ragService, { type QwenInfoResponse } from '../services/ragService';
 import userFilesService, { isPdfFile, userFileStatusLabel } from '../services/userFilesService';
+import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
 import type { RagDocumentPreview } from '../types';
 import { RAGMessage } from '../types';
 import 'katex/dist/katex.min.css';
@@ -207,6 +208,7 @@ async function ingestPdfFile(
   onStatus: (message: string) => void
 ) {
   const uploaded = await userFilesService.uploadPdf(file, onProgress);
+  notifyRagLibraryChanged();
   onStatus(uploaded.statusMessage || 'PDF принят, запущен OCR…');
   const done = await userFilesService.poll(uploaded.id, (current) => {
     onProgress(Math.max(current.progress, 5));
@@ -215,6 +217,7 @@ async function ingestPdfFile(
   if (done.status === 'error') {
     throw new Error(done.error || `Ошибка обработки «${file.name}»`);
   }
+  notifyRagLibraryChanged();
   return done;
 }
 
@@ -787,6 +790,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               },
               (progress) => setUploadProgress(progress)
             );
+            notifyRagLibraryChanged();
             setUploadSuccess(
               `✅ PDF: ${pdfDone}, документы: ${result.results.length}` +
                 (result.failed.length ? `, ошибок: ${result.failed.length}` : '')
@@ -895,6 +899,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         setUploadSuccess(
           `✅ Документ «${response.source ?? selectedFile.name}» загружен (${chunkInfo})`
         );
+        if (response.source) {
+          setSelectedDocumentSources((prev) =>
+            prev.includes(response.source!) ? prev : [...prev, response.source!]
+          );
+        }
+        notifyRagLibraryChanged();
         setSelectedFile(null);
         loadTables();
         dispatch(refreshRAGSchema());

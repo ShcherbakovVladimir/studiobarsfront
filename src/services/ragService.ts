@@ -428,16 +428,22 @@ export interface TableUploadOptions {
   ifExists?: 'replace' | 'append' | 'skip';
 }
 
-function parseDocumentsPayload(data: {
-  success?: boolean;
-  documents?: RagDocument[];
-  files?: RagDocument[];
-}): RagDocument[] {
-  const raw = data.documents ?? data.files ?? [];
+function asPayloadRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function parseDocumentsPayload(data: unknown): RagDocument[] {
+  const row = asPayloadRecord(data);
+  const nested = asPayloadRecord(row.data);
+  const candidates = [row.documents, row.files, row.items, nested.documents, nested.files, nested.items];
+  const raw = candidates.find((item) => Array.isArray(item)) as unknown[] | undefined;
+  if (!raw) return [];
   return raw.map((item) => {
-    const source = typeof item.source === 'string' ? item.source : String(item.name ?? item.id ?? '');
-    return { ...item, source };
-  });
+    const doc = asPayloadRecord(item);
+    const sourceValue = doc.source ?? doc.source_name ?? doc.name ?? doc.filename ?? doc.id;
+    const source = typeof sourceValue === 'string' ? sourceValue : String(sourceValue ?? '');
+    return { ...(item as RagDocument), source };
+  }).filter((doc) => doc.source);
 }
 
 async function downloadRagBlob(path: string, filename: string): Promise<void> {
@@ -737,9 +743,13 @@ export const ragService = {
 
   async getDocuments(): Promise<{ success: boolean; documents: RagDocument[] }> {
     const response = await ragFetch('/documents');
-    if (!response.ok) return { success: false, documents: [] };
-    const data = await response.json() as { success?: boolean; documents?: RagDocument[]; files?: RagDocument[] };
-    return { success: data.success ?? true, documents: parseDocumentsPayload(data) };
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = data as { error?: string };
+      throw new Error(err.error ?? `Не удалось получить документы: HTTP ${response.status}`);
+    }
+    const documents = parseDocumentsPayload(data);
+    return { success: true, documents };
   },
 
   async getDocument(sourceName: string): Promise<{ success: boolean; document?: RagDocument; chunks?: UnknownRecord[] }> {

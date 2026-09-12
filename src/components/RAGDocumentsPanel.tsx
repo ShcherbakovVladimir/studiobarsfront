@@ -10,6 +10,7 @@ import {
   Square,
 } from 'lucide-react';
 import ragService from '../services/ragService';
+import { notifyRagLibraryChanged, subscribeRagLibraryChanged } from '../services/ragLibrarySync';
 import type { RagDocument } from '../types';
 import UserFilesPanel from './UserFilesPanel';
 import { InlineError } from './ui/alert-banner';
@@ -24,6 +25,7 @@ interface RAGDocumentsPanelProps {
   compact?: boolean;
   pollIndexing?: boolean;
   highlightSource?: string | null;
+  active?: boolean;
 }
 
 function statusLabel(doc: RagDocument): string {
@@ -48,6 +50,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   compact = false,
   pollIndexing = true,
   highlightSource = null,
+  active = true,
 }) => {
   const [documents, setDocuments] = useState<RagDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,8 +77,12 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (active) void load();
+  }, [active, load]);
+
+  useEffect(() => subscribeRagLibraryChanged(() => {
+    void load(true);
+  }), [load]);
 
   const indexingInProgress = documents.some(
     (doc) => doc.indexing_in_progress || (doc.completion_percentage ?? 0) < 100
@@ -118,6 +125,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       onSelectionChange(selectedSources.filter((s) => s !== source));
       await load();
       onDocumentsChange?.();
+      notifyRagLibraryChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления');
     } finally {
@@ -213,6 +221,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         selectedSources={selectedSources}
         onSelectionChange={onSelectionChange}
         compact={compact}
+        active={active}
         onReady={() => {
           void load(true);
           onDocumentsChange?.();

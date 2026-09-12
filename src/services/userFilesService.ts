@@ -138,18 +138,22 @@ function uploadPdfWithProgress(
   });
 }
 
+function extractUserFileRows(data: unknown): { files: UserFile[]; total: number } {
+  const row = asRecord(data);
+  const nested = asRecord(row.data);
+  const candidates = [row.files, row.items, nested.files, nested.items, Array.isArray(row.data) ? row.data : null];
+  const rows = (candidates.find((item) => Array.isArray(item)) as unknown[] | undefined) ?? [];
+  const totalRaw = row.total ?? nested.total ?? row.count ?? nested.count;
+  return {
+    files: rows.map(normalizeUserFile).filter((file) => file.id),
+    total: typeof totalRaw === 'number' ? totalRaw : Number(totalRaw) || rows.length,
+  };
+}
+
 export const userFilesService = {
   async list(page = 1, limit = 50): Promise<{ files: UserFile[]; total: number }> {
-    const data = await filesApi<{
-      files?: unknown[];
-      items?: unknown[];
-      total?: number;
-    }>(`?page=${page}&limit=${limit}`);
-    const rows = data.files ?? data.items ?? [];
-    return {
-      files: rows.map(normalizeUserFile).filter((file) => file.id),
-      total: data.total ?? rows.length,
-    };
+    const data = await filesApi<unknown>(`?page=${page}&limit=${limit}`);
+    return extractUserFileRows(data);
   },
 
   async get(fileId: string): Promise<UserFile> {

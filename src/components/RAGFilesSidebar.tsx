@@ -84,6 +84,7 @@ const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
           compact
           pollIndexing
           highlightSource={highlightSource}
+          active={open}
         />
       </div>
     </aside>

@@ -5,6 +5,7 @@ import userFilesService, {
   isUserFileActive,
   userFileStatusLabel,
 } from '../services/userFilesService';
+import { notifyRagLibraryChanged, subscribeRagLibraryChanged } from '../services/ragLibrarySync';
 import type { UserFile } from '../types';
 import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
@@ -15,6 +16,7 @@ interface UserFilesPanelProps {
   onSelectionChange: (sources: string[]) => void;
   onReady?: (file: UserFile) => void;
   compact?: boolean;
+  active?: boolean;
 }
 
 const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
@@ -22,6 +24,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   onSelectionChange,
   onReady,
   compact = false,
+  active = true,
 }) => {
   const [files, setFiles] = useState<UserFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,8 +52,12 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (active) void load();
+  }, [active, load]);
+
+  useEffect(() => subscribeRagLibraryChanged(() => {
+    void load(true);
+  }), [load]);
 
   const hasActive = files.some((file) => isUserFileActive(file.status));
 
@@ -113,6 +120,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       if (file.ragSource) {
         onSelectionChange(selectedSources.filter((source) => source !== file.ragSource));
       }
+      notifyRagLibraryChanged();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления');
