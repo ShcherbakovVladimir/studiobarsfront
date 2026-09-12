@@ -10,8 +10,20 @@ export const celestia = {
   sidebar: 'glass-panel border-r border-white/50 dark:border-white/10',
   mobileHeader: 'glass-panel border-b border-white/50 dark:border-white/10',
   /** Единая высота шапок: сайдбар, список чатов, контент (~48px). */
-  appHeader: 'app-header shrink-0 min-h-12 border-b border-border/60 px-3 sm:px-4 py-2',
-  appHeaderBar: 'app-header-bar shrink-0 h-12 border-b border-border/60 px-3 flex items-center',
+  appHeader:
+    'app-header shrink-0 h-12 min-h-12 max-h-12 overflow-hidden border-b border-border/60 px-2.5 sm:px-4 py-0',
+  appHeaderBar:
+    'app-header-bar shrink-0 h-12 border-b border-border/60 px-3 flex items-center',
+  workspaceScrim:
+    'fixed inset-0 z-40 xl:hidden bg-black/45 backdrop-blur-[3px] transition-opacity duration-300 ease-out motion-reduce:transition-none',
+  workspaceDrawer:
+    'flex flex-col h-full bg-background/90 backdrop-blur-xl xl:bg-background/40 xl:backdrop-blur-none shrink-0 overflow-hidden fixed z-50 xl:relative xl:z-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] xl:pt-0 xl:pb-0 transition-[transform,width,box-shadow,border-color,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+  headerIcon:
+    'h-9 w-9 sm:h-8 sm:w-8 transition-transform duration-150 active:scale-95 motion-reduce:transform-none',
+  headerMenuItem:
+    'flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-foreground hover:bg-accent transition-colors',
+  composerDock:
+    'px-3 sm:px-4 pt-1 pb-[max(0.75rem,env(safe-area-inset-bottom))] shrink-0',
   surfaceElevated: 'surface-elevated rounded-3xl shadow-xl',
   surfaceMuted: 'surface-muted',
   chatBubbleAi: 'chat-msg-ai chat-message',

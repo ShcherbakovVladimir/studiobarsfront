@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Trash2, RefreshCw, Edit2 } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, RefreshCw, Edit2, X } from 'lucide-react';
 import type { RagSession } from '../types';
 import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
@@ -16,6 +16,7 @@ interface RAGSessionSidebarProps {
   onDeleteSession: (sessionId: string) => void;
   onRenameSession?: (sessionId: string, title: string) => void;
   onRefresh?: () => void;
+  onClose?: () => void;
   open?: boolean;
   className?: string;
 }
@@ -45,6 +46,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
   onDeleteSession,
   onRenameSession,
   onRefresh,
+  onClose,
   open = true,
   className = '',
 }) => {
@@ -71,19 +73,18 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
     <aside
       aria-hidden={!open}
       className={cn(
-        'flex flex-col h-full bg-background/40 shrink-0 overflow-hidden',
-        'fixed inset-y-0 left-0 z-50 md:relative md:z-auto',
-        'transition-[width,transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        celestia.workspaceDrawer,
+        'left-0',
         open
-          ? 'w-72 max-w-[85vw] translate-x-0 border-r border-border shadow-xl md:shadow-none'
-          : 'w-72 max-w-[85vw] -translate-x-full pointer-events-none border-r border-transparent md:w-0 md:min-w-0 md:max-w-0 md:translate-x-0 md:border-0',
+          ? 'w-[min(18.5rem,calc(100vw-2.5rem))] max-w-[85vw] translate-x-0 border-r border-border shadow-2xl xl:shadow-none xl:w-72'
+          : 'w-[min(18.5rem,calc(100vw-2.5rem))] max-w-[85vw] -translate-x-full pointer-events-none border-r border-transparent opacity-0 xl:opacity-100 xl:w-0 xl:min-w-0 xl:max-w-0 xl:translate-x-0',
         className
       )}
     >
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="w-4 h-4 text-blue-500 shrink-0" />
-          <h2 className="text-sm font-semibold truncate">RAG-сессии</h2>
+          <h2 className="text-sm font-semibold truncate">RAG-сессии ({sortedSessions.length})</h2>
         </div>
         <div className="flex items-center gap-1">
           {onRefresh && (
@@ -99,11 +100,21 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
           <button
             type="button"
             onClick={onNewSession}
-            className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600"
+            className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-transform active:scale-95"
             title="Новая сессия"
           >
             <Plus className="w-4 h-4" />
           </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
+              title="Закрыть"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -125,7 +136,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
           </div>
         )}
 
-        {sortedSessions.map((session) => {
+        {sortedSessions.map((session, index) => {
           const isActive = session.sessionId === activeSessionId;
           const count = session.messageCount ?? session.count ?? 0;
           const isEditing = editingId === session.sessionId;
@@ -133,12 +144,16 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
           return (
             <div
               key={session.sessionId}
-              className={`group relative rounded-lg border transition-colors ${
- isActive
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+              className={`workspace-list-item group relative rounded-lg border transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.99] ${
+                isActive
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
               }`}
+              style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
             >
+              {isActive && (
+                <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-blue-500" aria-hidden />
+              )}
               {isEditing ? (
                 <div className="p-2">
                   <input
@@ -163,7 +178,10 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
                     onClick={() => onSelectSession(session.sessionId)}
                     className="w-full text-left p-3 pr-16"
                   >
-                    <div className="text-sm font-medium truncate" title={session.title}>
+                    <div
+                      className={`text-sm truncate ${isActive ? 'font-semibold text-blue-700 dark:text-blue-300' : 'font-medium'}`}
+                      title={session.title}
+                    >
                       {session.title || 'Без названия'}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2">
@@ -171,7 +189,11 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
                       {count > 0 && <span>· {count} сообщ.</span>}
                     </div>
                   </button>
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity ${
+                      isActive ? 'opacity-100' : 'opacity-100 xl:opacity-0 xl:group-hover:opacity-100'
+                    }`}
+                  >
                     {onRenameSession && (
                       <button
                         type="button"

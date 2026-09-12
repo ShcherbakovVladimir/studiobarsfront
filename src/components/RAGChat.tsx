@@ -47,6 +47,8 @@ import { celestia } from '../lib/celestia';
 import { InlineError, InlineSuccess } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { StatusPill } from './ui/status-pill';
+import { MenuPopover } from './ui/menu-popover';
+import { isWorkspaceOverlay, WORKSPACE_OVERLAY_MQ, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 
 interface RAGChatProps {
   isDarkMode: boolean;
@@ -106,6 +108,7 @@ const ThinkingIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round"
 const LLMIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></Icon>;
 const DirectIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></Icon>;
 const SettingsIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></Icon>;
+const MoreIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" /></Icon>;
 
 type ChartData = NonNullable<RAGMessage['chart_data']>;
 
@@ -562,10 +565,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   const showFilesSidebar = getToggle('filesListOpen', true);
   const setShowFilesSidebar = (value: boolean) => setToggle('filesListOpen', value);
   const [highlightFileSource, setHighlightFileSource] = useState<string | null>(null);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLButtonElement>(null);
   const closeSessionSidebarIfMobile = () => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-      setShowSessionSidebar(false);
-    }
+    if (isWorkspaceOverlay()) setShowSessionSidebar(false);
   };
   const showUploadModal = getToggle('showUploadModal', false);
   const setShowUploadModal = (value: boolean) => setToggle('showUploadModal', value);
@@ -1299,6 +1302,31 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     saveLocalRagSessionStore(userId, sessions, sessionId);
   }, [sessions, sessionId, userId, isSessionsLoaded]);
 
+  useEffect(() => {
+    const phone = window.matchMedia(WORKSPACE_PHONE_MQ);
+    const overlay = window.matchMedia(WORKSPACE_OVERLAY_MQ);
+    if (phone.matches) {
+      setToggle('sessionListOpen', false);
+      setToggle('filesListOpen', false);
+    } else if (overlay.matches) {
+      setToggle('filesListOpen', false);
+    }
+    const onPhone = (event: MediaQueryListEvent) => {
+      if (!event.matches) return;
+      setToggle('sessionListOpen', false);
+      setToggle('filesListOpen', false);
+    };
+    const onOverlay = (event: MediaQueryListEvent) => {
+      if (event.matches) setToggle('filesListOpen', false);
+    };
+    phone.addEventListener('change', onPhone);
+    overlay.addEventListener('change', onOverlay);
+    return () => {
+      phone.removeEventListener('change', onPhone);
+      overlay.removeEventListener('change', onOverlay);
+    };
+  }, [setToggle]);
+
   useLayoutEffect(() => {
     scrollToBottom('auto');
     const frame = requestAnimationFrame(() => scrollToBottom('auto'));
@@ -1322,7 +1350,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       <button
         type="button"
         className={cn(
-          'fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity duration-300',
+          celestia.workspaceScrim,
           showSessionSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         aria-label="Закрыть панель сессий"
@@ -1339,10 +1367,11 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         onDeleteSession={handleDeleteSession}
         onRenameSession={handleRenameSession}
         onRefresh={handleRefreshSessions}
+        onClose={() => setShowSessionSidebar(false)}
         open={showSessionSidebar}
       />
 
-      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+      <div className="@container/ragchat flex flex-col flex-1 min-w-0 h-full overflow-hidden">
       {/* Toast уведомление */}
       {toastMessage && (
         <div className="fixed top-20 right-4 left-4 sm:left-auto z-50 animate-in slide-in-from-top-2 duration-300 max-w-sm">
@@ -1358,39 +1387,44 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         </div>
       )}
 
-      <header className={celestia.appHeader}>
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-2">
+      <header className={cn(celestia.appHeader, 'flex items-center')}>
+        <div className="flex h-full w-full items-center justify-between gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             <IconButton
               label={showSessionSidebar ? 'Скрыть список сессий' : 'Показать список сессий'}
-              onClick={() => setShowSessionSidebar(!showSessionSidebar)}
-              className={cn(
-                'h-8 w-8 -ml-1',
-                showSessionSidebar && 'bg-accent text-foreground'
-              )}
+              onClick={() => {
+                const next = !showSessionSidebar;
+                if (next && isWorkspaceOverlay()) setShowFilesSidebar(false);
+                setShowSessionSidebar(next);
+              }}
+              className={cn(celestia.headerIcon, '-ml-0.5', showSessionSidebar && 'bg-accent text-foreground')}
               aria-pressed={showSessionSidebar}
             >
               <PanelLeftIcon />
             </IconButton>
-            <h2 className="shrink-0 text-sm font-semibold text-foreground">Аналитик БД</h2>
-            <span className="hidden sm:block h-4 w-px bg-border shrink-0" />
-            <StatusPill variant={isConnected ? 'success' : 'error'} dot>
+            <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">Аналитик БД</h2>
+            <span className="hidden @[30rem]/ragchat:block h-4 w-px bg-border shrink-0" />
+            <StatusPill
+              variant={isConnected ? 'success' : 'error'}
+              dot
+              className="hidden @[24rem]/ragchat:inline-flex shrink-0"
+            >
               {isConnected ? `${tablesCount} табл.` : 'Нет БД'}
             </StatusPill>
-            <div className="hidden md:flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-              {metrics?.status === 'ready' && <span>RAG готов</span>}
+            <div className="hidden @[48rem]/ragchat:flex min-w-0 items-center gap-2 text-xs text-muted-foreground truncate">
+              {metrics?.status === 'ready' && <span className="shrink-0">RAG готов</span>}
               {typeof embeddingHealth?.completion_percentage === 'number' && (
-                <span>
+                <span className="truncate">
                   {embeddingHealth.indexing_in_progress ? 'Индексация' : 'Эмбеддинги'}{' '}
                   {embeddingHealth.completion_percentage}%
                 </span>
               )}
-              {isQwenActive && <span>Qwen3.6</span>}
+              {isQwenActive && <span className="shrink-0">Qwen3.6</span>}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-            <div className="flex items-center bg-accent rounded-xl p-0.5">
+          <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
+            <div className="flex items-center bg-accent rounded-xl p-0.5 shrink-0">
               <button
                 type="button"
                 aria-pressed={searchMode === 'llm'}
@@ -1398,7 +1432,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   if (searchMode !== 'llm') handleSearchModeToggle();
                 }}
                 className={cn(
-                  'px-2 h-7 rounded-lg text-xs transition-colors flex items-center gap-1',
+                  'px-1.5 @[34rem]/ragchat:px-2 h-8 sm:h-7 rounded-lg text-xs transition-all duration-200 flex items-center gap-1 active:scale-95',
                   searchMode === 'llm'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-border/80'
@@ -1406,7 +1440,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 title="Поиск через LLM"
               >
                 <LLMIcon />
-                <span className="hidden sm:inline">LLM</span>
+                <span className="hidden @[40rem]/ragchat:inline">LLM</span>
               </button>
               <button
                 type="button"
@@ -1415,7 +1449,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   if (searchMode !== 'direct') handleSearchModeToggle();
                 }}
                 className={cn(
-                  'px-2 h-7 rounded-lg text-xs transition-colors flex items-center gap-1',
+                  'px-1.5 @[34rem]/ragchat:px-2 h-8 sm:h-7 rounded-lg text-xs transition-all duration-200 flex items-center gap-1 active:scale-95',
                   searchMode === 'direct'
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-border/80'
@@ -1423,33 +1457,20 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 title="Прямой поиск по БД"
               >
                 <DirectIcon />
-                <span className="hidden sm:inline">Direct</span>
+                <span className="hidden @[40rem]/ragchat:inline">Direct</span>
               </button>
             </div>
 
-            {isQwenActive && (
-              <IconButton
-                label="Настройки Qwen3.6"
-                onClick={() => setShowQwenSettings(true)}
-                className="h-8 w-8"
-              >
-                <ThinkingIcon />
-              </IconButton>
-            )}
-
-            <IconButton
-              label="Настройки RAG"
-              onClick={() => setShowRagSettings(true)}
-              className="h-8 w-8"
-            >
-              <SettingsIcon />
-            </IconButton>
-
             <IconButton
               label={showFilesSidebar ? 'Скрыть файлы RAG' : 'Показать файлы RAG'}
-              onClick={() => setShowFilesSidebar(!showFilesSidebar)}
+              onClick={() => {
+                const next = !showFilesSidebar;
+                if (next && isWorkspaceOverlay()) setShowSessionSidebar(false);
+                setShowFilesSidebar(next);
+              }}
               className={cn(
-                'relative h-8 w-8',
+                'relative',
+                celestia.headerIcon,
                 showFilesSidebar && 'bg-accent text-foreground'
               )}
               aria-pressed={showFilesSidebar}
@@ -1463,9 +1484,27 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             </IconButton>
 
             <IconButton
+              label="Настройки RAG"
+              onClick={() => setShowRagSettings(true)}
+              className={cn('hidden @[28rem]/ragchat:inline-flex', celestia.headerIcon)}
+            >
+              <SettingsIcon />
+            </IconButton>
+
+            {isQwenActive && (
+              <IconButton
+                label="Настройки Qwen3.6"
+                onClick={() => setShowQwenSettings(true)}
+                className={cn('hidden @[42rem]/ragchat:inline-flex', celestia.headerIcon)}
+              >
+                <ThinkingIcon />
+              </IconButton>
+            )}
+
+            <IconButton
               label="Загрузить данные в БД"
               onClick={() => setShowUploadModal(true)}
-              className="h-8 w-8"
+              className={cn('hidden @[42rem]/ragchat:inline-flex', celestia.headerIcon)}
             >
               <UploadIcon />
             </IconButton>
@@ -1473,7 +1512,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             <IconButton
               label="Обновить схему БД"
               onClick={handleRefreshSchema}
-              className="h-8 w-8"
+              className={cn('hidden @[42rem]/ragchat:inline-flex', celestia.headerIcon)}
             >
               <RefreshIcon />
             </IconButton>
@@ -1483,10 +1522,88 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               onClick={handleClearHistory}
               disabled={messages.length === 0}
               variant="ghost"
-              className="h-8 w-8"
+              className={cn('hidden @[42rem]/ragchat:inline-flex', celestia.headerIcon)}
             >
               <TrashIcon />
             </IconButton>
+
+            <button
+              ref={headerMenuRef}
+              type="button"
+              title="Ещё"
+              aria-label="Ещё действия"
+              aria-expanded={headerMenuOpen}
+              onClick={() => setHeaderMenuOpen((open) => !open)}
+              className={cn(
+                'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80',
+                celestia.headerIcon,
+                headerMenuOpen && 'bg-accent text-foreground',
+                '@[42rem]/ragchat:hidden'
+              )}
+            >
+              <MoreIcon />
+            </button>
+            <MenuPopover
+              open={headerMenuOpen}
+              onClose={() => setHeaderMenuOpen(false)}
+              triggerRef={headerMenuRef}
+              matchTriggerWidth={false}
+              minWidth={220}
+            >
+              <button
+                type="button"
+                className={celestia.headerMenuItem}
+                onClick={() => {
+                  setHeaderMenuOpen(false);
+                  setShowRagSettings(true);
+                }}
+              >
+                <SettingsIcon /> Настройки RAG
+              </button>
+              {isQwenActive && (
+                <button
+                  type="button"
+                  className={celestia.headerMenuItem}
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setShowQwenSettings(true);
+                  }}
+                >
+                  <ThinkingIcon /> Настройки Qwen3.6
+                </button>
+              )}
+              <button
+                type="button"
+                className={celestia.headerMenuItem}
+                onClick={() => {
+                  setHeaderMenuOpen(false);
+                  setShowUploadModal(true);
+                }}
+              >
+                <UploadIcon /> Загрузить в БД
+              </button>
+              <button
+                type="button"
+                className={celestia.headerMenuItem}
+                onClick={() => {
+                  setHeaderMenuOpen(false);
+                  void handleRefreshSchema();
+                }}
+              >
+                <RefreshIcon /> Обновить схему
+              </button>
+              <button
+                type="button"
+                className={cn(celestia.headerMenuItem, 'text-red-500')}
+                disabled={messages.length === 0}
+                onClick={() => {
+                  setHeaderMenuOpen(false);
+                  void handleClearHistory();
+                }}
+              >
+                <TrashIcon /> Очистить историю
+              </button>
+            </MenuPopover>
           </div>
         </div>
       </header>
@@ -1815,7 +1932,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       </div>
 
       {/* Input - адаптивный */}
-      <div className="px-3 sm:px-4 pb-3 pt-1 shrink-0">
+      <div className={celestia.composerDock}>
         <div className={celestia.chatColumn}>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -2364,7 +2481,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       <button
         type="button"
         className={cn(
-          'fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity duration-300',
+          celestia.workspaceScrim,
           showFilesSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         aria-label="Закрыть панель файлов"
@@ -2381,6 +2498,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         }}
         onUpload={() => setShowUploadModal(true)}
         highlightSource={highlightFileSource}
+        onClose={() => setShowFilesSidebar(false)}
         open={showFilesSidebar}
       />
     </div>

@@ -27,6 +27,8 @@ import { showErrorToast } from '../services/toastService';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
+import { MenuPopover } from './ui/menu-popover';
+import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 
 // Импорт KaTeX CSS
 import 'katex/dist/katex.min.css';
@@ -831,6 +833,11 @@ const PanelLeftIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4v16" />
   </Icon>
 );
+const MoreIcon = () => (
+  <Icon className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" />
+  </Icon>
+);
 
 const ThinkingIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -947,10 +954,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const [chatsRefreshing, setChatsRefreshing] = useState(false);
   const showChatList = getToggle('showChatList', true);
   const setShowChatList = (value: boolean) => setToggle('showChatList', value);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const headerMenuRef = useRef<HTMLButtonElement>(null);
   const closeChatListIfMobile = () => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-      setShowChatList(false);
-    }
+    if (isWorkspaceOverlay()) setShowChatList(false);
   };
   
   // Флаги для контроля инициализации
@@ -1244,6 +1251,16 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   useEffect(() => {
     currentChatRef.current = currentChat;
   }, [currentChat]);
+
+  useEffect(() => {
+    const phone = window.matchMedia(WORKSPACE_PHONE_MQ);
+    if (phone.matches) setToggle('showChatList', false);
+    const onPhone = (event: MediaQueryListEvent) => {
+      if (event.matches) setToggle('showChatList', false);
+    };
+    phone.addEventListener('change', onPhone);
+    return () => phone.removeEventListener('change', onPhone);
+  }, [setToggle]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -2053,7 +2070,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             <button
               type="button"
               className={cn(
-                'fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity duration-300',
+                celestia.workspaceScrim,
                 showChatList ? 'opacity-100' : 'opacity-0 pointer-events-none'
               )}
               aria-label="Закрыть список чатов"
@@ -2069,22 +2086,24 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               onRenameChat={renameChat}
               onCreateNew={createNewChat}
               onRefresh={() => void loadChats()}
+              onClose={() => setShowChatList(false)}
               open={showChatList}
             />
           </>
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <header className={celestia.appHeader}>
-                <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex min-w-0 items-center gap-2">
+        <div className="@container/agentchat flex-1 flex flex-col min-w-0 overflow-hidden">
+            <header className={cn(celestia.appHeader, 'flex items-center')}>
+                <div className="flex h-full w-full items-center justify-between gap-1.5">
+                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
                     {activeTool === 'chat' && (
                       <IconButton
                         label={showChatList ? 'Скрыть список чатов' : 'Показать список чатов'}
                         onClick={() => setShowChatList(!showChatList)}
                         className={cn(
-                          'h-8 w-8 -ml-1',
+                          celestia.headerIcon,
+                          '-ml-0.5',
                           showChatList && 'bg-accent text-foreground'
                         )}
                         aria-pressed={showChatList}
@@ -2092,7 +2111,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <PanelLeftIcon />
                       </IconButton>
                     )}
-                    <h2 className="shrink-0 text-sm font-semibold text-foreground">
+                    <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">
                     {productMode ? 'Помощник AI' : activeTool === 'chat' && 'Чат'}
                     {!productMode && activeTool === 'wrappers' && 'Chat Wrappers'}
                     {!productMode && activeTool === 'grammar' && 'Грамматика'}
@@ -2103,26 +2122,16 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     {!productMode && activeTool === 'settings' && 'Настройки'}
                     {!productMode && activeTool === 'system' && 'Система'}
                     </h2>
-                    <span className="hidden sm:block h-4 w-px bg-border shrink-0" />
+                    <span className="hidden @[28rem]/agentchat:block h-4 w-px bg-border shrink-0" />
                     <span
-                      className="min-w-0 flex-1 truncate font-mono text-xs sm:text-sm text-muted-foreground"
+                      className="hidden @[22rem]/agentchat:block min-w-0 flex-1 truncate font-mono text-xs sm:text-sm text-muted-foreground"
                       title={currentModel ? currentModel.name : 'Модель не выбрана'}
                     >
                         {currentModel ? currentModel.name : 'Модель не выбрана'}
                     </span>
-                    <div className="hidden md:flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                      {!productMode && isSaigaModel && <span>Saiga</span>}
-                      {!productMode && isXLAMModel && <span>xLAM</span>}
-                      {isQwen36Model && <span>Qwen</span>}
-                      {!productMode && isGrammarActive(grammarSelection) && (
-                        <span className="max-w-[8rem] truncate" title={grammarSelectionLabel(grammarSelection)}>
-                          {grammarSelectionLabel(grammarSelection)}
-                        </span>
-                      )}
-                    </div>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                     <span
                       className={cn(
@@ -2132,10 +2141,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         (connectionStatus === 'error' || connectionStatus === 'offline') && 'bg-destructive'
                       )}
                     />
+                    <span className="hidden @[32rem]/agentchat:inline">
                     {connectionStatus === 'online' && 'Готов'}
                     {connectionStatus === 'checking' && 'Проверка…'}
                     {connectionStatus === 'error' && 'Ошибка'}
                     {connectionStatus === 'offline' && 'Офлайн'}
+                    </span>
                   </span>
 
                   {isStreaming && (
@@ -2143,37 +2154,36 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       type="button"
                       onClick={stopStreaming}
                       title="Остановить генерацию"
-                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="inline-flex items-center gap-1 h-8 px-2 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95"
                     >
                       <StopStreamingIcon />
-                      <span className="hidden sm:inline">Стоп</span>
+                      <span className="hidden @[36rem]/agentchat:inline">Стоп</span>
                     </button>
                   )}
                   
                   {isQwen36Model && isServerReady && !isStreaming && (
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="hidden @[40rem]/agentchat:flex items-center gap-1.5 min-w-0">
                       <div className="flex items-center bg-accent rounded-xl p-0.5">
                         <button
                           type="button"
                           aria-pressed={qwenMode === 'thinking'}
                           onClick={() => { setQwenMode('thinking'); setEnableThinking(true); }}
                           className={cn(
-                            'px-2 h-7 rounded-lg text-xs transition-colors flex items-center gap-1',
+                            'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
                             qwenMode === 'thinking'
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
                           title="Режим рассуждений"
                         >
-                          <ThinkingIcon />
-                          <span className="hidden md:inline">Thinking</span>
+                          Thinking
                         </button>
                         <button
                           type="button"
                           aria-pressed={qwenMode === 'instruct'}
                           onClick={() => { setQwenMode('instruct'); setEnableThinking(false); }}
                           className={cn(
-                            'px-2 h-7 rounded-lg text-xs transition-colors',
+                            'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
                             qwenMode === 'instruct'
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
@@ -2187,7 +2197,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           aria-pressed={qwenMode === 'coding'}
                           onClick={() => { setQwenMode('coding'); setEnableThinking(true); }}
                           className={cn(
-                            'px-2 h-7 rounded-lg text-xs transition-colors',
+                            'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
                             qwenMode === 'coding'
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
@@ -2197,19 +2207,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           Coding
                         </button>
                       </div>
-                      {qwenMode !== 'instruct' && (
-                        <label htmlFor="preserve-thinking" className="hidden lg:flex items-center gap-1.5 text-xs cursor-pointer shrink-0">
-                          <input
-                            id="preserve-thinking"
-                            name="preserveThinking"
-                            type="checkbox"
-                            checked={preserveThinking}
-                            onChange={(e) => setPreserveThinking(e.target.checked)}
-                            className="rounded"
-                          />
-                          <span className="text-muted-foreground">Сохранять рассуждения</span>
-                        </label>
-                      )}
                     </div>
                   )}
                   
@@ -2218,7 +2215,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       type="button"
                       onClick={() => handleStartModel(currentModel.id)}
                       disabled={isModelActionLoading}
-                      className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40"
+                      className="hidden @[36rem]/agentchat:inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95 disabled:opacity-40"
                     >
                       <PlayIcon />
                       <span className="hidden sm:inline">{isModelActionLoading ? 'Запуск…' : 'Запустить'}</span>
@@ -2226,12 +2223,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                   )}
 
                   {isServerReady && currentModel && !isStreaming && !productMode && (
-                    <>
+                    <span className="hidden @[42rem]/agentchat:inline-flex items-center gap-0.5">
                       <IconButton
                         label="Перезагрузить модель"
                         onClick={() => handleSwitchModel(currentModel.id)}
                         disabled={isModelActionLoading}
-                        className="h-8 w-8"
+                        className={celestia.headerIcon}
                       >
                         <SwitchIcon />
                       </IconButton>
@@ -2239,21 +2236,82 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         label="Остановить модель"
                         onClick={handleStopModel}
                         disabled={isModelActionLoading}
-                        className="h-8 w-8"
+                        className={celestia.headerIcon}
                       >
                         <StopIcon />
                       </IconButton>
-                    </>
+                    </span>
                   )}
 
                   <IconButton
                     label="Очистить историю чата"
                     onClick={handleClearHistory}
                     disabled={messages.length === 0 || isStreaming}
-                    className="h-8 w-8"
+                    className={cn('hidden @[36rem]/agentchat:inline-flex', celestia.headerIcon)}
                   >
                     <ClearIcon />
                   </IconButton>
+
+                  <button
+                    ref={headerMenuRef}
+                    type="button"
+                    title="Ещё"
+                    aria-label="Ещё действия"
+                    aria-expanded={headerMenuOpen}
+                    onClick={() => setHeaderMenuOpen((open) => !open)}
+                    className={cn(
+                      'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80 @[42rem]/agentchat:hidden',
+                      celestia.headerIcon,
+                      headerMenuOpen && 'bg-accent text-foreground'
+                    )}
+                  >
+                    <MoreIcon />
+                  </button>
+                  <MenuPopover
+                    open={headerMenuOpen}
+                    onClose={() => setHeaderMenuOpen(false)}
+                    triggerRef={headerMenuRef}
+                    matchTriggerWidth={false}
+                    minWidth={220}
+                  >
+                    {isQwen36Model && isServerReady && !isStreaming && (
+                      <>
+                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('thinking'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Thinking</button>
+                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('instruct'); setEnableThinking(false); setHeaderMenuOpen(false); }}>Instruct</button>
+                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('coding'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Coding</button>
+                        {qwenMode !== 'instruct' && (
+                          <label className={cn(celestia.headerMenuItem, 'cursor-pointer')}>
+                            <input
+                              type="checkbox"
+                              checked={preserveThinking}
+                              onChange={(e) => setPreserveThinking(e.target.checked)}
+                              className="rounded"
+                            />
+                            Сохранять рассуждения
+                          </label>
+                        )}
+                      </>
+                    )}
+                    {currentModel && !isServerReady && !isStreaming && !productMode && (
+                      <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleStartModel(currentModel.id); }}>
+                        {isModelActionLoading ? 'Запуск…' : 'Запустить модель'}
+                      </button>
+                    )}
+                    {isServerReady && currentModel && !isStreaming && !productMode && (
+                      <>
+                        <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleSwitchModel(currentModel.id); }}>Перезагрузить</button>
+                        <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleStopModel(); }}>Остановить</button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className={cn(celestia.headerMenuItem, 'text-red-500')}
+                      disabled={messages.length === 0 || isStreaming}
+                      onClick={() => { setHeaderMenuOpen(false); handleClearHistory(); }}
+                    >
+                      Очистить историю
+                    </button>
+                  </MenuPopover>
                 </div>
                 </div>
             </header>
@@ -2321,7 +2379,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                             )}
                             </div>
                         </div>
-                        <div className="px-3 sm:px-4 pb-3 pt-1">
+                        <div className={celestia.composerDock}>
                             <div className={celestia.chatColumn}>
                             {pendingImages.length > 0 && (
                               <div className="mb-2 flex flex-wrap gap-2">

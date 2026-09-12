@@ -84,7 +84,7 @@ export function MenuPopover({
       ref={panelRef}
       style={style}
       className={cn(
-        'glass-panel rounded-2xl border border-border/70 shadow-xl p-1 overflow-hidden',
+        'glass-panel rounded-2xl border border-border/70 shadow-xl p-1 overflow-hidden origin-top-right animate-in fade-in-0 zoom-in-95 duration-200 motion-reduce:animate-none',
         className
       )}
       role="presentation"

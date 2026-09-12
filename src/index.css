@@ -518,6 +518,23 @@ h1,
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes workspace-item-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.workspace-list-item {
+  animation: workspace-item-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .chat-message,
+  .workspace-list-item {
+    animation: none;
+  }
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

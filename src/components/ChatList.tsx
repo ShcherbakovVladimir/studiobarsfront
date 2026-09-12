@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Trash2, RefreshCw, Edit2 } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, RefreshCw, Edit2, X } from 'lucide-react';
 import type { ChatData } from '../services/chatSyncService';
 import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
@@ -16,6 +16,7 @@ interface ChatListProps {
   onRenameChat: (chatId: string, newTitle: string) => void;
   onCreateNew: () => void;
   onRefresh?: () => void;
+  onClose?: () => void;
   open?: boolean;
   className?: string;
 }
@@ -45,6 +46,7 @@ export const ChatList: React.FC<ChatListProps> = ({
   onRenameChat,
   onCreateNew,
   onRefresh,
+  onClose,
   open = true,
   className = '',
 }) => {
@@ -69,12 +71,11 @@ export const ChatList: React.FC<ChatListProps> = ({
     <aside
       aria-hidden={!open}
       className={cn(
-        'flex flex-col h-full bg-background/40 shrink-0 overflow-hidden',
-        'fixed inset-y-0 left-0 z-50 md:relative md:z-auto',
-        'transition-[width,transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        celestia.workspaceDrawer,
+        'left-0',
         open
-          ? 'w-72 max-w-[85vw] translate-x-0 border-r border-border shadow-xl md:shadow-none'
-          : 'w-72 max-w-[85vw] -translate-x-full pointer-events-none border-r border-transparent md:w-0 md:min-w-0 md:max-w-0 md:translate-x-0 md:border-0',
+          ? 'w-[min(18.5rem,calc(100vw-2.5rem))] max-w-[85vw] translate-x-0 border-r border-border shadow-2xl xl:shadow-none xl:w-72'
+          : 'w-[min(18.5rem,calc(100vw-2.5rem))] max-w-[85vw] -translate-x-full pointer-events-none border-r border-transparent opacity-0 xl:opacity-100 xl:w-0 xl:min-w-0 xl:max-w-0 xl:translate-x-0',
         className
       )}
     >
@@ -97,11 +98,21 @@ export const ChatList: React.FC<ChatListProps> = ({
           <button
             type="button"
             onClick={onCreateNew}
-            className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600"
+            className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-transform active:scale-95"
             title="Новый чат"
           >
             <Plus className="w-4 h-4" />
           </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
+              title="Закрыть"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -123,7 +134,7 @@ export const ChatList: React.FC<ChatListProps> = ({
           </div>
         )}
 
-        {sortedChats.map((chat) => {
+        {sortedChats.map((chat, index) => {
           const isActive = chat.id === currentChatId;
           const count = chat.messageCount ?? chat.messages?.length ?? 0;
           const isEditing = editingId === chat.id;
@@ -131,11 +142,12 @@ export const ChatList: React.FC<ChatListProps> = ({
           return (
             <div
               key={chat.id}
-              className={`group relative rounded-lg border transition-colors ${
+              className={`workspace-list-item group relative rounded-lg border transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.99] ${
                 isActive
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
               }`}
+              style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
             >
               {isActive && (
                 <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-blue-500" aria-hidden />
@@ -177,7 +189,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                   </button>
                   <div
                     className={`absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 transition-opacity ${
-                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      isActive ? 'opacity-100' : 'opacity-100 xl:opacity-0 xl:group-hover:opacity-100'
                     }`}
                   >
                     <button
