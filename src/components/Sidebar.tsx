@@ -35,6 +35,7 @@ import { gpuDotColor } from '../utils/gpuUtils';
 import { cn } from '../lib/utils';
 import { celestia } from '../lib/celestia';
 import { StudioLogo } from './brand/StudioLogo';
+import { APP_NAME } from '../constants/brand';
 
 interface SidebarProps {
   onRefreshModels?: () => void;
@@ -341,7 +342,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <StudioLogo className="h-7 w-7" />
             <span className="min-w-0 text-left">
               <span className="block text-sm font-semibold text-foreground leading-tight truncate">
-                {employee ? 'xLAM' : 'Студия xLAM'}
+                {APP_NAME}
               </span>
               <span className="block text-[10px] text-muted-foreground leading-tight">
                 {employee ? 'Рабочее место' : 'Рабочая среда'}

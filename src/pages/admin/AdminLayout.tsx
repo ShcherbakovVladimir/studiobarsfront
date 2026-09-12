@@ -26,6 +26,7 @@ import { toggleTheme } from '../../store/appSlice';
 import { cn } from '../../lib/utils';
 import CelestiaBackground from '../../components/layout/CelestiaBackground';
 import { StudioLogo } from '../../components/brand/StudioLogo';
+import { APP_NAME } from '../../constants/brand';
 import { celestia } from '../../lib/celestia';
 
 const NAV_GROUPS: Array<{
@@ -120,7 +121,7 @@ const AdminLayout: React.FC = () => {
                 Админ-панель
               </span>
               <span className="block text-[10px] text-muted-foreground leading-tight truncate">
-                {userLabel || 'Студия xLAM'}
+                {userLabel || APP_NAME}
               </span>
             </span>
           </div>

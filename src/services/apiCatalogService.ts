@@ -398,7 +398,7 @@ export function getCategoryLabel(category: string): string {
 
 export function parseApiCatalog(raw: unknown, baseUrl: string): ApiCatalog {
   const record = isRecord(raw) ? raw : {};
-  const title = pickString(record.name, record.title, record.service) ?? 'xLAM API';
+  const title = pickString(record.name, record.title, record.service) ?? 'Barsseek API';
   const version = pickString(record.version, record.apiVersion);
   const description = pickString(record.description, record.info);
 

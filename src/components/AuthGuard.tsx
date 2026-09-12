@@ -10,6 +10,7 @@ import ResendVerificationBlock from './ResendVerificationBlock';
 import AuthThemeToggle from './auth/AuthThemeToggle';
 import CelestiaBackground from './layout/CelestiaBackground';
 import { StudioLogo } from './brand/StudioLogo';
+import { APP_NAME } from '../constants/brand';
 import {
   authCardClass,
   authLinkClass,
@@ -79,7 +80,7 @@ const AuthGuard: React.FC = () => {
             <div className="flex items-center gap-2 min-w-0 px-1">
               <StudioLogo className="h-7 w-7" />
               <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight">Студия xLAM</span>
+                <span className="block text-sm font-semibold leading-tight">{APP_NAME}</span>
                 <span className={cn(authMutedClass, 'block')}>Техработы</span>
               </span>
             </div>
@@ -108,7 +109,7 @@ const AuthGuard: React.FC = () => {
             <div className="flex items-center gap-2 min-w-0 px-1">
               <StudioLogo className="h-7 w-7" />
               <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight">Студия xLAM</span>
+                <span className="block text-sm font-semibold leading-tight">{APP_NAME}</span>
                 <span className={cn(authMutedClass, 'block')}>Подтвердите email</span>
               </span>
             </div>

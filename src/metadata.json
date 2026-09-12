@@ -1,5 +1,5 @@
 {
-  "name": "xLAM Agent Workspace",
-  "description": "A workspace for xLAM agent interaction, benchmarking, and finetuning.",
+  "name": "Barsseek",
+  "description": "Рабочее пространство Barsseek: чат, RAG-аналитика и модели.",
   "requestFramePermissions": []
 }

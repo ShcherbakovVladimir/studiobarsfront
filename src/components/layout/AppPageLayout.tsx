@@ -13,6 +13,7 @@ import { cn } from '../../lib/utils';
 import CelestiaBackground from './CelestiaBackground';
 import { celestia } from '../../lib/celestia';
 import { StudioLogo } from '../brand/StudioLogo';
+import { APP_NAME } from '../../constants/brand';
 
 interface AppPageLayoutProps {
   children?: React.ReactNode;
@@ -79,7 +80,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
             </button>
             <StudioLogo className="h-7 w-7" />
             <span className="text-sm font-semibold truncate text-foreground">
-              {isEmployee(user) ? 'xLAM' : 'Студия xLAM'}
+              {APP_NAME}
             </span>
           </div>
         </header>

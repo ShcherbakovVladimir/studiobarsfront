@@ -75,11 +75,11 @@ type QwenMode = 'thinking' | 'instruct' | 'coding';
 const SYSTEM_PROMPT_PRESETS = [
   {
     name: 'Default',
-    value: `Ты - полезный AI ассистент StudioXLAM. Отвечай на русском языке четко, по делу и информативно. Будь дружелюбным и профессиональным.`
+    value: `Ты - полезный AI ассистент Barsseek. Отвечай на русском языке четко, по делу и информативно. Будь дружелюбным и профессиональным.`
   },
   {
     name: 'Detailed',
-    value: `Ты - подробный AI ассистент StudioXLAM. Отвечай развернуто, с примерами и объяснениями. Структурируй ответы с помощью списков и абзацев.`
+    value: `Ты - подробный AI ассистент Barsseek. Отвечай развернуто, с примерами и объяснениями. Структурируй ответы с помощью списков и абзацев.`
   },
   {
     name: 'Technical',
@@ -96,7 +96,7 @@ const SYSTEM_PROMPT_PRESETS = [
   },
   {
     name: 'xLAM Tools & CRM',
-    value: `Ты - AI ассистент StudioXLAM с поддержкой инструментов (xLAM-2) и интеграцией с Bitrix24.
+    value: `Ты - AI ассистент Barsseek с поддержкой инструментов (xLAM-2) и интеграцией с Bitrix24.
 Отвечай на русском языке четко и по делу.
 Используй инструменты только когда это необходимо для точного ответа.
 Будь полезным и профессиональным.`
@@ -2138,8 +2138,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     <span
                       className={cn(
                         'w-1.5 h-1.5 rounded-full',
-                        connectionStatus === 'online' && 'bg-foreground/40',
-                        connectionStatus === 'checking' && 'bg-foreground/30 animate-pulse',
+                        connectionStatus === 'online' && 'bg-green-500',
+                        connectionStatus === 'checking' && 'bg-green-500/50 animate-pulse',
                         (connectionStatus === 'error' || connectionStatus === 'offline') && 'bg-destructive'
                       )}
                     />

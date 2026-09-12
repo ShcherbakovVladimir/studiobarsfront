@@ -16,6 +16,7 @@ import {
 } from '../components/auth/authUi';
 import { InlineError } from '../components/ui/alert-banner';
 import { postLoginPath } from '../utils/auth';
+import { APP_NAME } from '../constants/brand';
 import { cn } from '../lib/utils';
 
 const LoginPage: React.FC = () => {
@@ -47,7 +48,8 @@ const LoginPage: React.FC = () => {
   return (
     <AuthFormCard
       title="Вход"
-      subtitle="Войдите в рабочее пространство."
+      subtitle={`Войдите в ${APP_NAME}.`}
+      showBrandArt
       footer={
         <p className={`text-center ${authMutedClass}`}>
           Нет аккаунта?{' '}
