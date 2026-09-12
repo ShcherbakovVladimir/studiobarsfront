@@ -5,6 +5,7 @@ import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
+import { useDrawerRootRef } from '../utils/workspaceLayout';
 
 interface ChatListProps {
   chats: ChatData[];
@@ -52,6 +53,7 @@ export const ChatList: React.FC<ChatListProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const drawerRef = useDrawerRootRef(open);
 
   const sortedChats = [...chats].sort(
     (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
@@ -69,7 +71,9 @@ export const ChatList: React.FC<ChatListProps> = ({
 
   return (
     <aside
+      ref={drawerRef}
       aria-hidden={!open}
+      inert={!open}
       className={cn(
         celestia.workspaceDrawer,
         'left-0',
@@ -106,7 +110,10 @@ export const ChatList: React.FC<ChatListProps> = ({
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={(event) => {
+                event.currentTarget.blur();
+                onClose();
+              }}
               className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
               title="Закрыть"
             >

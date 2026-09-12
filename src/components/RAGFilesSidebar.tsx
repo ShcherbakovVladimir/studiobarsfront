@@ -3,6 +3,7 @@ import { FolderOpen, Upload, X } from 'lucide-react';
 import RAGDocumentsPanel from './RAGDocumentsPanel';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
+import { useDrawerRootRef } from '../utils/workspaceLayout';
 
 interface RAGFilesSidebarProps {
   isDarkMode: boolean;
@@ -27,9 +28,12 @@ const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
   open = true,
   className = '',
 }) => {
+  const drawerRef = useDrawerRootRef(open);
   return (
     <aside
+      ref={drawerRef}
       aria-hidden={!open}
+      inert={!open}
       className={cn(
         celestia.workspaceDrawer,
         'right-0',
@@ -58,7 +62,10 @@ const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={(event) => {
+                event.currentTarget.blur();
+                onClose();
+              }}
               className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
               title="Закрыть"
             >

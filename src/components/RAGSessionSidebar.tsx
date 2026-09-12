@@ -5,6 +5,7 @@ import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
+import { useDrawerRootRef } from '../utils/workspaceLayout';
 
 interface RAGSessionSidebarProps {
   sessions: RagSession[];
@@ -52,6 +53,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const drawerRef = useDrawerRootRef(open);
 
   const sortedSessions = [...sessions].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -71,7 +73,9 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
 
   return (
     <aside
+      ref={drawerRef}
       aria-hidden={!open}
+      inert={!open}
       className={cn(
         celestia.workspaceDrawer,
         'left-0',
@@ -108,7 +112,10 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={(event) => {
+                event.currentTarget.blur();
+                onClose();
+              }}
               className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
               title="Закрыть"
             >
