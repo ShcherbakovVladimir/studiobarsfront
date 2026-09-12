@@ -188,9 +188,6 @@ export const ChatList: React.FC<ChatListProps> = ({
               )}
               style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
             >
-              {isActive && (
-                <span className="absolute left-1.5 top-2.5 bottom-2.5 w-0.5 rounded-full bg-primary" aria-hidden />
-              )}
               {isEditing ? (
                 <div className="p-2.5">
                   <input
