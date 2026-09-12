@@ -32,6 +32,13 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const selectedCount = selectedNames.length;
+  const pickerLabel = selectedCount > 0 ? String(selectedCount) : String(tools.length || 0);
+  const pickerTitle =
+    selectedCount > 0
+      ? `Выбрано инструментов: ${selectedCount} из ${tools.length}`
+      : tools.length
+        ? `Все доступные инструменты (${tools.length})`
+        : 'Список инструментов';
 
   const toggleName = (name: string) => {
     if (selectedNames.includes(name)) {
@@ -62,19 +69,19 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
       <button
         ref={triggerRef}
         type="button"
-        disabled={disabled || !enabled}
+        disabled={disabled}
         aria-expanded={open}
         aria-label="Список инструментов"
-        title="Выбрать инструменты"
+        title={pickerTitle}
         onClick={() => setOpen((value) => !value)}
         className={cn(
           celestia.headerIcon,
           'text-xs',
           open && 'bg-accent text-foreground',
-          (!enabled || disabled) && 'opacity-40'
+          disabled && 'opacity-40'
         )}
       >
-        {enabled ? selectedCount : '·'}
+        {pickerLabel}
       </button>
       <MenuPopover
         open={open}
@@ -82,6 +89,7 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
         triggerRef={triggerRef}
         matchTriggerWidth={false}
         minWidth={260}
+        zIndex={90}
       >
         <div className="px-3 py-2 text-xs font-medium text-foreground">Инструменты запроса</div>
         <p className="px-3 pb-2 text-[11px] text-muted-foreground leading-snug">

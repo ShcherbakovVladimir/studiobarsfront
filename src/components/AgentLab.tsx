@@ -1556,9 +1556,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         topK: modelOptions.topK ?? prev.topK
       }));
       
-      if (isQwen36Model) {
-        setEnableThinking(modelOptions.enableThinking !== false);
-      }
     }
   }, [currentModel, isQwen36Model]);
   
@@ -2216,8 +2213,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     />
                   </div>
 
-                  {isQwen36Model && isServerReady && !isStreaming && (
-                    <div className="hidden @[40rem]/agentchat:flex items-center gap-1.5 min-w-0">
+                  {isQwen36Model && !isStreaming && (
+                    <div className="hidden @[28rem]/agentchat:flex items-center gap-1.5 min-w-0">
                       <div className="flex items-center bg-accent rounded-xl p-0.5">
                         <button
                           type="button"
