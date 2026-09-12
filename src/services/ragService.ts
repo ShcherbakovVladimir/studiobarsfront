@@ -611,7 +611,7 @@ function buildStreamRequestBody(request: RAGStreamRequest): Record<string, unkno
     sessionId: request.sessionId,
     enableThinking: request.enableThinking,
     preserveThinking: request.preserveThinking,
-    qwenMode: request.qwenMode,
+    qwenMode: request.qwenMode || 'auto',
     limit: request.limit,
     relevanceScore: request.relevanceScore,
     history: request.history,
@@ -1353,7 +1353,7 @@ export const ragService = {
   },
 
   // Поиск по документам
-  async searchDocuments(query: string, limit: number = 5): Promise<{
+  async searchDocuments(query: string, limit: number = 5, relevanceScore?: number): Promise<{
     success: boolean;
     query: string;
     results: Array<{
@@ -1371,7 +1371,11 @@ export const ragService = {
       const response = await ragFetch('/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit })
+        body: JSON.stringify({
+          query,
+          limit,
+          ...(relevanceScore != null ? { relevanceScore, threshold: relevanceScore } : {}),
+        }),
       });
       
       if (!response.ok) {

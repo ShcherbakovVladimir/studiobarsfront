@@ -19,12 +19,14 @@ import ragService, {
   pickActiveRagSessionId,
 } from '../services/ragService';
 import { getRagDefaults } from '../config/runtimeConfig';
+import { loadRagQueryPrefs, sanitizeLimit, sanitizeRelevance } from '../utils/ragQueryPrefs';
 
 function defaultQuerySettings(): RAGState['querySettings'] {
   const defaults = getRagDefaults();
+  const saved = typeof window !== 'undefined' ? loadRagQueryPrefs() : null;
   return {
-    limit: defaults?.limit ?? 10,
-    relevanceScore: defaults?.relevanceScore ?? 0.65,
+    limit: sanitizeLimit(saved?.limit ?? defaults?.limit ?? 10),
+    relevanceScore: sanitizeRelevance(saved?.relevanceScore ?? defaults?.relevanceScore ?? 0.5),
   };
 }
 
@@ -169,7 +171,7 @@ export const sendRAGQueryStream = createAsyncThunk(
       const { limit, relevanceScore } = state.rag.querySettings;
 
       if (mode === 'direct') {
-        const search = await ragService.searchDocuments(query, limit);
+        const search = await ragService.searchDocuments(query, limit, relevanceScore);
         const results = search.results ?? [];
         const text = results.length > 0
           ? results
@@ -207,7 +209,7 @@ export const sendRAGQueryStream = createAsyncThunk(
           sessionId,
           enableThinking: qwenParams?.enableThinking,
           preserveThinking: qwenParams?.preserveThinking,
-          qwenMode: qwenParams?.qwenMode,
+          qwenMode: qwenParams?.qwenMode || 'auto',
           history: history ?? [],
           limit,
           relevanceScore,

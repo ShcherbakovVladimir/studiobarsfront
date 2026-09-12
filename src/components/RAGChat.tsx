@@ -29,8 +29,6 @@ import {
   setQuerySettings,
   loadRAGEmbeddingHealth,
 } from '../store/ragSlice';
-import { getRagDefaults } from '../config/runtimeConfig';
-import type { RAGSource, RAGGeneratedFile } from '../types';
 import { saveLocalRagSessionStore } from '../services/ragService';
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';
@@ -43,8 +41,14 @@ import {
   formatQwenApiModelLabel,
   isQwenThinkingModel,
 } from '../utils/modelDisplay';
+import {
+  loadRagQueryPrefs,
+  mergeQwenModes,
+  normalizeQwenMode,
+  saveRagQueryPrefs,
+} from '../utils/ragQueryPrefs';
 import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
-import type { RagDocumentPreview } from '../types';
+import type { RagDocumentPreview, RAGSource, RAGGeneratedFile } from '../types';
 import { RAGMessage } from '../types';
 import 'katex/dist/katex.min.css';
 import { confirmDialog } from '../services/dialogService';
@@ -648,8 +652,8 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   
   // Qwen3.6 состояния
   const [qwenInfo, setQwenInfo] = useState<QwenInfo | null>(null);
-  const [qwenMode, setQwenMode] = useState<string>('auto');
-  const [availableModes, setAvailableModes] = useState<string[]>(['auto', 'thinking', 'instruct', 'coding']);
+  const [qwenMode, setQwenMode] = useState<string>(() => normalizeQwenMode(loadRagQueryPrefs()?.qwenMode));
+  const [availableModes, setAvailableModes] = useState<string[]>(() => mergeQwenModes());
 
   // ========== showToast ОПРЕДЕЛЯЕМ ПЕРВЫМ (ПЕРЕД ВСЕМИ CALLBACK-ФУНКЦИЯМИ) ==========
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -677,10 +681,16 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       const data = await ragService.getQwenInfo();
       if (isQwenInfo(data)) {
         setQwenInfo(data);
-        setEnableThinking(data.enableThinking);
-        setPreserveThinking(data.preserveThinking);
-        setQwenMode(data.mode || 'auto');
-        if (data.availableModes) setAvailableModes(data.availableModes);
+        const modes = mergeQwenModes(
+          data.availableModes,
+          data.config?.modes ? Object.keys(data.config.modes) : undefined
+        );
+        setAvailableModes(modes);
+        const serverMode = normalizeQwenMode(data.mode);
+        setQwenMode((current) => {
+          if (modes.includes(current)) return current;
+          return modes.includes(serverMode) ? serverMode : 'auto';
+        });
       }
     } catch (error) {
       console.error('Failed to load Qwen info:', error);
@@ -692,7 +702,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       const data = await ragService.updateQwenConfig({
         enableThinking,
         preserveThinking,
-        qwenMode: qwenMode !== 'auto' ? qwenMode : undefined,
+        qwenMode: normalizeQwenMode(qwenMode),
       });
       if (data.success) {
         showToast(
@@ -1146,7 +1156,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         qwenParams: {
           enableThinking,
           preserveThinking,
-          qwenMode: qwenMode !== 'auto' ? qwenMode : undefined,
+          qwenMode: normalizeQwenMode(qwenMode),
         },
         searchMode,
         history,
@@ -1309,15 +1319,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
   // ========== useEffect'ы ==========
   useEffect(() => {
-    const defaults = getRagDefaults();
-    if (defaults) {
-      dispatch(
-        setQuerySettings({
-          limit: defaults.limit,
-          relevanceScore: defaults.relevanceScore,
-        })
-      );
-    }
     dispatch(checkRAGDatabase());
     dispatch(loadRAGMetrics());
     dispatch(loadRAGEmbeddingHealth());
@@ -1327,6 +1328,14 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       void dispatch(bootstrapRAG(userId));
     }
   }, [dispatch, loadTables, loadQwenInfo, isSessionsLoaded, userId]);
+
+  useEffect(() => {
+    saveRagQueryPrefs({
+      limit: querySettings.limit,
+      relevanceScore: querySettings.relevanceScore,
+      qwenMode: normalizeQwenMode(qwenMode),
+    });
+  }, [querySettings.limit, querySettings.relevanceScore, qwenMode]);
 
   useEffect(() => {
     if (!isSessionsLoaded || !sessionId) return;
@@ -1684,7 +1693,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     />
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Модель будет показывать свои рассуждения перед ответом. Для сложных аналитических задач.
+                    Модель покажет ход рассуждений перед ответом. Для сложных аналитических задач.
                   </p>
                 </div>
                 
@@ -1702,7 +1711,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     />
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Сохранять блоки рассуждений в контексте диалога для лучшей связности.
+                    Оставлять блоки рассуждений в истории диалога, чтобы следующие ответы опирались на них.
                   </p>
                 </div>
                 
@@ -1723,10 +1732,14 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   </p>
                 </div>
                 
+                <p className="text-xs text-muted-foreground">
+                  Переключатели действуют на следующий вопрос сразу. «Сохранить» запоминает их на сервере сессии.
+                </p>
                 <div className="pt-2 flex gap-2">
                   <button
+                    type="button"
                     onClick={() => {
-                      updateQwenConfig();
+                      void updateQwenConfig();
                       setShowQwenSettings(false);
                     }}
                     className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
@@ -1734,6 +1747,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     Сохранить
                   </button>
                   <button
+                    type="button"
                     onClick={() => setShowQwenSettings(false)}
                     className="flex-1 py-2 bg-border dark:bg-muted hover:bg-accent dark:hover:bg-accent rounded-lg font-medium transition-colors"
                   >
@@ -1789,7 +1803,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Настройки применяются к каждому запросу и хранятся локально в сессии.
+                  Лимит и порог уходят в каждый запрос. Значения запоминаются в браузере.
                 </p>
               </div>
             </div>
