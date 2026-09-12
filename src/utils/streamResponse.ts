@@ -72,37 +72,6 @@ function nonStreamText(data: UnknownRecord): string {
   return fromChoices || '';
 }
 
-const DRIP_CHARS = 20;
-
-function yieldPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => resolve());
-      return;
-    }
-    setTimeout(resolve, 16);
-  });
-}
-
-/** Reveal text a slice at a time so a buffered SSE body still paints progressively. */
-async function emitStreamText(
-  token: string,
-  abortSignal: AbortSignal,
-  apply: (piece: string) => void
-): Promise<void> {
-  if (!token || abortSignal.aborted) return;
-  if (token.length <= DRIP_CHARS) {
-    apply(token);
-    await yieldPaint();
-    return;
-  }
-  for (let index = 0; index < token.length; index += DRIP_CHARS) {
-    if (abortSignal.aborted) return;
-    apply(token.slice(index, index + DRIP_CHARS));
-    await yieldPaint();
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Диагностика: отвечает на вопрос «почему ответ появился целиком»
 // Отключается через localStorage.setItem('debug:chat-stream', 'off')
@@ -194,12 +163,8 @@ export async function consumeChatStream(
     }
     const data = (await response.json()) as UnknownRecord;
     const text = nonStreamText(data);
-    let shown = '';
-    await emitStreamText(text, abortSignal, (piece) => {
-      shown += piece;
-      onChunk(piece, shown);
-    });
-    if (!abortSignal.aborted) onComplete?.(shown || text);
+    if (text) onChunk(text, text);
+    if (!abortSignal.aborted) onComplete?.(text);
     return;
   }
 
@@ -215,7 +180,7 @@ export async function consumeChatStream(
 
   await readSseFrames(
     response,
-    async (payload) => {
+    (payload) => {
       if (payload === '[DONE]') {
         finish();
         return 'stop';
@@ -239,10 +204,8 @@ export async function consumeChatStream(
         diagnostics.lengths.push(token.length);
       }
 
-      await emitStreamText(token, abortSignal, (piece) => {
-        fullResponse += piece;
-        onChunk(piece, fullResponse);
-      });
+      fullResponse += token;
+      onChunk(token, fullResponse);
     },
     abortSignal
   );

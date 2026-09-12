@@ -1376,8 +1376,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           if (matchingPreset) {
             setSelectedPromptPreset(matchingPreset.name);
           }
-          
-          setUseTools(currentModel.supportsTools || false);
         }
       }
       
@@ -1481,8 +1479,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         if (matchingPreset) {
           setSelectedPromptPreset(matchingPreset.name);
         }
-        
-        setUseTools(currentModel.supportsTools || false);
       }
     }
   }, [currentModel, systemPrompt]);
