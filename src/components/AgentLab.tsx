@@ -2289,6 +2289,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               type="button"
               className={cn(
                 celestia.workspaceScrim,
+                'md:left-64',
                 showChatList ? 'opacity-100' : 'opacity-0 pointer-events-none'
               )}
               aria-label="Закрыть список чатов"
