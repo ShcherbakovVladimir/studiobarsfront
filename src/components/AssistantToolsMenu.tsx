@@ -75,13 +75,21 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
         title={pickerTitle}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          celestia.headerIcon,
-          'text-xs',
-          open && 'bg-accent text-foreground',
-          disabled && 'opacity-40'
+          'inline-flex items-center gap-1 h-8 px-2 rounded-xl border text-xs transition-all duration-150 active:scale-95 disabled:opacity-40',
+          open
+            ? 'border-border bg-accent text-foreground'
+            : 'border-border/70 bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground hover:border-border'
         )}
       >
-        {pickerLabel}
+        <span className="hidden @[36rem]/agentchat:inline">Список</span>
+        <span className="min-w-[1.25rem] text-center font-medium tabular-nums">{pickerLabel}</span>
+        <svg className="w-3 h-3 opacity-70" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+            clipRule="evenodd"
+          />
+        </svg>
       </button>
       <MenuPopover
         open={open}
