@@ -6,6 +6,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { headingAnchorId, helpPath, parseDocsApiHref } from '../utils/docsLinks';
 import 'katex/dist/katex.min.css';
 
 interface MarkdownContentProps {
@@ -14,6 +15,18 @@ interface MarkdownContentProps {
   isStreaming?: boolean;
   className?: string;
   compact?: boolean;
+  docsLinkBase?: string;
+  onDocsNavigate?: (slug: string, hash: string) => void;
+}
+
+function nodeText(node: React.ReactNode): string {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(nodeText).join('');
+  if (typeof node === 'object' && 'props' in node) {
+    return nodeText((node as { props?: { children?: React.ReactNode } }).props?.children);
+  }
+  return '';
 }
 
 function getCodeStyles(isDarkMode: boolean): React.CSSProperties {
@@ -34,6 +47,8 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   isStreaming = false,
   className = '',
   compact = false,
+  docsLinkBase,
+  onDocsNavigate,
 }) => {
   if (!content.trim()) {
     return null;
@@ -111,11 +126,48 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
           },
           a({ href, children }) {
             if (!href) return <span>{children}</span>;
-            const isExternal = href.startsWith('http') || href.startsWith('https');
+            if (href.startsWith('#')) {
+              return (
+                <a
+                  href={href}
+                  className="text-primary hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  onClick={(event) => {
+                    const id = decodeURIComponent(href.slice(1));
+                    const target = id ? document.getElementById(id) : null;
+                    if (!target) return;
+                    event.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                >
+                  {children}
+                </a>
+              );
+            }
+            const docsTarget = parseDocsApiHref(href);
+            if (docsTarget && docsLinkBase) {
+              const to = helpPath(docsTarget.slug, docsTarget.hash, docsLinkBase);
+              return (
+                <a
+                  href={to}
+                  className="text-primary hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  onClick={(event) => {
+                    if (!onDocsNavigate) return;
+                    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+                      return;
+                    }
+                    event.preventDefault();
+                    onDocsNavigate(docsTarget.slug, docsTarget.hash);
+                  }}
+                >
+                  {children}
+                </a>
+              );
+            }
+            const isExternal = href.startsWith('http://') || href.startsWith('https://');
             return (
               <a
                 href={href}
-                target={isExternal ? '_blank' : '_self'}
+                target={isExternal ? '_blank' : undefined}
                 rel={isExternal ? 'noopener noreferrer' : undefined}
                 className="text-primary hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
               >
@@ -165,38 +217,51 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
             );
           },
           h1({ children }) {
+            const id = headingAnchorId(nodeText(children));
             return (
-              <h1 className={compact
-                ? 'text-base font-bold mt-3 mb-2 pb-1 border-b border-border'
-                : 'text-2xl font-bold my-4 pb-2 border-b-2 border-border'}
+              <h1
+                id={id || undefined}
+                className={compact
+                ? 'text-base font-bold mt-3 mb-2 pb-1 border-b border-border scroll-mt-20'
+                : 'text-2xl font-bold my-4 pb-2 border-b-2 border-border scroll-mt-20'}
               >
                 {children}
               </h1>
             );
           },
           h2({ children }) {
+            const id = headingAnchorId(nodeText(children));
             return (
-              <h2 className={compact
-                ? 'text-sm font-bold mt-3 mb-1.5'
-                : 'text-xl font-bold my-3 pb-1.5 border-b border-border'}
+              <h2
+                id={id || undefined}
+                className={compact
+                ? 'text-sm font-bold mt-3 mb-1.5 scroll-mt-20'
+                : 'text-xl font-bold my-3 pb-1.5 border-b border-border scroll-mt-20'}
               >
                 {children}
               </h2>
             );
           },
           h3({ children }) {
+            const id = headingAnchorId(nodeText(children));
             return (
-              <h3 className={compact
-                ? 'text-sm font-semibold mt-2.5 mb-1 text-blue-700 dark:text-blue-300'
-                : 'text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300'}
+              <h3
+                id={id || undefined}
+                className={compact
+                ? 'text-sm font-semibold mt-2.5 mb-1 text-blue-700 dark:text-blue-300 scroll-mt-20'
+                : 'text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300 scroll-mt-20'}
               >
                 {children}
               </h3>
             );
           },
           h4({ children }) {
+            const id = headingAnchorId(nodeText(children));
             return (
-              <h4 className={compact ? 'text-sm font-semibold mt-2 mb-1' : 'text-base font-semibold my-2 text-foreground'}>
+              <h4
+                id={id || undefined}
+                className={compact ? 'text-sm font-semibold mt-2 mb-1 scroll-mt-20' : 'text-base font-semibold my-2 text-foreground scroll-mt-20'}
+              >
                 {children}
               </h4>
             );

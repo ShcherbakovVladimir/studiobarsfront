@@ -20,6 +20,7 @@ import {
   Moon,
   MessageSquare,
   Files,
+  BookOpen,
 } from 'lucide-react';
 import type { AppDispatch, RootState } from '../../store/store';
 import { toggleTheme } from '../../store/appSlice';
@@ -41,6 +42,7 @@ const NAV_GROUPS: Array<{
       { to: '/admin/chats', label: 'Чаты', icon: MessageSquare },
       { to: '/admin/sessions', label: 'RAG-сессии', icon: Files },
       { to: '/admin/audit', label: 'Аудит', icon: ScrollText },
+      { to: '/admin/help', label: 'Справка', icon: BookOpen },
     ],
   },
   {

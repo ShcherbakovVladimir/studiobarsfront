@@ -37,6 +37,7 @@ const AdminUserChatsPage = lazy(() => import('./pages/admin/AdminUserChatsPage')
 const AdminChatsPage = lazy(() => import('./pages/admin/AdminChatsPage'));
 const AdminSessionsPage = lazy(() => import('./pages/admin/AdminSessionsPage'));
 const AdminInferenceLabPage = lazy(() => import('./pages/admin/AdminInferenceLabPage'));
+const AdminHelpPage = lazy(() => import('./pages/admin/AdminHelpPage'));
 
 function RouteFallback() {
   return (
@@ -111,6 +112,8 @@ const App: React.FC = () => {
               <Route path="system" element={<AdminSystemPage />} />
               <Route path="inference-lab" element={<AdminInferenceLabPage />} />
               <Route path="api-tester" element={<AdminApiTesterPage />} />
+              <Route path="help" element={<AdminHelpPage />} />
+              <Route path="help/:slug" element={<AdminHelpPage />} />
             </Route>
           </Route>
           )}

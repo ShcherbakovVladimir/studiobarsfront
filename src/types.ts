@@ -124,6 +124,35 @@ export interface AdminDashboardData {
   [key: string]: unknown;
 }
 
+export interface HelpDocMeta {
+  slug: string;
+  title: string;
+  section?: string;
+  sectionLabel?: string;
+  summary?: string;
+  roles?: string[];
+  file?: string;
+}
+
+export interface HelpDocsSection {
+  id: string;
+  label: string;
+  docs: HelpDocMeta[];
+}
+
+export interface HelpDocsCatalog {
+  success: boolean;
+  role?: string;
+  count: number;
+  docs: HelpDocMeta[];
+  sections: HelpDocsSection[];
+}
+
+export interface HelpDocArticle extends HelpDocMeta {
+  markdown?: string;
+  markdownLinked: string;
+}
+
 export interface AdminMaintenanceSettings {
   enabled: boolean;
   message?: string;

@@ -25,6 +25,9 @@ export function getErrorMessage(error: unknown): string {
           ? error
           : 'Неизвестная ошибка';
 
+  if (raw.includes('DOC_NOT_FOUND') || (error instanceof ApiError && error.code === 'DOC_NOT_FOUND')) {
+    return 'Статья не найдена или недоступна.';
+  }
   if (raw.includes('CHAT_FORBIDDEN') || (error instanceof ApiError && error.code === 'CHAT_FORBIDDEN')) {
     return 'Нет доступа к чужим чатам.';
   }
