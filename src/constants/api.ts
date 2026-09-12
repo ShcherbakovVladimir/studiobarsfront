@@ -34,10 +34,7 @@ export function isBackendApiBase(url: string | undefined | null): boolean {
 
 export function resolveEnvChatApiBase(): string | undefined {
   const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (!fromEnv) return undefined;
-  if (fromEnv === '/api' || fromEnv.startsWith('/')) {
-    return normalizeApiBase(fromEnv);
-  }
+  if (!fromEnv || fromEnv === '/api') return undefined;
   const normalized = normalizeApiBase(fromEnv);
   return isBackendApiBase(normalized) ? normalized : DEFAULT_CHAT_API_BASE;
 }
@@ -45,31 +42,21 @@ export function resolveEnvChatApiBase(): string | undefined {
 export function resolveEnvRagApiBase(): string | undefined {
   const fromEnv = import.meta.env.VITE_RAG_API_URL?.trim();
   if (!fromEnv) return undefined;
-  if (fromEnv === '/api' || fromEnv.startsWith('/')) {
-    return normalizeApiBase(fromEnv);
-  }
   const normalized = normalizeApiBase(fromEnv);
   return isBackendApiBase(normalized) ? normalized : DEFAULT_RAG_API_BASE;
 }
 
-/**
- * Env > valid config URL > lm default.
- * On SPA hosts (studioxlam/barsseek) prefer same-origin `/api` so nginx proxies
- * to lm and the browser never hits cross-origin CORS for Standard Chat.
- */
+/** Env > valid config URL > lm default. Ignores barsseek/studioxlam from /api/config */
 export function resolveChatApiBase(configUrl?: string): string {
+  const fromEnv = resolveEnvChatApiBase();
+  if (fromEnv) return fromEnv;
+
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname.toLowerCase();
+    const host = window.location.hostname;
     if (host.includes('localhost') || host.includes('127.0.0.1')) {
       return 'http://localhost:3001/api';
     }
-    if (FRONTEND_ONLY_HOSTS.has(host)) {
-      return '/api';
-    }
   }
-
-  const fromEnv = resolveEnvChatApiBase();
-  if (fromEnv) return fromEnv;
 
   if (configUrl && isBackendApiBase(configUrl)) return normalizeApiBase(configUrl);
   return DEFAULT_CHAT_API_BASE;
@@ -81,4 +68,3 @@ export function resolveRagApiBase(configUrl?: string): string {
   if (configUrl && isBackendApiBase(configUrl)) return normalizeApiBase(configUrl);
   return DEFAULT_RAG_API_BASE;
 }
-
