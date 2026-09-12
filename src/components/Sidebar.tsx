@@ -30,6 +30,7 @@ import agentService from '../services/agentService';
 import { setServerModels, setActiveModel } from '../store/modelsSlice';
 import { isAdmin, isEmployee, homePath, roleLabel } from '../utils/auth';
 import { isServerOnline } from '../utils/serverStatus';
+import { formatLoadedModelLabel } from '../utils/modelDisplay';
 import { gpuDotColor } from '../utils/gpuUtils';
 import { cn } from '../lib/utils';
 import { celestia } from '../lib/celestia';
@@ -223,6 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const location = useLocation();
   const { isDarkMode, serverStatus } = useSelector((state: RootState) => state.app);
   const hardwareStats = useSelector((state: RootState) => state.app.hardwareStats);
+  const catalogModels = useSelector((state: RootState) => state.models.models);
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const runtimeFeatures = useSelector((state: RootState) => state.runtimeConfig.config?.features);
@@ -279,9 +281,26 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const online = isServerOnline(serverStatus);
   const checking = serverStatus.status === 'checking';
-  const modelName = serverStatus.activeModel
-    ? serverStatus.activeModel.split('/').pop()
+  const activeModelId = serverStatus.activeModel;
+  const loadedCatalogModel = activeModelId
+    ? catalogModels.find((model) => model.id === activeModelId) ??
+      catalogModels.find((model) => model.active)
+    : null;
+  const loadedLabel = formatLoadedModelLabel(loadedCatalogModel);
+  const modelName = activeModelId
+    ? (loadedLabel && loadedLabel !== 'Unknown Model'
+        ? loadedLabel
+        : activeModelId.split('/').pop() || activeModelId)
     : 'не загружена';
+  const modelTitle = activeModelId
+    ? [
+        loadedLabel && loadedLabel !== activeModelId ? loadedLabel : null,
+        `id: ${activeModelId}`,
+        serverStatus.serverReady || serverStatus.modelLoaded ? 'готова' : 'ещё не готова',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : 'Модель не загружена';
   const employee = isEmployee(user);
   const showInferenceLab =
     !employee &&
@@ -419,7 +438,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <span className="h-3 w-px bg-border shrink-0" />
                 <span
                   className="truncate font-mono text-[11px] text-muted-foreground"
-                  title={serverStatus.activeModel || 'Модель не загружена'}
+                  title={modelTitle}
                 >
                   {modelName}
                 </span>
@@ -468,7 +487,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             />
             <span
               className="truncate font-mono text-[11px] text-muted-foreground"
-              title={serverStatus.activeModel || 'Модель не загружена'}
+              title={modelTitle}
             >
               {modelName}
             </span>
