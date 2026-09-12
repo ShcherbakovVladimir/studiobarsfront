@@ -62,8 +62,7 @@ export function isEmployeeAppPath(pathname: string): boolean {
     pathname.startsWith('/chat') ||
     pathname.startsWith('/rag') ||
     pathname.startsWith('/account') ||
-    pathname.startsWith('/profile') ||
-    pathname.startsWith('/help')
+    pathname.startsWith('/profile')
   );
 }
 

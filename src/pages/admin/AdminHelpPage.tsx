@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, RefreshCw } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
@@ -7,7 +7,7 @@ import docsService from '../../services/docsService';
 import MarkdownContent from '../../components/MarkdownContent';
 import type { HelpDocArticle, HelpDocsCatalog } from '../../types';
 import { ApiError } from '../../services/apiClient';
-import { DEFAULT_HELP_SLUG, helpBasePath, helpPath } from '../../utils/docsLinks';
+import { DEFAULT_HELP_SLUG, helpPath } from '../../utils/docsLinks';
 import { AdminError, AdminLoading, adminBtnGhost } from './adminUi';
 import { getErrorMessage } from './adminUtils';
 import { cn } from '../../lib/utils';
@@ -23,11 +23,11 @@ function scrollToHelpHash(hash: string, root: HTMLElement | null) {
   }, 50);
 }
 
+const HELP_BASE = '/admin/help';
+
 const AdminHelpPage: React.FC = () => {
   const { slug: rawSlug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-  const HELP_BASE = helpBasePath(location.pathname);
   const isDarkMode = useSelector((state: RootState) => state.app.isDarkMode);
   const slug = rawSlug ? decodeURIComponent(rawSlug) : DEFAULT_HELP_SLUG;
   const articleRef = useRef<HTMLElement>(null);
