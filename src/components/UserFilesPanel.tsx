@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, FileText, FileType, RefreshCw, RotateCcw, Trash2, CheckSquare, Square, Eye } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, FileText, FileType, RefreshCw, RotateCcw, Trash2, CheckSquare, Square, Eye } from 'lucide-react';
 import { confirmDialog } from '../services/dialogService';
 import userFilesService, {
   isUserFileActive,
@@ -7,6 +7,8 @@ import userFilesService, {
   userFileStatusLabel,
 } from '../services/userFilesService';
 import { notifyRagLibraryChanged, subscribeRagLibraryChanged } from '../services/ragLibrarySync';
+import { useWorkspacePanel } from '../hooks/useWorkspacePanel';
+import { PANEL_IDS } from '../store/workspaceUiSlice';
 import type { UserFile } from '../types';
 import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
@@ -39,6 +41,8 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   const [actionId, setActionId] = useState<string | null>(null);
   const [markdownPreview, setMarkdownPreview] = useState<{ name: string; text: string } | null>(null);
   const [pdfPreview, setPdfPreview] = useState<{ name: string; url: string } | null>(null);
+  const { getToggle, setToggle } = useWorkspacePanel(PANEL_IDS.RAG_CHAT, 'chat');
+  const expanded = getToggle('pdfRepoOpen', false);
   const onFilesChangeRef = useRef(onFilesChange);
   onFilesChangeRef.current = onFilesChange;
   const readyNotified = useRef(new Set<string>());
@@ -193,10 +197,21 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   return (
     <div className="space-y-3 mb-4 pb-4 border-b border-border">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <FileText className="w-4 h-4 text-blue-500" />
-          Репозиторий PDF ({files.length})
-        </div>
+        <button
+          type="button"
+          onClick={() => setToggle('pdfRepoOpen', !expanded)}
+          aria-expanded={expanded}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left text-sm font-medium rounded-lg px-1 py-1 -mx-1 hover:bg-accent/70"
+          title={expanded ? 'Свернуть репозиторий PDF' : 'Развернуть репозиторий PDF'}
+        >
+          {expanded ? (
+            <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+          )}
+          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+          <span className="truncate">Репозиторий PDF ({files.length})</span>
+        </button>
         <button
           type="button"
           onClick={() => void load()}
@@ -207,6 +222,8 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
         </button>
       </div>
 
+      {expanded && (
+      <>
       <p className="text-[11px] text-muted-foreground">
         В списке — исходное имя (например Договор.pdf). В аналитике: documentSources = ragSource (.md).
       </p>
@@ -346,6 +363,8 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
           );
         })}
       </div>
+      </>
+      )}
 
       <RagPreviewDialog
         open={Boolean(pdfPreview)}

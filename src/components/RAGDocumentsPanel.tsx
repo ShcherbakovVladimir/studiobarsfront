@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { confirmDialog } from '../services/dialogService';
 import {
+  ChevronDown,
+  ChevronRight,
   Download,
   FileText,
   RefreshCw,
@@ -11,6 +13,8 @@ import {
 } from 'lucide-react';
 import ragService from '../services/ragService';
 import { notifyRagLibraryChanged, subscribeRagLibraryChanged } from '../services/ragLibrarySync';
+import { useWorkspacePanel } from '../hooks/useWorkspacePanel';
+import { PANEL_IDS } from '../store/workspaceUiSlice';
 import type { RagDocument } from '../types';
 import UserFilesPanel from './UserFilesPanel';
 import { InlineError } from './ui/alert-banner';
@@ -61,6 +65,8 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   const [previewSource, setPreviewSource] = useState<string | null>(null);
   const [previewChunks, setPreviewChunks] = useState<unknown[]>([]);
   const [ocrRagSources, setOcrRagSources] = useState<string[]>([]);
+  const { getToggle, setToggle } = useWorkspacePanel(PANEL_IDS.RAG_CHAT, 'chat');
+  const indexOpen = getToggle('ragIndexOpen', false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) {
@@ -199,11 +205,24 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       />
 
       <div className="flex items-center justify-between gap-2 mb-3 mt-1">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <FileText className="w-4 h-4 text-blue-500" />
-          Индекс RAG ({documents.length})
-        </div>
+        <button
+          type="button"
+          onClick={() => setToggle('ragIndexOpen', !indexOpen)}
+          aria-expanded={indexOpen}
+          className="flex items-center gap-2 min-w-0 flex-1 text-left text-sm font-medium rounded-lg px-1 py-1 -mx-1 hover:bg-accent/70"
+          title={indexOpen ? 'Свернуть индекс RAG' : 'Развернуть индекс RAG'}
+        >
+          {indexOpen ? (
+            <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+          )}
+          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+          <span className="truncate">Индекс RAG ({documents.length})</span>
+        </button>
         <div className="flex items-center gap-1">
+          {indexOpen && (
+            <>
           <button
             type="button"
             onClick={selectAll}
@@ -218,6 +237,8 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
           >
             Сброс
           </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => void load()}
@@ -229,6 +250,8 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         </div>
       </div>
 
+      {indexOpen && (
+      <>
       <p className="text-[11px] text-muted-foreground mb-2">
         Тексты в vector_store: Markdown после OCR и документы, загруженные напрямую. Исходный PDF здесь не хранится.
       </p>
@@ -349,6 +372,8 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
           );
         })}
       </div>
+      </>
+      )}
 
       <RagPreviewDialog
         open={Boolean(previewSource)}

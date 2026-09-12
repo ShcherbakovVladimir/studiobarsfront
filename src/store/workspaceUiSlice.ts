@@ -61,6 +61,8 @@ export const defaultWorkspaceUiState: WorkspaceUiState = {
       showQwenSettings: false,
       enableThinking: true,
       preserveThinking: false,
+      pdfRepoOpen: false,
+      ragIndexOpen: false,
     }),
     [PANEL_IDS.FINETUNE]: createPanel('train', {
       showAdvanced: false,
