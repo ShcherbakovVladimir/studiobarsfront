@@ -427,8 +427,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <span
                   className={cn(
                     'w-1.5 h-1.5 rounded-full shrink-0',
-                    online && 'bg-foreground/45',
-                    checking && 'bg-foreground/30 animate-pulse',
+                    online && 'bg-green-500',
+                    checking && 'bg-green-500/50 animate-pulse',
                     !online && !checking && 'bg-destructive'
                   )}
                 />
@@ -480,8 +480,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             <span
               className={cn(
                 'w-1.5 h-1.5 rounded-full shrink-0',
-                online && 'bg-foreground/45',
-                checking && 'bg-foreground/30 animate-pulse',
+                online && 'bg-green-500',
+                checking && 'bg-green-500/50 animate-pulse',
                 !online && !checking && 'bg-destructive'
               )}
             />
