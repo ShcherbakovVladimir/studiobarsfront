@@ -335,8 +335,7 @@ export async function chatStream(
 
   try {
     const activeModel = await getActiveModel();
-    const isQwen36ModelFlag = activeModel?.modelFamily === 'qwen' && 
-                              activeModel?.name?.toLowerCase().includes('qwen3.6');
+    const isQwen36ModelFlag = isQwen36Model(activeModel);
     
     // Подготовка параметров для Qwen3.6
     let finalOptions = { ...options };
@@ -939,12 +938,7 @@ export async function chatAgent(
 ): Promise<XlamAgentResponse> {
   try {
     const activeModel = await getActiveModel();
-    const isQwenModel = activeModel?.modelFamily === 'qwen' || 
-                        activeModel?.name?.toLowerCase().includes('qwen');
-    const isQwen36ModelFlag = isQwenModel && (
-      activeModel?.name?.toLowerCase().includes('qwen3.6') ||
-      activeModel?.name?.toLowerCase().includes('qwen-3.6')
-    );
+    const isQwen36ModelFlag = isQwen36Model(activeModel);
     
     let finalOptions = { ...options };
     
@@ -1008,7 +1002,7 @@ export async function chatAgent(
       };
       
       console.log(`📤 Qwen3.6 request: mode=${mode}, enableThinking=${finalOptions.enableThinking}, preserveThinking=${finalOptions.preserveThinking}`);
-    } else if (isQwenModel) {
+    } else if (isQwenModel(activeModel)) {
       finalOptions = {
         temperature: options.temperature || 0.7,
         topP: options.topP || 0.95,
@@ -1120,8 +1114,7 @@ export async function smartChat(
   try {
     const activeModel = await getActiveModel();
     const modelFamily = activeModel ? getModelFamilyFromName(activeModel.name) : 'unknown';
-    const isQwen36Flag = activeModel && (activeModel.name?.toLowerCase().includes('qwen3.6') || 
-                                         activeModel.name?.toLowerCase().includes('qwen-3.6'));
+    const isQwen36Flag = isQwen36Model(activeModel);
     
     if (isQwen36Flag && options.mode) {
       const qwenOptions = getQwen36Options(options.mode as 'thinking' | 'instruct' | 'coding');
@@ -1928,9 +1921,14 @@ export function isQwenModel(model: ModelInfo | null): boolean {
 }
 
 export function isQwen36Model(model: ModelInfo | null): boolean {
+  return isQwenThinkingModel(model);
+}
+
+export function isQwenThinkingModel(model: ModelInfo | null): boolean {
   if (!model) return false;
-  const nameLower = model.name?.toLowerCase() || '';
-  return nameLower.includes('qwen3.6') || nameLower.includes('qwen-3.6');
+  const nameLower = `${model.name || ''} ${model.id || ''}`.toLowerCase();
+  if (!isQwenModel(model)) return false;
+  return /qwen[\s._-]*3/.test(nameLower) || nameLower.includes('thinking');
 }
 
 export function getQwen36Options(mode: 'thinking' | 'instruct' | 'coding' = 'thinking'): Partial<GenerationOptions> {

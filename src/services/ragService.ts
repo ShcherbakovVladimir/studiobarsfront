@@ -337,6 +337,11 @@ export interface QwenInfoResponse {
   preserveThinking: boolean;
   mode: string;
   availableModes: string[];
+  model?: string;
+  modelName?: string;
+  model_name?: string;
+  name?: string;
+  version?: string;
   config?: {
     modes: Record<string, {
       temperature: number;

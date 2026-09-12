@@ -29,6 +29,7 @@ import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
 import { MenuPopover } from './ui/menu-popover';
 import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
+import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDisplay';
 
 // Импорт KaTeX CSS
 import 'katex/dist/katex.min.css';
@@ -101,8 +102,8 @@ const SYSTEM_PROMPT_PRESETS = [
 Будь полезным и профессиональным.`
   },
   {
-    name: 'Qwen3.6 Thinking',
-    value: `Ты - мощный AI ассистент на базе Qwen3.6. Отвечай на русском языке.
+    name: 'Qwen Thinking',
+    value: `Ты — AI-ассистент. Отвечай на русском языке.
 Используй режим рассуждений для сложных задач: сначала продумай ответ в блоке <think>, затем дай финальный ответ.
 Будь точным, информативным и полезным.`
   }
@@ -116,8 +117,10 @@ const XLAM_TOOLS_PROMPT = SYSTEM_PROMPT_PRESETS[4]?.value ?? DEFAULT_SYSTEM_PROM
 const getSystemPromptForModel = (model: XLAMModel | null | undefined) => {
   if (!model) return DEFAULT_SYSTEM_PROMPT;
 
-  if (model.modelFamily === 'qwen' && model.name?.toLowerCase().includes('qwen3.6')) {
-    return SYSTEM_PROMPT_PRESETS.find(p => p.name === 'Qwen3.6 Thinking')?.value || DEFAULT_SYSTEM_PROMPT;
+  if (isQwenThinkingModel(model)) {
+    const preset = SYSTEM_PROMPT_PRESETS.find((p) => p.name === 'Qwen Thinking')?.value || DEFAULT_SYSTEM_PROMPT;
+    const label = formatLoadedModelLabel(model);
+    return label ? preset.replace('Ты — AI-ассистент.', `Ты — AI-ассистент на базе ${label}.`) : preset;
   }
 
   if (model.supportsTools || model.modelFamily === 'xlam') {
@@ -135,7 +138,7 @@ const getSystemPromptForModel = (model: XLAMModel | null | undefined) => {
 const getGenerationOptionsForModel = (model: XLAMModel | null | undefined): Partial<GenerationOptions> => {
   if (!model) return { temperature: 0.72, repeatPenalty: 1.12 };
 
-  if (model.modelFamily === 'qwen' && model.name?.toLowerCase().includes('qwen3.6')) {
+  if (isQwenThinkingModel(model)) {
     return {
       temperature: 1.0,
       maxTokens: 32768,
@@ -884,8 +887,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       currentModel?.modelFamily === 'xlam' ||
                       currentModel?.name?.toLowerCase().includes('xlam');
   
-  const isQwen36Model = currentModel?.modelFamily === 'qwen' && 
-                        currentModel?.name?.toLowerCase().includes('qwen3.6');
+  const isQwen36Model = isQwenThinkingModel(currentModel);
   
   // State for Qwen3.6
   const [qwenMode, setQwenMode] = useState<QwenMode>('thinking');
@@ -2125,9 +2127,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     <span className="hidden @[28rem]/agentchat:block h-4 w-px bg-border shrink-0" />
                     <span
                       className="hidden @[22rem]/agentchat:block min-w-0 flex-1 truncate font-mono text-xs sm:text-sm text-muted-foreground"
-                      title={currentModel ? currentModel.name : 'Модель не выбрана'}
+                      title={currentModel ? formatLoadedModelLabel(currentModel) || currentModel.name : 'Модель не выбрана'}
                     >
-                        {currentModel ? currentModel.name : 'Модель не выбрана'}
+                        {currentModel ? formatLoadedModelLabel(currentModel) || currentModel.name : 'Модель не выбрана'}
                     </span>
                 </div>
                 

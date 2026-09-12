@@ -38,6 +38,11 @@ import RAGSessionSidebar from './RAGSessionSidebar';
 import RAGFilesSidebar from './RAGFilesSidebar';
 import ragService, { type QwenInfoResponse } from '../services/ragService';
 import userFilesService, { isPdfFile, userFileStatusLabel } from '../services/userFilesService';
+import {
+  formatLoadedModelLabel,
+  formatQwenApiModelLabel,
+  isQwenThinkingModel,
+} from '../utils/modelDisplay';
 import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
 import type { RagDocumentPreview } from '../types';
 import { RAGMessage } from '../types';
@@ -79,6 +84,11 @@ interface QwenInfo {
   preserveThinking: boolean;
   mode: string;
   availableModes: string[];
+  model?: string;
+  modelName?: string;
+  model_name?: string;
+  name?: string;
+  version?: string;
 }
 
 function isQwenInfo(data: QwenInfoResponse): data is QwenInfoResponse & { success: true } {
@@ -572,6 +582,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     embeddingHealth,
   } = useSelector((state: RootState) => state.rag);
   const userId = useSelector((state: RootState) => state.auth.user?.id);
+  const loadedModel = useSelector((state: RootState) => {
+    const activeId = state.models.activeModel;
+    return state.models.models.find((model) => model.id === activeId) ?? state.models.models.find((model) => model.active) ?? null;
+  });
   const { getToggle, setToggle } = useWorkspacePanel(PANEL_IDS.RAG_CHAT, 'chat');
   const showSessionSidebar = getToggle('sessionListOpen', true);
   const setShowSessionSidebar = (value: boolean) => setToggle('sessionListOpen', value);
@@ -663,12 +677,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       const data = await ragService.getQwenInfo();
       if (isQwenInfo(data)) {
         setQwenInfo(data);
-        if (data.isQwen36) {
-          setEnableThinking(data.enableThinking);
-          setPreserveThinking(data.preserveThinking);
-          setQwenMode(data.mode || 'auto');
-          if (data.availableModes) setAvailableModes(data.availableModes);
-        }
+        setEnableThinking(data.enableThinking);
+        setPreserveThinking(data.preserveThinking);
+        setQwenMode(data.mode || 'auto');
+        if (data.availableModes) setAvailableModes(data.availableModes);
       }
     } catch (error) {
       console.error('Failed to load Qwen info:', error);
@@ -683,7 +695,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         qwenMode: qwenMode !== 'auto' ? qwenMode : undefined,
       });
       if (data.success) {
-        showToast('Настройки Qwen3.6 обновлены', 'success');
+        showToast(
+          `Настройки ${formatLoadedModelLabel(loadedModel) || formatQwenApiModelLabel(data.config) || 'модели'} обновлены`,
+          'success'
+        );
         void loadQwenInfo();
       } else {
         showToast(data.message || 'Ошибка обновления настроек', 'error');
@@ -692,7 +707,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       console.error('Failed to update Qwen config:', error);
       showToast('Ошибка обновления настроек', 'error');
     }
-  }, [enableThinking, preserveThinking, qwenMode, loadQwenInfo, showToast]);
+  }, [enableThinking, preserveThinking, qwenMode, loadQwenInfo, showToast, loadedModel]);
 
   const loadDocumentPreview = useCallback(
     async (file: File) => {
@@ -1285,7 +1300,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
   const isConnected = databaseStatus?.connected || false;
   const tablesCount = databaseStatus?.tables_count || 0;
-  const isQwenActive = qwenInfo?.isQwen36 || false;
+  const loadedModelLabel =
+    formatLoadedModelLabel(loadedModel) || formatQwenApiModelLabel(qwenInfo);
+  const thinkingCapable = Boolean(qwenInfo?.isQwen36 || isQwenThinkingModel(loadedModel));
+  const qwenSettingsTitle = loadedModelLabel
+    ? `Настройки ${loadedModelLabel}`
+    : 'Настройки модели';
 
   // ========== useEffect'ы ==========
   useEffect(() => {
@@ -1439,7 +1459,11 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   {embeddingHealth.completion_percentage}%
                 </span>
               )}
-              {isQwenActive && <span className="shrink-0">Qwen3.6</span>}
+              {loadedModelLabel && (
+                <span className="shrink-0 truncate max-w-[14rem]" title={loadedModelLabel}>
+                  {loadedModelLabel}
+                </span>
+              )}
             </div>
           </div>
 
@@ -1511,9 +1535,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               <SettingsIcon />
             </IconButton>
 
-            {isQwenActive && (
+            {thinkingCapable && (
               <IconButton
-                label="Настройки Qwen3.6"
+                label={qwenSettingsTitle}
                 onClick={() => setShowQwenSettings(true)}
                 className={cn('hidden @[42rem]/ragchat:inline-flex', celestia.headerIcon)}
               >
@@ -1580,7 +1604,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               >
                 <SettingsIcon /> Настройки RAG
               </button>
-              {isQwenActive && (
+              {thinkingCapable && (
                 <button
                   type="button"
                   className={celestia.headerMenuItem}
@@ -1589,7 +1613,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     setShowQwenSettings(true);
                   }}
                 >
-                  <ThinkingIcon /> Настройки Qwen3.6
+                  <ThinkingIcon /> {qwenSettingsTitle}
                 </button>
               )}
               <button
@@ -1636,7 +1660,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               <div className="flex justify-between items-center p-4 border-b border-border">
                 <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
                   <ThinkingIcon />
-                  Настройки Qwen3.6
+                  {qwenSettingsTitle}
                 </h3>
                 <button 
                   onClick={() => setShowQwenSettings(false)} 
@@ -1798,9 +1822,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 💾 Direct режим
               </span>
             </div>
-            {isQwenActive && (
+            {loadedModelLabel && (
               <p className="text-xs mt-3 text-purple-500 text-center max-w-md">
-                🐫 Активна модель Qwen3.6 с поддержкой режима рассуждений
+                Активна {loadedModelLabel}
+                {thinkingCapable ? ' — доступен режим рассуждений' : ''}
               </p>
             )}
             {!isConnected && (
@@ -2053,7 +2078,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             <span className="text-emerald-500">💾 Режим прямого поиска по БД</span>
           ) : (
             <>
-              {isQwenActive && enableThinking && (
+              {thinkingCapable && enableThinking && (
                 <span className="text-purple-500">🧠 Режим рассуждений активен</span>
               )}
               <span className="text-purple-500">🤖 LLM режим</span>
