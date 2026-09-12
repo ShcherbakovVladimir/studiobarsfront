@@ -59,8 +59,8 @@ const CatalogShell: React.FC<{ children: React.ReactNode; headerExtra?: React.Re
   headerExtra,
 }) => (
   <div className="flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
-    <header className={celestia.appHeader}>
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <header className={cn(celestia.appHeader, 'flex items-center')}>
+      <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <h2 className="shrink-0 text-sm font-semibold text-foreground">Каталог моделей</h2>
           <span className="hidden sm:block h-4 w-px bg-border shrink-0" />
@@ -429,7 +429,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
       onClick={handleRefresh}
       disabled={isLoading}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0 w-full sm:w-auto',
+        'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0',
         'bg-accent hover:bg-border text-foreground disabled:opacity-60'
       )}
       title="Обновить список моделей"

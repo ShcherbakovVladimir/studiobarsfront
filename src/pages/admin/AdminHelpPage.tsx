@@ -113,8 +113,8 @@ const AdminHelpPage: React.FC = () => {
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
-      <header className={celestia.appHeader}>
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <header className={cn(celestia.appHeader, 'flex items-center')}>
+        <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <h2 className="shrink-0 text-sm font-semibold text-foreground">Справка</h2>
             <span className="hidden sm:block h-4 w-px bg-border shrink-0" />
@@ -122,7 +122,7 @@ const AdminHelpPage: React.FC = () => {
               {article?.title || 'База знаний'}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               className={cn(adminBtnGhost, 'lg:hidden')}

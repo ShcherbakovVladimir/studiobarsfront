@@ -309,8 +309,8 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
 
   return (
     <div className="flex h-full flex-col glass-panel text-foreground overflow-hidden">
-      <header className={celestia.appHeader}>
-        <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+      <header className={cn(celestia.appHeader, 'flex items-center')}>
+        <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <h2 className="shrink-0 text-sm font-semibold">Лаборатория инференса</h2>
             <span className="hidden sm:block h-4 w-px bg-border shrink-0" />

@@ -769,8 +769,8 @@ const BenchmarkingView: React.FC<BenchmarkingViewProps> = ({ isDarkMode = true, 
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
-      <header className={celestia.appHeader}>
-        <div className="flex w-full min-w-0 flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+      <header className={cn(celestia.appHeader, 'flex items-center')}>
+        <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <h2 className="shrink-0 text-sm font-semibold text-foreground">Производительность</h2>
             <span className="hidden sm:block h-4 w-px bg-border shrink-0" />

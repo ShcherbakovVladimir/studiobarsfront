@@ -2031,71 +2031,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     };
 
     return (
-      <div className="flex h-full min-h-0 overflow-hidden glass-panel text-foreground">
-        {!productMode && (
-        <div className="
-          w-14
-          flex-shrink-0
-          border-r border-border
-          bg-background/40
-          flex flex-col
-        ">
-          <div className="h-12 border-b border-border/60 shrink-0" />
-          <div className="flex flex-col items-center gap-1 py-2 px-1 flex-1">
-            <div className="flex flex-col items-center gap-1 w-full">
-              <SidebarButton tool="chat" icon={<ChatIcon />} label="Чат" />
-            </div>
-            
-            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
-            
-            <div className="flex flex-col items-center gap-1 w-full">
-              <SidebarButton tool="wrappers" icon={<WrappersIcon />} label="Chat Wrappers" />
-              <SidebarButton tool="grammar" icon={<GrammarIcon />} label="Грамматика" />
-              <SidebarButton tool="embedding" icon={<EmbeddingIcon />} label="Embeddings" />
-              <SidebarButton tool="ranking" icon={<RankingIcon />} label="Rerank" />
-              <SidebarButton tool="functions" icon={<FunctionsIcon />} label="Функции" />
-              <SidebarButton tool="insights" icon={<InsightsIcon />} label="Инсайты" />
-            </div>
-            
-            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
-            
-            <div className="flex flex-col items-center gap-1 w-full mt-auto">
-              <SidebarButton tool="settings" icon={<SettingsIcon />} label="Настройки" />
-              <SidebarButton tool="system" icon={<SystemIcon />} label="Система" />
-            </div>
-          </div>
-        </div>
-        )}
-
-        {activeTool === 'chat' && (
-          <>
-            <button
-              type="button"
-              className={cn(
-                celestia.workspaceScrim,
-                showChatList ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              )}
-              aria-label="Закрыть список чатов"
-              onClick={() => setShowChatList(false)}
-            />
-            <ChatList
-              chats={availableChats}
-              currentChatId={currentChat?.id}
-              isLoading={chatsRefreshing}
-              isLoaded={chatsLoaded}
-              onSelectChat={switchToChat}
-              onDeleteChat={deleteChat}
-              onRenameChat={renameChat}
-              onCreateNew={createNewChat}
-              onRefresh={() => void loadChats()}
-              onClose={() => setShowChatList(false)}
-              open={showChatList}
-            />
-          </>
-        )}
-
-        {/* Main Content */}
-        <div className="@container/agentchat flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="@container/agentchat flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
             <header className={cn(celestia.appHeader, 'flex items-center')}>
                 <div className="flex h-full w-full items-center justify-between gap-1.5">
                 <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -2114,7 +2050,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       </IconButton>
                     )}
                     <h2 className="min-w-0 truncate text-sm font-semibold text-foreground">
-                    {productMode ? 'Помощник AI' : activeTool === 'chat' && 'Чат'}
+                    {productMode || activeTool === 'chat' ? 'Помощник AI' : null}
                     {!productMode && activeTool === 'wrappers' && 'Chat Wrappers'}
                     {!productMode && activeTool === 'grammar' && 'Грамматика'}
                     {!productMode && activeTool === 'embedding' && 'Embeddings'}
@@ -2317,8 +2253,63 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                 </div>
                 </div>
             </header>
+
+            <div className="flex min-h-0 flex-1 overflow-hidden">
+        {!productMode && (
+        <div className="w-14 flex-shrink-0 border-r border-border bg-background/40 flex flex-col">
+          <div className="flex flex-col items-center gap-1 py-2 px-1 flex-1">
+            <div className="flex flex-col items-center gap-1 w-full">
+              <SidebarButton tool="chat" icon={<ChatIcon />} label="Чат" />
+            </div>
             
-            {/* Active Tool View */}
+            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
+            
+            <div className="flex flex-col items-center gap-1 w-full">
+              <SidebarButton tool="wrappers" icon={<WrappersIcon />} label="Chat Wrappers" />
+              <SidebarButton tool="grammar" icon={<GrammarIcon />} label="Грамматика" />
+              <SidebarButton tool="embedding" icon={<EmbeddingIcon />} label="Embeddings" />
+              <SidebarButton tool="ranking" icon={<RankingIcon />} label="Rerank" />
+              <SidebarButton tool="functions" icon={<FunctionsIcon />} label="Функции" />
+              <SidebarButton tool="insights" icon={<InsightsIcon />} label="Инсайты" />
+            </div>
+            
+            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
+            
+            <div className="flex flex-col items-center gap-1 w-full mt-auto">
+              <SidebarButton tool="settings" icon={<SettingsIcon />} label="Настройки" />
+              <SidebarButton tool="system" icon={<SystemIcon />} label="Система" />
+            </div>
+          </div>
+        </div>
+        )}
+
+        {activeTool === 'chat' && (
+          <>
+            <button
+              type="button"
+              className={cn(
+                celestia.workspaceScrim,
+                showChatList ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              )}
+              aria-label="Закрыть список чатов"
+              onClick={() => setShowChatList(false)}
+            />
+            <ChatList
+              chats={availableChats}
+              currentChatId={currentChat?.id}
+              isLoading={chatsRefreshing}
+              isLoaded={chatsLoaded}
+              onSelectChat={switchToChat}
+              onDeleteChat={deleteChat}
+              onRenameChat={renameChat}
+              onCreateNew={createNewChat}
+              onRefresh={() => void loadChats()}
+              onClose={() => setShowChatList(false)}
+              open={showChatList}
+            />
+          </>
+        )}
+            
             <div className="flex-1 min-w-0 overflow-hidden relative">
                 {activeTool === 'chat' && (
                     <div className="flex flex-col h-full min-w-0">

@@ -73,8 +73,8 @@ const SystemInfoPanel: React.FC<SystemInfoPanelProps> = ({ embedded = false }) =
   return (
     <div className="flex h-full min-h-0 flex-col">
       {!embedded && (
-        <header className={celestia.appHeader}>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <header className={cn(celestia.appHeader, 'flex items-center')}>
+          <div className="flex h-full w-full min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="shrink-0 text-sm font-semibold text-foreground">Система</h2>
               <span className="hidden sm:block h-4 w-px bg-border shrink-0" />
@@ -83,8 +83,8 @@ const SystemInfoPanel: React.FC<SystemInfoPanelProps> = ({ embedded = false }) =
                   className={cn(
                     'w-1.5 h-1.5 rounded-full',
                     error && 'bg-destructive',
-                    loading && !error && 'bg-foreground/30 animate-pulse',
-                    !loading && !error && info && 'bg-foreground/40',
+                    loading && !error && 'bg-green-500/50 animate-pulse',
+                    !loading && !error && info && 'bg-green-500',
                     !loading && !error && !info && 'bg-foreground/20'
                   )}
                 />
