@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/App.tsx
-import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react';
+import React, { Suspense, useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { ViewMode } from '../types';
@@ -25,13 +25,14 @@ import { isServerOnline } from '../utils/serverStatus';
 import { TopBanner } from './ui/top-banner';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-const BenchmarkingView = lazy(() => import('./BenchmarkingView'));
-const AgentLab = lazy(() => import('./AgentLab'));
-const ModelCatalog = lazy(() => import('./ModelCatalog'));
-const FinetuneView = lazy(() => import('./FinetuneView'));
-const RAGChat = lazy(() => import('./RAGChat'));
-const InferenceLab = lazy(() => import('./InferenceLab'));
+const BenchmarkingView = lazyWithRetry(() => import('./BenchmarkingView'));
+const AgentLab = lazyWithRetry(() => import('./AgentLab'));
+const ModelCatalog = lazyWithRetry(() => import('./ModelCatalog'));
+const FinetuneView = lazyWithRetry(() => import('./FinetuneView'));
+const RAGChat = lazyWithRetry(() => import('./RAGChat'));
+const InferenceLab = lazyWithRetry(() => import('./InferenceLab'));
 
 // Определяем интерфейс для модели с сервера
 interface ServerModel {

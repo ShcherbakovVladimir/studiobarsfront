@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from './store/store';
@@ -17,27 +17,28 @@ import GlobalDialog from './components/GlobalDialog';
 import { useThemeSync } from './hooks/useThemeSync';
 import { MAIN_APP_PATHS } from './utils/viewModeRoutes';
 import { homePath, isEmployee, EMPLOYEE_MAIN_PATHS } from './utils/auth';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-const MainApp = lazy(() => import('./components/MainApp'));
-const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const SystemInfoPage = lazy(() => import('./pages/SystemInfoPage'));
-const HardwareinfoPage = lazy(() => import('./pages/HardwareinfoPage'));
-const APITesterPage = lazy(() => import('./pages/APITesterPage'));
-const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
-const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'));
-const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
-const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
-const AdminMaintenancePage = lazy(() => import('./pages/admin/AdminMaintenancePage'));
-const AdminMailPage = lazy(() => import('./pages/admin/AdminMailPage'));
-const AdminBackupsPage = lazy(() => import('./pages/admin/AdminBackupsPage'));
-const AdminAuditPage = lazy(() => import('./pages/admin/AdminAuditPage'));
-const AdminSystemPage = lazy(() => import('./pages/admin/AdminSystemPage'));
-const AdminApiTesterPage = lazy(() => import('./pages/admin/AdminApiTesterPage'));
-const AdminUserChatsPage = lazy(() => import('./pages/admin/AdminUserChatsPage'));
-const AdminChatsPage = lazy(() => import('./pages/admin/AdminChatsPage'));
-const AdminSessionsPage = lazy(() => import('./pages/admin/AdminSessionsPage'));
-const AdminInferenceLabPage = lazy(() => import('./pages/admin/AdminInferenceLabPage'));
-const AdminHelpPage = lazy(() => import('./pages/admin/AdminHelpPage'));
+const MainApp = lazyWithRetry(() => import('./components/MainApp'));
+const ProfilePage = lazyWithRetry(() => import('./pages/ProfilePage'));
+const SystemInfoPage = lazyWithRetry(() => import('./pages/SystemInfoPage'));
+const HardwareinfoPage = lazyWithRetry(() => import('./pages/HardwareinfoPage'));
+const APITesterPage = lazyWithRetry(() => import('./pages/APITesterPage'));
+const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout'));
+const AdminDashboardPage = lazyWithRetry(() => import('./pages/admin/AdminDashboardPage'));
+const AdminUsersPage = lazyWithRetry(() => import('./pages/admin/AdminUsersPage'));
+const AdminSettingsPage = lazyWithRetry(() => import('./pages/admin/AdminSettingsPage'));
+const AdminMaintenancePage = lazyWithRetry(() => import('./pages/admin/AdminMaintenancePage'));
+const AdminMailPage = lazyWithRetry(() => import('./pages/admin/AdminMailPage'));
+const AdminBackupsPage = lazyWithRetry(() => import('./pages/admin/AdminBackupsPage'));
+const AdminAuditPage = lazyWithRetry(() => import('./pages/admin/AdminAuditPage'));
+const AdminSystemPage = lazyWithRetry(() => import('./pages/admin/AdminSystemPage'));
+const AdminApiTesterPage = lazyWithRetry(() => import('./pages/admin/AdminApiTesterPage'));
+const AdminUserChatsPage = lazyWithRetry(() => import('./pages/admin/AdminUserChatsPage'));
+const AdminChatsPage = lazyWithRetry(() => import('./pages/admin/AdminChatsPage'));
+const AdminSessionsPage = lazyWithRetry(() => import('./pages/admin/AdminSessionsPage'));
+const AdminInferenceLabPage = lazyWithRetry(() => import('./pages/admin/AdminInferenceLabPage'));
+const AdminHelpPage = lazyWithRetry(() => import('./pages/admin/AdminHelpPage'));
 
 function RouteFallback() {
   return (
