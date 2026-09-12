@@ -88,10 +88,11 @@ export const ChatList: React.FC<ChatListProps> = ({
         'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(72dvh,36rem)] max-md:!max-h-[72dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
         'md:top-0 md:max-xl:left-64 md:h-full md:rounded-none',
         'md:max-xl:bg-card md:max-xl:backdrop-blur-none',
+        'xl:bg-transparent xl:backdrop-blur-none',
         open
           ? cn(
               'translate-x-0 translate-y-0 border-border shadow-[0_-8px_32px_rgba(15,23,42,0.12)]',
-              'md:shadow-xl xl:shadow-none xl:w-72 xl:max-w-none'
+              'md:shadow-xl xl:shadow-none xl:w-72 xl:max-w-none xl:border-r xl:border-border'
             )
           : cn(
               'pointer-events-none opacity-0',
