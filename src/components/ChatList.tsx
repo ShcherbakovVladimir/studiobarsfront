@@ -126,7 +126,9 @@ export const ChatList: React.FC<ChatListProps> = ({
             <button
               type="button"
               onClick={onRefresh}
-              className="p-2 rounded-xl hover:bg-accent text-muted-foreground"
+              disabled={isLoading}
+              aria-busy={isLoading}
+              className="p-2 rounded-xl hover:bg-accent text-muted-foreground disabled:pointer-events-none disabled:opacity-50"
               title="Обновить список"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />

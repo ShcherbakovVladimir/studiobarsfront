@@ -954,6 +954,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const [availableChats, setAvailableChats] = useState<ChatData[]>([]);
   const [chatsLoaded, setChatsLoaded] = useState(false);
   const [chatsRefreshing, setChatsRefreshing] = useState(false);
+  const chatsRefreshingRef = useRef(false);
   const showChatList = getToggle('showChatList', true);
   const setShowChatList = (value: boolean) => setToggle('showChatList', value);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
@@ -1057,6 +1058,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
 
   // Загрузка чатов при старте
   const loadChats = useCallback(async () => {
+    if (chatsRefreshingRef.current) return;
+    chatsRefreshingRef.current = true;
     setChatsRefreshing(true);
     try {
       const { chats, active } = await chatSyncService.restoreChatList(
@@ -1112,9 +1115,69 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       setChatsLoaded(true);
       isChatLoadedRef.current = true;
     } finally {
+      chatsRefreshingRef.current = false;
       setChatsRefreshing(false);
     }
   }, [currentModelId, dispatch, systemPrompt, selectedWrapper]);
+
+  const refreshChatList = useCallback(async () => {
+    if (chatsRefreshingRef.current || abortControllerRef.current) return;
+    chatsRefreshingRef.current = true;
+    setChatsRefreshing(true);
+    try {
+      const summaries = await chatSyncService.listChatSummaries();
+      const open = currentChatRef.current;
+      const live = messagesRef.current;
+      setAvailableChats((prev) => {
+        const prevById = new Map(prev.map((chat) => [chat.id, chat]));
+        const next = summaries.map((summary) => {
+          const existing = prevById.get(summary.id);
+          const base: ChatData = existing ?? {
+            id: summary.id,
+            title: summary.title ?? 'Новый чат',
+            modelId: summary.modelId ?? '',
+            sessionId: summary.sessionId ?? summary.id,
+            messages: [],
+            messageCount: summary.messageCount ?? 0,
+            systemPrompt: '',
+            chatWrapper: 'default',
+            createdAt: summary.createdAt,
+            updatedAt: summary.updatedAt,
+          };
+          if (open && summary.id === open.id) {
+            return {
+              ...base,
+              title: summary.title ?? base.title,
+              updatedAt: summary.updatedAt ?? base.updatedAt,
+              messageCount: live.length || summary.messageCount || base.messageCount,
+              messages: live.length ? live : base.messages,
+              sessionId: open.sessionId ?? base.sessionId,
+            };
+          }
+          return {
+            ...base,
+            title: summary.title ?? base.title,
+            updatedAt: summary.updatedAt ?? base.updatedAt,
+            messageCount: summary.messageCount ?? base.messageCount ?? base.messages?.length ?? 0,
+          };
+        });
+        if (open && !next.some((chat) => chat.id === open.id)) {
+          next.unshift({
+            ...open,
+            messages: live.length ? live : open.messages,
+            messageCount: live.length || open.messageCount,
+          });
+        }
+        return next;
+      });
+      setChatsLoaded(true);
+    } catch (error) {
+      console.error('Ошибка обновления списка чатов:', error);
+    } finally {
+      chatsRefreshingRef.current = false;
+      setChatsRefreshing(false);
+    }
+  }, []);
 
   const saveCurrentChat = useCallback(async () => {
     const chat = currentChatRef.current;
@@ -2285,13 +2348,13 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             <ChatList
               chats={availableChats}
               currentChatId={currentChat?.id}
-              isLoading={chatsRefreshing}
+              isLoading={chatsRefreshing || isStreaming}
               isLoaded={chatsLoaded}
               onSelectChat={switchToChat}
               onDeleteChat={deleteChat}
               onRenameChat={renameChat}
               onCreateNew={createNewChat}
-              onRefresh={() => void loadChats()}
+              onRefresh={() => void refreshChatList()}
               onClose={() => setShowChatList(false)}
               open={showChatList}
             />
