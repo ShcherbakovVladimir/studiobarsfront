@@ -186,7 +186,13 @@ async function fetchWithBase(
     if (options.body instanceof FormData) {
       headers.delete('Content-Type');
     }
-    const res = await fetch(buildUrlFn(path), { ...options, headers, signal });
+    const isSse = (headers.get('Accept') ?? '').includes('text/event-stream');
+    const res = await fetch(buildUrlFn(path), {
+      ...options,
+      headers,
+      signal,
+      ...(isSse ? { cache: 'no-store' as RequestCache } : {}),
+    });
     await applyResponseAuthHandlers(res);
     return res;
   } finally {
@@ -230,11 +236,13 @@ export async function fetchRagApi(
     const ragPath = path.startsWith('/api/rag')
       ? path
       : `/api/rag${path.startsWith('/') ? path : `/${path}`}`;
+    const isSse = (headers.get('Accept') ?? '').includes('text/event-stream');
     const res = await fetch(buildUrl(ragApiBase, ragPath), {
       ...options,
       headers,
       signal,
       credentials: 'include',
+      ...(isSse ? { cache: 'no-store' as RequestCache } : {}),
     });
     await applyResponseAuthHandlers(res);
     return res;

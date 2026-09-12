@@ -1,14 +1,14 @@
 /**
  * Shared SSE transport for POST-based streams (fetch, not EventSource).
  *
- * Only the transport is shared: frames arrive as `data: …\n\n` and lines without
- * the `data:` prefix are skipped. Decoding the JSON inside `data:` is protocol
- * specific — chat (`choices[0].delta.content`) and RAG (`type: chunk | final`)
- * are incompatible and must never share a decoder.
+ * Frames: `data: …` lines. A frame may be split across packets; trailing
+ * incomplete lines stay in the buffer. `onFrame` may be async so callers can
+ * yield to the UI between tokens (gzip / proxy often deliver the whole body
+ * in one `read()`).
  */
 
 /** Return `'stop'` to close the stream early (e.g. after `[DONE]`). */
-export type SseFrameHandler = (payload: string) => 'stop' | void;
+export type SseFrameHandler = (payload: string) => 'stop' | void | Promise<'stop' | void>;
 
 export async function readSseFrames(
   response: Response,
@@ -24,12 +24,12 @@ export async function readSseFrames(
   let buffer = '';
   let stopped = false;
 
-  const handleLine = (raw: string): boolean => {
+  const handleLine = async (raw: string): Promise<boolean> => {
     const line = raw.trimEnd();
     if (!line.startsWith('data:')) return false;
     const payload = line.replace(/^data:\s*/, '').trim();
     if (!payload) return false;
-    return onFrame(payload) === 'stop';
+    return (await onFrame(payload)) === 'stop';
   };
 
   try {
@@ -39,11 +39,10 @@ export async function readSseFrames(
       if (value) {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split(/\r?\n/);
-        // Keep the trailing fragment: a frame may be split across packets.
         buffer = lines.pop() ?? '';
 
         for (const raw of lines) {
-          if (handleLine(raw)) {
+          if (await handleLine(raw)) {
             stopped = true;
             break;
           }
@@ -54,7 +53,7 @@ export async function readSseFrames(
     }
 
     if (!stopped && buffer.trim()) {
-      handleLine(buffer);
+      await handleLine(buffer);
     }
   } finally {
     reader.releaseLock();
