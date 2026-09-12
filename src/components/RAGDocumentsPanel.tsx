@@ -17,6 +17,7 @@ import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { EmptyState, LoadingState } from './ui/page-states';
 import MarkdownContent from './MarkdownContent';
+import RagPreviewDialog from './RagPreviewDialog';
 
 interface RAGDocumentsPanelProps {
   isDarkMode: boolean;
@@ -349,36 +350,30 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         })}
       </div>
 
-      {previewSource && (
-        <div className="mt-3 rounded-lg border border-border p-3 max-h-48 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2">
-            <p className="text-xs font-medium">Чанки: {previewSource}</p>
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:underline"
-              onClick={() => {
-                setPreviewSource(null);
-                setPreviewChunks([]);
-              }}
-            >
-              Закрыть
-            </button>
-          </div>
-          <div className="space-y-3">
-            {previewChunks.slice(0, 8).map((chunk, index) => {
-              const row = chunk as { content?: string; metadata?: unknown };
-              const text = row.content ?? '';
-              if (!text.trim()) return null;
-              return (
-                <div key={index} className="surface-elevated p-2 rounded-lg">
-                  <MarkdownContent content={text} isDarkMode={isDarkMode} compact />
-                </div>
-              );
-            })}
-            {previewChunks.length === 0 && <p>Чанки не найдены</p>}
-          </div>
+      <RagPreviewDialog
+        open={Boolean(previewSource)}
+        title={previewSource ? `Чанки: ${previewSource}` : 'Превью'}
+        description="Фрагменты документа в индексе RAG"
+        onClose={() => {
+          setPreviewSource(null);
+          setPreviewChunks([]);
+        }}
+      >
+        <div className="space-y-4">
+          {previewChunks.map((chunk, index) => {
+            const row = chunk as { content?: string; metadata?: unknown };
+            const text = row.content ?? '';
+            if (!text.trim()) return null;
+            return (
+              <div key={index} className="surface-elevated rounded-xl p-4">
+                <p className="mb-2 text-[11px] text-muted-foreground">Фрагмент {index + 1}</p>
+                <MarkdownContent content={text} isDarkMode={isDarkMode} />
+              </div>
+            );
+          })}
+          {previewChunks.length === 0 && <p className="text-sm text-muted-foreground">Чанки не найдены</p>}
         </div>
-      )}
+      </RagPreviewDialog>
     </div>
   );
 };

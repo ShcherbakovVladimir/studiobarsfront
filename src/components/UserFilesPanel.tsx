@@ -11,6 +11,7 @@ import { InlineError } from './ui/alert-banner';
 import { IconButton } from './ui/icon-button';
 import { EmptyState, LoadingState } from './ui/page-states';
 import MarkdownContent from './MarkdownContent';
+import RagPreviewDialog from './RagPreviewDialog';
 
 interface UserFilesPanelProps {
   selectedSources: string[];
@@ -299,26 +300,20 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
         })}
       </div>
 
-      {markdownPreview && (
-        <div className="rounded-lg border border-border p-3 max-h-80 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2 gap-2">
-            <p className="text-xs font-medium truncate">Просмотр: {markdownPreview.name}</p>
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:underline shrink-0"
-              onClick={() => setMarkdownPreview(null)}
-            >
-              Закрыть
-            </button>
-          </div>
+      <RagPreviewDialog
+        open={Boolean(markdownPreview)}
+        title={markdownPreview ? `Просмотр: ${markdownPreview.name}` : 'Просмотр'}
+        description="Распознанный Markdown после OCR"
+        onClose={() => setMarkdownPreview(null)}
+      >
+        {markdownPreview && (
           <MarkdownContent
             content={markdownPreview.text}
             isDarkMode={isDarkMode}
-            compact
-            className="text-sm"
+            className="max-w-none"
           />
-        </div>
-      )}
+        )}
+      </RagPreviewDialog>
     </div>
   );
 };
