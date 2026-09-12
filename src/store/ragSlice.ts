@@ -30,6 +30,39 @@ function defaultQuerySettings(): RAGState['querySettings'] {
   };
 }
 
+function mergeSessionList(
+  current: RagSession[],
+  server: RagSession[],
+  openId: string
+): RagSession[] {
+  const prevById = new Map(current.map((session) => [session.sessionId, session]));
+  const next = server.map((summary) => {
+    const existing = prevById.get(summary.sessionId);
+    if (!existing) return summary;
+    if (openId && summary.sessionId === openId) {
+      return {
+        ...existing,
+        title: summary.title || existing.title,
+        customTitle: existing.customTitle ?? summary.customTitle,
+        updatedAt: summary.updatedAt || existing.updatedAt,
+        messageCount: Math.max(existing.messageCount ?? 0, summary.messageCount ?? 0),
+        count: Math.max(existing.count ?? 0, summary.count ?? 0),
+      };
+    }
+    return {
+      ...existing,
+      ...summary,
+      title: summary.title || existing.title,
+      customTitle: summary.customTitle ?? existing.customTitle,
+    };
+  });
+  const open = current.find((session) => session.sessionId === openId);
+  if (open && openId && !next.some((session) => session.sessionId === openId)) {
+    next.unshift(open);
+  }
+  return next;
+}
+
 function resolveSessionIdFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
@@ -65,6 +98,7 @@ const initialState: RAGState = {
   isLoading: false,
   isStreaming: false,
   isSessionsLoaded: false,
+  isRefreshingSessions: false,
   databaseStatus: null,
   metrics: null,
   schema: null,
@@ -371,10 +405,18 @@ export const deleteRAGSession = createAsyncThunk(
 export const refreshRAGSessions = createAsyncThunk(
   'rag/refreshSessions',
   async (userId: string | undefined, { getState }) => {
+    const rag = (getState() as { rag: RAGState }).rag;
     const server = await ragService.listSessions();
-    const sessions = mergeSessionTitles(userId, server);
-    saveLocalRagSessionStore(userId, sessions, (getState() as { rag: RAGState }).rag.sessionId);
+    const titled = mergeSessionTitles(userId, server);
+    const sessions = mergeSessionList(rag.sessions, titled, rag.sessionId);
+    saveLocalRagSessionStore(userId, sessions, rag.sessionId || null);
     return sessions;
+  },
+  {
+    condition: (_, { getState }) => {
+      const rag = (getState() as { rag: RAGState }).rag;
+      return !rag.isRefreshingSessions && !rag.isStreaming && !rag.isLoading;
+    },
   }
 );
 
@@ -532,12 +574,16 @@ const ragSlice = createSlice({
         state.messages = [];
         state.isSessionsLoaded = true;
       })
+      .addCase(refreshRAGSessions.pending, (state) => {
+        state.isRefreshingSessions = true;
+      })
       .addCase(refreshRAGSessions.fulfilled, (state, action) => {
-        state.sessions = action.payload;
+        state.sessions = mergeSessionList(state.sessions, action.payload, state.sessionId);
         state.isSessionsLoaded = true;
-        if (state.sessionId && !state.sessions.some((session) => session.sessionId === state.sessionId)) {
-          state.sessionId = state.sessions[0]?.sessionId ?? '';
-        }
+        state.isRefreshingSessions = false;
+      })
+      .addCase(refreshRAGSessions.rejected, (state) => {
+        state.isRefreshingSessions = false;
       })
       .addCase(renameRAGSession.fulfilled, (state, action) => {
         const { sessionId, title, customTitle } = action.payload;

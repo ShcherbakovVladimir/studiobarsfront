@@ -1396,6 +1396,7 @@ export interface RAGState {
   isLoading: boolean;
   isStreaming: boolean;
   isSessionsLoaded: boolean;
+  isRefreshingSessions: boolean;
   databaseStatus: RAGDatabaseStatus | null;
   metrics: RAGMetrics | null;
   schema: RAGSchema | null;

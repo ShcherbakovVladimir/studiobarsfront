@@ -609,6 +609,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     sessionId,
     sessions,
     isSessionsLoaded,
+    isRefreshingSessions,
     querySettings,
     embeddingHealth,
   } = useSelector((state: RootState) => state.rag);
@@ -1297,8 +1298,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   );
 
   const handleRefreshSessions = useCallback(() => {
+    if (isRefreshingSessions || isStreaming || isLoading) return;
     void dispatch(refreshRAGSessions(userId));
-  }, [dispatch, userId]);
+  }, [dispatch, userId, isRefreshingSessions, isStreaming, isLoading]);
 
   const handleRefreshSchema = async () => {
     await dispatch(refreshRAGSchema()).unwrap();
@@ -1446,7 +1448,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       <RAGSessionSidebar
         sessions={sessions}
         activeSessionId={sessionId}
-        isLoading={!isSessionsLoaded}
+        isLoading={isRefreshingSessions || isStreaming || isLoading || !isSessionsLoaded}
         isSessionsLoaded={isSessionsLoaded}
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}

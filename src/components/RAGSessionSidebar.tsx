@@ -95,7 +95,9 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
             <button
               type="button"
               onClick={onRefresh}
-              className="p-1.5 rounded-lg hover:bg-border dark:hover:bg-muted text-muted-foreground"
+              disabled={isLoading}
+              aria-busy={isLoading}
+              className="p-1.5 rounded-lg hover:bg-border dark:hover:bg-muted text-muted-foreground disabled:pointer-events-none disabled:opacity-50"
               title="Обновить список"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
