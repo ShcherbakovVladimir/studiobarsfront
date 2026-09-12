@@ -34,7 +34,7 @@ export function formatQwenApiModelLabel(info?: {
   version?: string;
 } | null): string {
   if (!info) return '';
-  const candidates = [info.modelName, info.model_name, info.model, info.name, info.version];
+  const candidates = [info.modelName, info.model_name, info.model, info.name];
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return basename(value.trim());
   }

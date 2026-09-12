@@ -233,11 +233,23 @@ export const sendRAGQueryStream = createAsyncThunk(
                   }
                 }
               }
-            } else if (event.type === 'thinking' && event.content) {
-              dispatch(appendThinkBlock({ id: assistantId, block: event.content }));
+            } else if (event.type === 'thinking') {
+              const blocks = [
+                ...(Array.isArray(event.thinkBlocks) ? event.thinkBlocks : []),
+                event.content,
+              ];
+              for (const block of blocks) {
+                if (typeof block === 'string' && block.trim()) {
+                  dispatch(appendThinkBlock({ id: assistantId, block }));
+                }
+              }
             } else if (event.type === 'final') {
               const finalContent =
                 event.text_analysis ?? event.response ?? streamedContent;
+              const thinkBlocks = [
+                ...(Array.isArray(event.think_blocks) ? event.think_blocks : []),
+                ...(Array.isArray(event.thinkBlocks) ? event.thinkBlocks.filter((b): b is string => typeof b === 'string') : []),
+              ];
               dispatch(
                 finalizeRAGMessage({
                   id: assistantId,
@@ -251,7 +263,7 @@ export const sendRAGQueryStream = createAsyncThunk(
                   row_count: event.row_count,
                   execution_time: event.execution_time,
                   search_mode: event.search_mode ?? mode,
-                  think_blocks: event.think_blocks,
+                  ...(thinkBlocks.length ? { think_blocks: thinkBlocks } : {}),
                   sources: normalizeSources(event.sources),
                   generated_files: normalizeGeneratedFiles(event.generated_files),
                 })
@@ -475,6 +487,7 @@ const ragSlice = createSlice({
       const msg = state.messages.find((m) => m.id === action.payload.id);
       if (!msg) return;
       if (!msg.think_blocks) msg.think_blocks = [];
+      if (msg.think_blocks[msg.think_blocks.length - 1] === action.payload.block) return;
       msg.think_blocks.push(action.payload.block);
     },
     finalizeRAGMessage: (
@@ -483,9 +496,12 @@ const ragSlice = createSlice({
     ) => {
       const msg = state.messages.find((m) => m.id === action.payload.id);
       if (!msg) return;
-      const { id: _removed, ...patch } = action.payload;
+      const { id: _removed, think_blocks, ...patch } = action.payload;
       void _removed;
       Object.assign(msg, patch, { isStreaming: false });
+      if (Array.isArray(think_blocks) && think_blocks.length > 0) {
+        msg.think_blocks = think_blocks;
+      }
     },
     setSearchMode: (state, action: PayloadAction<'llm' | 'direct'>) => {
       state.searchMode = action.payload;

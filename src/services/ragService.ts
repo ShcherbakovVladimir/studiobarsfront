@@ -194,8 +194,8 @@ export function ensureRagSessionInList(sessions: RagSession[], sessionId: string
   ];
 }
 
-async function ragFetch(path: string, init: RequestInit = {}): Promise<Response> {
-  return fetchRagApi(path, init);
+async function ragFetch(path: string, init: RequestInit = {}, timeoutMs?: number): Promise<Response> {
+  return fetchRagApi(path, init, timeoutMs);
 }
 
 export interface RAGQueryRequest {
@@ -437,6 +437,61 @@ function asPayloadRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 }
 
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function normalizeStreamEvent(raw: RAGStreamEvent & Record<string, unknown>): RAGStreamEvent {
+  const thinkBlocks = [
+    ...asStringList(raw.thinkBlocks),
+    ...asStringList(raw.think_blocks),
+  ];
+  const uniqueThink = [...new Set(thinkBlocks)];
+  const typeRaw = String(raw.type ?? '');
+  const type =
+    typeRaw === 'chunk' || typeRaw === 'thinking' || typeRaw === 'final' || typeRaw === 'error'
+      ? typeRaw
+      : (raw.type as RAGStreamEvent['type']);
+  return {
+    ...raw,
+    type,
+    thinkBlocks: uniqueThink.length ? uniqueThink : raw.thinkBlocks,
+    think_blocks: uniqueThink.length ? uniqueThink : raw.think_blocks,
+    content:
+      typeof raw.content === 'string' && raw.content
+        ? raw.content
+        : type === 'thinking' && uniqueThink.length
+          ? uniqueThink.join('\n')
+          : raw.content,
+  };
+}
+
+function parseQwenInfoPayload(data: unknown): QwenInfoResponse {
+  const row = asPayloadRecord(data);
+  const nested = asPayloadRecord(row.config);
+  const modesRaw = row.availableModes ?? row.available_modes ?? nested.availableModes;
+  const availableModes = Array.isArray(modesRaw)
+    ? modesRaw.map((item) => String(item).toLowerCase()).filter(Boolean)
+    : ['auto', 'thinking', 'instruct', 'coding'];
+  const mode = String(row.mode ?? row.qwenMode ?? row.qwen_mode ?? 'auto');
+  return {
+    success: row.success !== false,
+    isQwen36: Boolean(row.isQwen36 ?? row.is_qwen36),
+    enableThinking: Boolean(row.enableThinking ?? row.enable_thinking ?? true),
+    preserveThinking: Boolean(row.preserveThinking ?? row.preserve_thinking),
+    mode,
+    availableModes: availableModes.length ? availableModes : ['auto', 'thinking', 'instruct', 'coding'],
+    model: typeof row.model === 'string' ? row.model : undefined,
+    modelName: typeof row.modelName === 'string' ? row.modelName : typeof row.model_name === 'string' ? row.model_name : undefined,
+    model_name: typeof row.model_name === 'string' ? row.model_name : undefined,
+    name: typeof row.name === 'string' ? row.name : undefined,
+    version: typeof row.version === 'string' ? row.version : undefined,
+    config: row.config as QwenInfoResponse['config'],
+    timestamp: typeof row.timestamp === 'string' ? row.timestamp : new Date().toISOString(),
+  };
+}
+
 function parseDocumentsPayload(data: unknown): RagDocument[] {
   const row = asPayloadRecord(data);
   const nested = asPayloadRecord(row.data);
@@ -614,6 +669,7 @@ function buildStreamRequestBody(request: RAGStreamRequest): Record<string, unkno
     qwenMode: request.qwenMode || 'auto',
     limit: request.limit,
     relevanceScore: request.relevanceScore,
+    threshold: request.relevanceScore,
     history: request.history,
     intent: request.intent,
     file_context: {
@@ -714,7 +770,7 @@ export const ragService = {
       method: 'POST',
       body: JSON.stringify(buildStreamRequestBody(request)),
       signal: handlers.signal,
-    });
+    }, 200_000);
     if (!response.ok || !response.body) {
       throw new Error(
         await parseRagErrorResponse(response, `RAG stream failed: HTTP ${response.status}`)
@@ -730,7 +786,7 @@ export const ragService = {
 
         let event: RAGStreamEvent;
         try {
-          event = JSON.parse(payload) as RAGStreamEvent;
+        event = normalizeStreamEvent(JSON.parse(payload) as RAGStreamEvent & Record<string, unknown>);
         } catch (error) {
           handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
           return;
@@ -1195,7 +1251,7 @@ export const ragService = {
         throw new Error(`HTTP ${response.status}`);
       }
       
-      return await response.json();
+      return parseQwenInfoPayload(await response.json());
     } catch (error) {
       console.error('Get Qwen info error:', error);
       return {
@@ -1226,8 +1282,12 @@ export const ragService = {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
-      return await response.json();
+
+      const data = await response.json() as QwenConfigUpdateResponse & { config?: unknown };
+      return {
+        ...data,
+        config: parseQwenInfoPayload(data.config ?? data),
+      };
     } catch (error) {
       console.error('Update Qwen config error:', error);
       return {
