@@ -3,7 +3,7 @@ import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-d
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store/store';
 import { logout, setMaintenance } from '../store/authSlice';
-import { setUnauthorizedHandler, resetUnauthorizedHandler, setMaintenanceHandler, setForbiddenHandler, clearToken } from '../services/apiClient';
+import { setUnauthorizedHandler, resetUnauthorizedHandler, setMaintenanceHandler, setForbiddenHandler } from '../services/apiClient';
 import { showForbiddenToast } from '../services/toastService';
 import { homePath, isAdmin, isEmployee, isEmployeeAppPath, setActiveUserRole } from '../utils/auth';
 import ResendVerificationBlock from './ResendVerificationBlock';
@@ -35,7 +35,6 @@ const AuthGuard: React.FC = () => {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      clearToken();
       void dispatch(logout());
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';

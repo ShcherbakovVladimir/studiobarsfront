@@ -2,6 +2,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { ChatState, ChatMessage } from '../types';
 import { getErrorMessage } from '../utils/errorUtils';
+import { logout } from './authSlice';
 
 // Ключ для localStorage
 const STORAGE_KEY = 'studioxlamp_chat_histories';
@@ -265,7 +266,13 @@ const chatSlice = createSlice({
       }));
       saveHistoriesToStorage(state.histories);
     }
-  }
+  },
+  extraReducers: (builder) => {
+    builder.addCase(logout.fulfilled, (state) => {
+      state.histories = {};
+      localStorage.removeItem(STORAGE_KEY);
+    });
+  },
 });
 
 export const { 

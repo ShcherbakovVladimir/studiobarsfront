@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { ChatListState, ChatSummary, PersistedChat } from '../types';
 import * as chatSyncService from '../services/chatSyncService';
+import { bootstrapAuth, login, logout } from './authSlice';
 
 const PREFETCH_TTL_MS = 120_000;
 
@@ -89,6 +90,28 @@ const chatListSlice = createSlice({
         state.chats = state.chats.filter((c) => c.id !== action.payload);
         if (state.activeChatId === action.payload) {
           state.activeChatId = state.chats[0]?.id ?? null;
+        }
+      })
+      .addCase(login.pending, (state) => {
+        state.chats = [];
+        state.activeChatId = null;
+        state.isPrefetchDone = false;
+        state.lastFetchedAt = null;
+        state.error = null;
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.chats = [];
+        state.activeChatId = null;
+        state.isPrefetchDone = false;
+        state.lastFetchedAt = null;
+        state.error = null;
+      })
+      .addCase(bootstrapAuth.fulfilled, (state, action) => {
+        if (!action.payload) {
+          state.chats = [];
+          state.activeChatId = null;
+          state.isPrefetchDone = false;
+          state.lastFetchedAt = null;
         }
       });
   },

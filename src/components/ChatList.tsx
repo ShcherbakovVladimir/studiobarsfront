@@ -182,10 +182,10 @@ export const ChatList: React.FC<ChatListProps> = ({
             <div
               key={chat.id}
               className={cn(
-                'workspace-list-item group relative rounded-2xl border transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.99]',
+                'workspace-list-item group relative rounded-2xl transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.99]',
                 isActive
-                  ? 'border-primary/40 bg-primary/10 ring-1 ring-primary/20 shadow-sm'
-                  : 'border-transparent hover:bg-accent/80'
+                  ? 'bg-primary/10 shadow-sm'
+                  : 'hover:bg-accent/80'
               )}
               style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
             >

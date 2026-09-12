@@ -25,16 +25,38 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'chat_last_sync',
   CHAT_PREFIX: 'chat_',
   USER_CHAT_PREFIX: 'chat__u_',
+  STORE_PREFIX: 'chats__u_',
   OFFLINE_QUEUE: 'chat_offline_queue',
   LAST_ACTIVE: 'last_active_chat',
 } as const;
 
-const LOCAL_META_SUFFIXES = new Set(['last_sync', 'offline_queue', 'user_id']);
+type LocalChatStore = {
+  chats: ChatData[];
+  lastActiveId: string | null;
+};
+
+const EMPTY_STORE: LocalChatStore = { chats: [], lastActiveId: null };
 
 let scopedUserId: string | null = null;
+let memoryStore: { userId: string; data: LocalChatStore } | null = null;
+let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSyncChat: ChatData | null = null;
+let lastServerSyncSnapshot = '';
+const deletedChatIds = new Set<string>();
+
+export function chatsStorageKey(userId: string): string {
+  return `${STORAGE_KEYS.STORE_PREFIX}${userId}`;
+}
 
 export function setChatSyncUserId(userId: string | null): void {
-  scopedUserId = userId && userId.trim() ? userId : null;
+  const next = userId && userId.trim() ? userId : null;
+  if (scopedUserId && next !== scopedUserId) {
+    cancelPendingChatSync();
+    lastServerSyncSnapshot = '';
+    deletedChatIds.clear();
+    memoryStore = null;
+  }
+  scopedUserId = next;
 }
 
 function readJwtUserId(): string | null {
@@ -61,11 +83,6 @@ function userChatPrefix(userId: string): string {
   return `${STORAGE_KEYS.USER_CHAT_PREFIX}${userId}_`;
 }
 
-function lastActiveStorageKey(): string {
-  const userId = currentUserId();
-  return userId ? `${STORAGE_KEYS.LAST_ACTIVE}__u_${userId}` : STORAGE_KEYS.LAST_ACTIVE;
-}
-
 function chatOwnerId(chat: { userId?: string; user_id?: string; metadata?: UnknownRecord } | ChatSummary): string | null {
   const row = chat as { userId?: string; user_id?: string; metadata?: { ownerUserId?: string } };
   const fromMeta = row.metadata?.ownerUserId;
@@ -83,11 +100,6 @@ function isOwnChat(
 }
 
 const SYNC_DEBOUNCE_MS = 600;
-
-let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingSyncChat: ChatData | null = null;
-let lastServerSyncSnapshot = '';
-const deletedChatIds = new Set<string>();
 
 function chatSyncSnapshot(chat: ChatData): string {
   return JSON.stringify({
@@ -109,60 +121,169 @@ export function createRagSessionId(): string {
   return `rag_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
-export function cleanupLegacyStorage(): void {
-  for (const key of LEGACY_STORAGE_KEYS) {
-    localStorage.removeItem(key);
-  }
-  localStorage.removeItem('chat_user_id');
+function asStoredChat(value: unknown): ChatData | null {
+  if (!value || typeof value !== 'object' || !('id' in value)) return null;
+  const chat = value as ChatData;
+  if (!chat.id || !Array.isArray(chat.messages)) return null;
+  return chat;
 }
 
-function getChatKey(chatId: string): string {
+function parseLocalChatStore(raw: string | null): LocalChatStore | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return {
+        chats: parsed.map(asStoredChat).filter((row): row is ChatData => Boolean(row)),
+        lastActiveId: null,
+      };
+    }
+    if (parsed && typeof parsed === 'object') {
+      const record = parsed as { chats?: unknown; lastActiveId?: unknown };
+      const chats = Array.isArray(record.chats)
+        ? record.chats.map(asStoredChat).filter((row): row is ChatData => Boolean(row))
+        : [];
+      return {
+        chats,
+        lastActiveId: typeof record.lastActiveId === 'string' ? record.lastActiveId : null,
+      };
+    }
+  } catch {
+    /* ignore corrupt cache */
+  }
+  return null;
+}
+
+function migratePerChatKeys(userId: string): ChatData[] {
+  const prefix = userChatPrefix(userId);
+  const chats: ChatData[] = [];
+  const remove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith(prefix)) continue;
+    remove.push(key);
+    try {
+      const chat = asStoredChat(JSON.parse(localStorage.getItem(key) ?? 'null'));
+      if (chat && isOwnChat(chat, userId)) chats.push(chat);
+    } catch {
+      /* skip */
+    }
+  }
+  for (const key of remove) localStorage.removeItem(key);
+  return chats.sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime());
+}
+
+function readLocalChatStore(): LocalChatStore {
   const userId = currentUserId();
-  if (userId) return `${userChatPrefix(userId)}${chatId}`;
-  return `${STORAGE_KEYS.CHAT_PREFIX}${chatId}`;
+  if (!userId) return { ...EMPTY_STORE };
+  if (memoryStore?.userId === userId) return memoryStore.data;
+
+  const fromBlob = parseLocalChatStore(localStorage.getItem(chatsStorageKey(userId)));
+  const migrated = migratePerChatKeys(userId);
+  const lastActiveLegacy = localStorage.getItem(`${STORAGE_KEYS.LAST_ACTIVE}__u_${userId}`);
+  if (lastActiveLegacy) localStorage.removeItem(`${STORAGE_KEYS.LAST_ACTIVE}__u_${userId}`);
+
+  const byId = new Map<string, ChatData>();
+  for (const chat of migrated) byId.set(chat.id, chat);
+  for (const chat of fromBlob?.chats ?? []) byId.set(chat.id, chat);
+  const data: LocalChatStore = {
+    chats: [...byId.values()].sort(
+      (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
+    ),
+    lastActiveId: fromBlob?.lastActiveId ?? lastActiveLegacy,
+  };
+  memoryStore = { userId, data };
+  if (migrated.length > 0 || lastActiveLegacy) writeLocalChatStore(data);
+  return data;
+}
+
+function writeLocalChatStore(data: LocalChatStore): void {
+  const userId = currentUserId();
+  if (!userId) return;
+  const owned = data.chats.filter((chat) => !deletedChatIds.has(chat.id) && isOwnChat(chat, userId));
+  const next: LocalChatStore = {
+    chats: owned,
+    lastActiveId:
+      data.lastActiveId && owned.some((chat) => chat.id === data.lastActiveId)
+        ? data.lastActiveId
+        : owned[0]?.id ?? null,
+  };
+  memoryStore = { userId, data: next };
+  localStorage.setItem(chatsStorageKey(userId), JSON.stringify(next));
+}
+
+function isUnscopedLegacyChatKey(key: string): boolean {
+  if (key.startsWith(STORAGE_KEYS.STORE_PREFIX)) return false;
+  if (key.startsWith(STORAGE_KEYS.USER_CHAT_PREFIX)) return false;
+  if (key.startsWith(`${STORAGE_KEYS.LAST_ACTIVE}__u_`)) return false;
+  if (key === STORAGE_KEYS.LAST_ACTIVE) return true;
+  if (key === STORAGE_KEYS.LAST_SYNC || key === STORAGE_KEYS.OFFLINE_QUEUE) return true;
+  return key.startsWith(STORAGE_KEYS.CHAT_PREFIX);
+}
+
+/** Drop unscoped leftovers from a previous email. Never copy them into chats__u_{userId}. */
+export function cleanupLegacyStorage(): void {
+  const remove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (LEGACY_STORAGE_KEYS.includes(key as (typeof LEGACY_STORAGE_KEYS)[number]) || isUnscopedLegacyChatKey(key))) {
+      remove.push(key);
+    }
+  }
+  for (const key of remove) localStorage.removeItem(key);
+}
+
+export function clearLocalChatStore(userId?: string | null): void {
+  cancelPendingChatSync();
+  lastServerSyncSnapshot = '';
+  deletedChatIds.clear();
+  const id = userId ?? currentUserId();
+  memoryStore = null;
+  if (id) {
+    localStorage.removeItem(chatsStorageKey(id));
+    localStorage.removeItem(`${STORAGE_KEYS.LAST_ACTIVE}__u_${id}`);
+    const prefix = userChatPrefix(id);
+    const remove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) remove.push(key);
+    }
+    for (const key of remove) localStorage.removeItem(key);
+  }
+  cleanupLegacyStorage();
 }
 
 export function getAllLocalChats(): ChatData[] {
   const userId = currentUserId();
-  const chats: ChatData[] = [];
-  if (!userId) return chats;
-
-  const prefix = userChatPrefix(userId);
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key?.startsWith(prefix)) continue;
-    const chatId = key.slice(prefix.length);
-    if (!chatId || LOCAL_META_SUFFIXES.has(chatId)) continue;
-    const chat = loadChatFromLocal(chatId);
-    if (chat && isOwnChat(chat, userId)) chats.push(chat);
-  }
-  return chats.sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime());
+  if (!userId) return [];
+  return readLocalChatStore().chats.filter((chat) => isOwnChat(chat, userId));
 }
 
 export function loadChatFromLocal(chatId: string): ChatData | null {
-  try {
-    const raw = localStorage.getItem(getChatKey(chatId));
-    if (!raw) return null;
-    return JSON.parse(raw) as ChatData;
-  } catch {
-    return null;
-  }
+  return readLocalChatStore().chats.find((chat) => chat.id === chatId) ?? null;
 }
 
 export function saveChatToLocal(chat: ChatData): void {
   if (deletedChatIds.has(chat.id)) return;
   const userId = currentUserId();
-  const next: ChatData = userId
-    ? {
-        ...chat,
-        metadata: { ...(chat.metadata ?? {}), ownerUserId: userId },
-      }
-    : chat;
-  localStorage.setItem(getChatKey(next.id), JSON.stringify(next));
+  if (!userId) return;
+  const next: ChatData = {
+    ...chat,
+    metadata: { ...(chat.metadata ?? {}), ownerUserId: userId },
+  };
+  const store = readLocalChatStore();
+  const chats = store.chats.filter((row) => row.id !== next.id);
+  chats.unshift(next);
+  writeLocalChatStore({ ...store, chats });
 }
 
 export function deleteChatFromLocal(chatId: string): void {
-  localStorage.removeItem(getChatKey(chatId));
+  const store = readLocalChatStore();
+  writeLocalChatStore({
+    ...store,
+    chats: store.chats.filter((chat) => chat.id !== chatId),
+    lastActiveId: store.lastActiveId === chatId ? null : store.lastActiveId,
+  });
 }
 
 export async function listChatSummaries(): Promise<ChatSummary[]> {
@@ -225,7 +346,6 @@ export async function saveChatToServer(chat: ChatData): Promise<boolean> {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    localStorage.setItem(STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
     if (data.duplicated) return true;
     return data.success && data.synced !== false;
   } catch (error) {
@@ -294,9 +414,9 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
     console.warn('restoreChatList: summary failed, using local', getErrorMessage(error));
   }
 
-  // Never POST /chats/sync-batch after login. Empty GET means this JWT has no chats.
-  // Own scoped local cache may be shown only when the list request itself failed.
-  if (!listOk && summaries.length === 0) {
+  // Server wins after login. Never POST /chats/sync-batch (would copy another email's list).
+  // Local chats__u_{userId} is only used when GET /chats itself failed.
+  if (!listOk) {
     summaries = getAllLocalChats().map((chat) => ({
       id: chat.id,
       title: chat.title,
@@ -325,6 +445,13 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
       const index = chats.findIndex((chat) => chat.id === active?.id);
       if (index >= 0) chats[index] = active;
     }
+  }
+
+  if (listOk) {
+    writeLocalChatStore({
+      chats,
+      lastActiveId: active?.id ?? null,
+    });
   }
 
   return { chats, active };
@@ -466,12 +593,12 @@ export function saveChat(chat: ChatData): void {
 }
 
 export function setLastActiveChat(chatId: string): void {
-  localStorage.setItem(lastActiveStorageKey(), chatId);
+  const store = readLocalChatStore();
+  writeLocalChatStore({ ...store, lastActiveId: chatId });
 }
 
 export function getLastActiveChat(): string | null {
-  return localStorage.getItem(lastActiveStorageKey())
-    ?? localStorage.getItem(STORAGE_KEYS.LAST_ACTIVE);
+  return readLocalChatStore().lastActiveId;
 }
 
 export function toChatMessages(messages: ChatMessage[]): Array<{ role: string; content: string }> {
@@ -504,6 +631,8 @@ export const chatSyncService = {
   setLastActiveChat,
   getLastActiveChat,
   cleanupLegacyStorage,
+  clearLocalChatStore,
+  chatsStorageKey,
   setChatSyncUserId,
   toChatMessages,
 };
