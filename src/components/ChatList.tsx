@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageSquare, Plus, Trash2, RefreshCw, Edit2, X } from 'lucide-react';
 import type { ChatData } from '../services/chatSyncService';
 import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
-import { useDrawerRootRef } from '../utils/workspaceLayout';
+import { useDrawerRootRef, useWorkspaceOverlay } from '../utils/workspaceLayout';
 
 interface ChatListProps {
   chats: ChatData[];
@@ -54,6 +55,7 @@ export const ChatList: React.FC<ChatListProps> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const drawerRef = useDrawerRootRef(open);
+  const overlay = useWorkspaceOverlay();
 
   const sortedChats = [...chats].sort(
     (a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime()
@@ -74,7 +76,7 @@ export const ChatList: React.FC<ChatListProps> = ({
     onClose?.();
   };
 
-  return (
+  const panel = (
     <aside
       ref={drawerRef}
       aria-hidden={!open}
@@ -83,12 +85,13 @@ export const ChatList: React.FC<ChatListProps> = ({
       className={cn(
         celestia.workspaceDrawer,
         'left-0',
-        'max-md:right-0 max-md:top-auto max-md:h-[min(88dvh,42rem)] max-md:max-h-[88dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:border-x-0 max-md:pt-0',
+        'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(72dvh,36rem)] max-md:!max-h-[72dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
         'md:top-0 md:max-xl:left-64 md:h-full md:rounded-none',
+        'md:max-xl:bg-card md:max-xl:backdrop-blur-none',
         open
           ? cn(
-              'translate-x-0 translate-y-0 border-border shadow-[0_-12px_40px_rgba(0,0,0,0.18)]',
-              'md:shadow-2xl xl:shadow-none xl:w-72 xl:max-w-none'
+              'translate-x-0 translate-y-0 border-border shadow-[0_-8px_32px_rgba(15,23,42,0.12)]',
+              'md:shadow-xl xl:shadow-none xl:w-72 xl:max-w-none'
             )
           : cn(
               'pointer-events-none opacity-0',
@@ -282,6 +285,30 @@ export const ChatList: React.FC<ChatListProps> = ({
       </div>
     </aside>
   );
+
+  const ui = (
+    <>
+      {overlay && onClose && (
+        <button
+          type="button"
+          aria-label="Закрыть список чатов"
+          onClick={onClose}
+          className={cn(
+            'fixed inset-0 z-40 xl:hidden transition-opacity duration-300 ease-out motion-reduce:transition-none',
+            'bg-black/20 dark:bg-black/35',
+            'md:left-64',
+            open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          )}
+        />
+      )}
+      {panel}
+    </>
+  );
+
+  if (overlay && typeof document !== 'undefined') {
+    return createPortal(ui, document.body);
+  }
+  return ui;
 };
 
 export default ChatList;

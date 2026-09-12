@@ -2284,17 +2284,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         )}
 
         {activeTool === 'chat' && (
-          <>
-            <button
-              type="button"
-              className={cn(
-                celestia.workspaceScrim,
-                'md:left-64',
-                showChatList ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              )}
-              aria-label="Закрыть список чатов"
-              onClick={() => setShowChatList(false)}
-            />
             <ChatList
               chats={availableChats}
               currentChatId={currentChat?.id}
@@ -2308,7 +2297,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               onClose={() => setShowChatList(false)}
               open={showChatList}
             />
-          </>
         )}
             
             <div className="flex-1 min-w-0 overflow-hidden relative">
