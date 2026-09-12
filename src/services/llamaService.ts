@@ -109,10 +109,11 @@ export interface GenerationOptions {
   stream?: boolean;
   systemPrompt?: string;
   tools?: ToolDefinition[];
-  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  useTools?: boolean;
   enableThinking?: boolean;
   preserveThinking?: boolean;
-  mode?: 'thinking' | 'instruct' | 'coding';
+  mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
   signal?: AbortSignal;
 }
 

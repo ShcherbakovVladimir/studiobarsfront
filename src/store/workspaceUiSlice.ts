@@ -46,7 +46,7 @@ export const defaultWorkspaceUiState: WorkspaceUiState = {
       showMobileMenu: false,
       showChatList: true,
       useTools: false,
-      enableThinking: true,
+      enableThinking: false,
       preserveThinking: false,
     }),
     [PANEL_IDS.INFERENCE_LAB]: createPanel('inference'),

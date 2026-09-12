@@ -22,9 +22,22 @@ export interface User {
   isActive?: boolean;
 }
 
+export interface ChatUserSettings {
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  enableThinking?: boolean;
+  mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
+  use_tools?: boolean;
+  useTools?: boolean;
+  selectedTools?: string[];
+  requireTools?: boolean;
+}
+
 export interface UserSettings {
   [key: string]: unknown;
   inferenceLab?: boolean;
+  chat?: ChatUserSettings;
 }
 
 export interface RuntimeConfig {
@@ -50,6 +63,9 @@ export interface RuntimeConfig {
     systemPrompt: string;
     temperature: number;
     maxTokens: number;
+    enableThinking?: boolean;
+    mode?: string;
+    useTools?: boolean;
   };
   urls: {
     chatApiUrl: string;
@@ -888,9 +904,12 @@ export interface GenerationOptions {
   wrapperOptions?: UnknownRecord;
   stream?: boolean;
   systemPrompt?: string;
+  tools?: unknown[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  useTools?: boolean;
   enableThinking?: boolean;
   preserveThinking?: boolean;
-  mode?: 'thinking' | 'instruct' | 'coding';
+  mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
 }
 
 export interface GenerationResponse {

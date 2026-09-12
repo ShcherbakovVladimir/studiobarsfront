@@ -159,7 +159,8 @@ export interface XlamOptions {
   temperature?: number;
   maxTokens?: number;
   model?: string;
-  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  useTools?: boolean;
   sessionId?: string;
   chatId?: string;
   history?: Array<{ role: string; content: string }>;
@@ -167,7 +168,7 @@ export interface XlamOptions {
   systemPrompt?: string;
   enableThinking?: boolean;
   preserveThinking?: boolean;
-  mode?: 'thinking' | 'instruct' | 'coding';
+  mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
   topP?: number;
   presencePenalty?: number;
   repetitionPenalty?: number;
@@ -356,7 +357,7 @@ export async function chatStream(
     let finalOptions = { ...options };
     
     if (isQwen36ModelFlag) {
-      const mode = options.mode || 'thinking';
+      const mode = options.mode || 'auto';
       
       switch (mode) {
         case 'thinking':
@@ -395,7 +396,7 @@ export async function chatStream(
         default:
           finalOptions = {
             ...finalOptions,
-            enableThinking: options.enableThinking !== false
+            enableThinking: options.enableThinking === true
           };
       }
       
@@ -407,19 +408,23 @@ export async function chatStream(
     }
 
     const requestStartedAt = performance.now();
+    const chatId = options.chatId ?? options.sessionId;
+    const useTools = options.useTools === true && Array.isArray(options.tools) && options.tools.length > 0;
     const response = await fetchChatApi('/chat', {
       method: 'POST',
-      headers: getStreamHeaders(options.sessionId),
+      headers: getStreamHeaders(chatId),
       body: JSON.stringify({
         message: prompt,
         stream: true,
+        use_tools: useTools,
+        useTools,
         temperature: finalOptions.temperature ?? DEFAULT_TEMPERATURE,
         maxTokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: finalOptions.topP,
         topK: finalOptions.topK,
         repetitionPenalty: finalOptions.repeatPenalty,
-        sessionId: options.sessionId,
-        chatId: options.chatId ?? options.sessionId,
+        sessionId: chatId,
+        chatId,
         history: options.history,
         system_prompt: options.systemPrompt,
         systemPrompt: options.systemPrompt,
@@ -427,10 +432,16 @@ export async function chatStream(
           grammar: finalOptions.grammar,
           jsonSchema: finalOptions.jsonSchema,
         }),
+        ...(useTools
+          ? {
+              tools: options.tools,
+              tool_choice: options.tool_choice ?? 'auto',
+            }
+          : {}),
         ...(isQwen36ModelFlag && {
-          enableThinking: finalOptions.enableThinking,
+          enableThinking: finalOptions.enableThinking === true,
           preserveThinking: options.preserveThinking,
-          mode: options.mode
+          mode: options.mode || 'auto',
         })
       }),
       signal: abort.signal,
@@ -494,9 +505,11 @@ export async function chatStreamVision(
         topP: options.topP,
         topK: options.topK,
         repetitionPenalty: options.repeatPenalty,
-        sessionId: options.sessionId,
+        sessionId: options.chatId ?? options.sessionId,
         chatId: options.chatId ?? options.sessionId,
         history: options.history ?? [],
+        use_tools: false,
+        useTools: false,
         system_prompt: options.systemPrompt,
         systemPrompt: options.systemPrompt,
       }),
@@ -1524,6 +1537,8 @@ export async function completionStream(
         sessionId,
         chatId: options.chatId ?? sessionId,
         history: options.history ?? [],
+        use_tools: false,
+        useTools: false,
         system_prompt: options.systemPrompt,
         systemPrompt: options.systemPrompt,
         ...grammarFields,
@@ -1937,8 +1952,10 @@ export function isQwenThinkingModel(model: ModelInfo | null): boolean {
   return /qwen[\s._-]*3/.test(nameLower) || nameLower.includes('thinking');
 }
 
-export function getQwen36Options(mode: 'thinking' | 'instruct' | 'coding' = 'thinking'): Partial<GenerationOptions> {
+export function getQwen36Options(mode: 'auto' | 'thinking' | 'instruct' | 'coding' = 'auto'): Partial<GenerationOptions> {
   switch (mode) {
+    case 'auto':
+      return {};
     case 'thinking':
       return {
         temperature: 1.0,

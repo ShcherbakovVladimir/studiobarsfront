@@ -18,8 +18,9 @@ import agentService, {
   GenerationOptions
 } from '../services/agentService';
 import type { ChatImageAttachment, XLAMModel } from '../types';
-import type { RootState } from '../store/store';
+import type { AppDispatch, RootState } from '../store/store';
 import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage } from '../store/chatSlice';
+import { saveUserSettings } from '../store/authSlice';
 import { setServerStatus } from '../store/appSlice';
 import { setSelectedModelId, setActiveModel } from '../store/modelsSlice';
 import { confirmDialog } from '../services/dialogService';
@@ -44,12 +45,21 @@ import FunctionDocumentationTool from './FunctionDocumentationTool';
 import ModelInsightsPanel from './ModelInsightsPanel';
 import ChatWrapperManager from './ChatWrapperManager';
 import { ChatList } from './ChatList';
+import { AssistantToolsMenu } from './AssistantToolsMenu';
 import { PanelScrollArea } from './ui/panel-scroll-area';
 import { splitThinkingContent, stripThinkingTags } from '../utils/thinkingContent';
 import ThinkingAwareContent from './ThinkingAwareContent';
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';
 import { filterToolsForRole, isEmployee } from '../utils/auth';
+import {
+  loadLocalToolPrefs,
+  mergeChatSettings,
+  readChatUserSettings,
+  saveLocalToolPrefs,
+  toolsEnabledFromSettings,
+  type AssistantQwenMode,
+} from '../utils/assistantChatSettings';
 import {
   collectVisionFiles,
   persistableVisionContent,
@@ -69,7 +79,7 @@ interface AgentLabProps {
 
 type ConnectionStatus = 'checking' | 'online' | 'error' | 'offline';
 type ActiveTool = 'chat' | 'tools' | 'grammar' | 'embedding' | 'insights' | 'ranking' | 'functions' | 'advanced' | 'system' | 'settings' | 'wrappers';
-type QwenMode = 'thinking' | 'instruct' | 'coding';
+type QwenMode = AssistantQwenMode;
 
 // ========== ФИНАЛЬНЫЕ ОПТИМИЗИРОВАННЫЕ СИСТЕМНЫЕ ПРОМПТЫ ==========
 const SYSTEM_PROMPT_PRESETS = [
@@ -856,7 +866,7 @@ const StopStreamingIcon = () => (
 );
 
 const AgentLab: React.FC<AgentLabProps> = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   
   // Redux Selectors
   const availableModels = useSelector((state: RootState) => state.models.models);
@@ -866,6 +876,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const isDarkMode = useSelector((state: RootState) => state.app.isDarkMode);
   const loading = useSelector((state: RootState) => state.chat.isLoading);
   const productMode = useSelector((state: RootState) => isEmployee(state.auth.user));
+  const authSettings = useSelector((state: RootState) => state.auth.settings);
+  const authUserId = useSelector((state: RootState) => state.auth.user?.id);
   
   // Helper functions
   const getModelById = useCallback((modelId: string) => {
@@ -890,7 +902,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const isQwen36Model = isQwenThinkingModel(currentModel);
   
   // State for Qwen3.6
-  const [qwenMode, setQwenMode] = useState<QwenMode>('thinking');
+  const [qwenMode, setQwenMode] = useState<QwenMode>('auto');
+  const [selectedToolNames, setSelectedToolNames] = useState<string[]>(
+    () => loadLocalToolPrefs().selectedTools ?? []
+  );
+  const [requireTools, setRequireTools] = useState(
+    () => loadLocalToolPrefs().requireTools ?? false
+  );
+  const settingsAppliedKeyRef = useRef('');
+  const skipSettingsSaveRef = useRef(true);
   const {
     activeTab: activeTool,
     setActiveTab: setActiveTool,
@@ -898,7 +918,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     setToggle,
   } = useWorkspacePanel(PANEL_IDS.AGENT_LAB, 'chat');
   const activeToolId = activeTool as ActiveTool;
-  const enableThinking = getToggle('enableThinking', true);
+  const enableThinking = getToggle('enableThinking', false);
   const preserveThinking = getToggle('preserveThinking', false);
   const showSettings = getToggle('showSettings', false);
   const showMobileMenu = getToggle('showMobileMenu', false);
@@ -941,6 +961,71 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     filterToolsForRole(DEFAULT_TOOLS, productMode ? 'employee' : undefined)
   );
   const [grammarSelection, setGrammarSelection] = useState<GrammarSelection>(createEmptyGrammarSelection());
+
+  useEffect(() => {
+    const chat = readChatUserSettings(authSettings);
+    const key = `${authUserId ?? ''}:${JSON.stringify(authSettings?.chat ?? null)}`;
+    if (!authSettings || settingsAppliedKeyRef.current === key) return;
+    settingsAppliedKeyRef.current = key;
+    skipSettingsSaveRef.current = true;
+
+    if (typeof chat.systemPrompt === 'string' && chat.systemPrompt.trim()) {
+      setSystemPrompt(chat.systemPrompt);
+    }
+    setAdvancedOptions((prev) => ({
+      ...prev,
+      ...(typeof chat.temperature === 'number' ? { temperature: chat.temperature } : {}),
+      ...(typeof chat.maxTokens === 'number' ? { maxTokens: chat.maxTokens } : {}),
+    }));
+    if (chat.mode) setQwenMode(chat.mode);
+    if (typeof chat.enableThinking === 'boolean') setEnableThinking(chat.enableThinking);
+    const toolsOn = toolsEnabledFromSettings(chat);
+    if (typeof toolsOn === 'boolean') setUseTools(toolsOn);
+    if (chat.selectedTools) setSelectedToolNames(chat.selectedTools);
+    if (typeof chat.requireTools === 'boolean') setRequireTools(chat.requireTools);
+  }, [authSettings, authUserId, setEnableThinking, setUseTools]);
+
+  useEffect(() => {
+    saveLocalToolPrefs(selectedToolNames, requireTools);
+  }, [selectedToolNames, requireTools]);
+
+  useEffect(() => {
+    if (skipSettingsSaveRef.current) {
+      skipSettingsSaveRef.current = false;
+      return;
+    }
+    if (!authUserId) return;
+    const timer = window.setTimeout(() => {
+      void dispatch(
+        saveUserSettings(
+          mergeChatSettings(authSettings, {
+            systemPrompt,
+            temperature: advancedOptions.temperature,
+            maxTokens: advancedOptions.maxTokens,
+            enableThinking,
+            mode: qwenMode,
+            use_tools: useTools,
+            useTools,
+            selectedTools: selectedToolNames,
+            requireTools,
+          })
+        )
+      );
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [
+    dispatch,
+    authUserId,
+    authSettings,
+    systemPrompt,
+    advancedOptions.temperature,
+    advancedOptions.maxTokens,
+    enableThinking,
+    qwenMode,
+    useTools,
+    selectedToolNames,
+    requireTools,
+  ]);
   
   // Streaming state
   const [isStreaming, setIsStreaming] = useState(false);
@@ -1081,6 +1166,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         setCurrentChat(newChat);
         currentChatRef.current = newChat;
         setSessionId(newChat.id);
+        newChat.sessionId = newChat.id;
         lastSavedMessagesRef.current = '[]';
         stickToBottomRef.current = true;
         chatSyncService.setLastActiveChat(newChat.id);
@@ -1093,7 +1179,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       if (openChat) {
         setCurrentChat(openChat);
         currentChatRef.current = openChat;
-        setSessionId(openChat.sessionId || openChat.id);
+        setSessionId(openChat.id);
         lastSavedMessagesRef.current = JSON.stringify(openChat.messages ?? []);
         stickToBottomRef.current = true;
         chatSyncService.setLastActiveChat(openChat.id);
@@ -1164,8 +1250,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         if (open && !next.some((chat) => chat.id === open.id)) {
           next.unshift({
             ...open,
+            title: open.title,
+            updatedAt: open.updatedAt,
             messages: live.length ? live : open.messages,
-            messageCount: live.length || open.messageCount,
+            messageCount: live.length || open.messageCount || 0,
           });
         }
         return next;
@@ -1250,14 +1338,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }
     nextChat = {
       ...nextChat,
-      sessionId: nextChat.sessionId || nextChat.id,
+      sessionId: nextChat.id,
     };
 
     currentChatRef.current = nextChat;
     lastSavedMessagesRef.current = JSON.stringify(nextChat.messages ?? []);
     stickToBottomRef.current = true;
     setCurrentChat(nextChat);
-    setSessionId(nextChat.sessionId || nextChat.id);
+    setSessionId(nextChat.id);
 
     dispatch(clearHistory(currentModelId));
     
@@ -1847,18 +1935,23 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     try {
       const modelOptions = getGenerationOptionsForModel(currentModel);
       
-      const activeSessionId = currentChat?.sessionId ?? currentChat?.id ?? sessionId;
+      const activeChatId = currentChat?.id ?? sessionId;
       const grammarFields = productMode
         ? {}
         : grammarSelectionToApiFields(grammarSelection);
+      const selectedTools = availableTools.filter((tool) => {
+        const name = tool.function?.name;
+        if (!name) return false;
+        return selectedToolNames.length === 0 || selectedToolNames.includes(name);
+      });
       const options: GenerationOptions = {
         temperature: modelOptions.temperature ?? advancedOptions.temperature,
         maxTokens: modelOptions.maxTokens ?? advancedOptions.maxTokens,
         topP: modelOptions.topP ?? advancedOptions.topP,
         topK: modelOptions.topK ?? advancedOptions.topK,
         repeatPenalty: modelOptions.repeatPenalty ?? advancedOptions.repeatPenalty,
-        sessionId: activeSessionId,
-        chatId: currentChat?.id ?? activeSessionId,
+        sessionId: activeChatId,
+        chatId: activeChatId,
         history: toChatMessages(
           messages.filter((m) =>
             (m.role === 'user' || m.role === 'assistant' || m.role === 'system') &&
@@ -1870,11 +1963,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         grammar: grammarFields.grammar,
         jsonSchema: grammarFields.json_schema,
         signal: abortController.signal,
-        ...(isQwen36Model && {
-          enableThinking: enableThinking,
-          preserveThinking: preserveThinking,
-          mode: qwenMode
-        })
+        useTools,
+        tools: useTools ? selectedTools : undefined,
+        tool_choice: useTools ? (requireTools ? 'required' : 'auto') : 'none',
+        enableThinking: qwenMode === 'instruct' ? false : enableThinking,
+        preserveThinking: preserveThinking,
+        mode: qwenMode,
       };
 
       if (filesToSend.length > 0) {
@@ -1921,58 +2015,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             dispatch(setLoading(false));
           }
         );
-      } else if (useTools && availableTools.length > 0 && currentModel?.supportsTools) {
-        // Для инструментов используем streaming
-        await agentService.chatStreamWithTools(
-          userMessageContent,
-          {
-            ...options,
-            tools: filterToolsForRole(
-              availableTools,
-              productMode ? 'employee' : undefined
-            )
-          },
-          (_chunk, fullResponse) => {
-            if (isAborted()) return;
-            dispatch(updateLastMessage({
-              modelId: currentModelId,
-              content: fullResponse,
-              isStreaming: true,
-            }));
-          },
-          (fullResponse) => {
-            if (isAborted()) return;
-            const processedContent = postProcessResponse(
-              fullResponse, 
-              currentModel?.modelFamily,
-              userMessageContent,
-              enableThinking
-            );
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: processedContent
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          },
-          (error) => {
-            if (isAborted()) return;
-            console.error('Stream error:', error);
-            dispatch(updateLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`,
-              isError: true
-            }));
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          }
-        );
       } else {
-        // Обычный чат с streaming
         await agentService.chatStream(
           userMessageContent,
           options,
@@ -2160,9 +2203,36 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </button>
                   )}
                   
+                  <div className="flex">
+                    <AssistantToolsMenu
+                      enabled={useTools}
+                      onEnabledChange={setUseTools}
+                      tools={availableTools}
+                      selectedNames={selectedToolNames}
+                      onSelectedNamesChange={setSelectedToolNames}
+                      requireTools={requireTools}
+                      onRequireToolsChange={setRequireTools}
+                      disabled={isStreaming}
+                    />
+                  </div>
+
                   {isQwen36Model && isServerReady && !isStreaming && (
                     <div className="hidden @[40rem]/agentchat:flex items-center gap-1.5 min-w-0">
                       <div className="flex items-center bg-accent rounded-xl p-0.5">
+                        <button
+                          type="button"
+                          aria-pressed={qwenMode === 'auto'}
+                          onClick={() => { setQwenMode('auto'); }}
+                          className={cn(
+                            'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
+                            qwenMode === 'auto'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:bg-border/80'
+                          )}
+                          title="Как в settings.chat: ваши temperature и thinking"
+                        >
+                          Auto
+                        </button>
                         <button
                           type="button"
                           aria-pressed={qwenMode === 'thinking'}
@@ -2273,8 +2343,27 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     matchTriggerWidth={false}
                     minWidth={220}
                   >
+                    <button
+                      type="button"
+                      className={celestia.headerMenuItem}
+                      onClick={() => { setUseTools(!useTools); setHeaderMenuOpen(false); }}
+                    >
+                      {useTools ? 'Выключить инструменты' : 'Включить инструменты'}
+                    </button>
+                    {useTools && (
+                      <label className={cn(celestia.headerMenuItem, 'cursor-pointer')}>
+                        <input
+                          type="checkbox"
+                          checked={requireTools}
+                          onChange={(e) => setRequireTools(e.target.checked)}
+                          className="rounded"
+                        />
+                        Требовать вызов инструмента
+                      </label>
+                    )}
                     {isQwen36Model && isServerReady && !isStreaming && (
                       <>
+                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('auto'); setHeaderMenuOpen(false); }}>Auto</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('thinking'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Thinking</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('instruct'); setEnableThinking(false); setHeaderMenuOpen(false); }}>Instruct</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('coding'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Coding</button>

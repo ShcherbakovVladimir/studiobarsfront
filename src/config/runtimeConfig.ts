@@ -22,6 +22,10 @@ export function applyUserSettings(settings: UserSettings | null | undefined): vo
         maxTokens: 4096,
       }),
       ...(chat as Partial<RuntimeConfig['chatDefaults']>),
+      useTools:
+        (chat as { use_tools?: boolean; useTools?: boolean }).use_tools ??
+        (chat as { useTools?: boolean }).useTools ??
+        chatDefaults?.useTools,
     });
   }
   const rag = settings.rag;
