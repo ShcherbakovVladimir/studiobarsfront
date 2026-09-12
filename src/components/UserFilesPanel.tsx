@@ -166,7 +166,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <FileText className="w-4 h-4 text-blue-500" />
-          PDF (OCR) ({files.length})
+          Репозиторий PDF ({files.length})
         </div>
         <button
           type="button"
@@ -179,7 +179,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Сканы PDF: OCR → Markdown → индекс. Не через обычную загрузку документов.
+        Исходники на диске: original.pdf. OCR пишет Markdown в индекс, PDF не удаляется.
       </p>
 
       {error && <InlineError message={error} className="text-xs" onDismiss={() => setError(null)} />}
@@ -190,7 +190,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
 
       {!loading && files.length === 0 && (
         <EmptyState
-          message="Нет PDF. Загрузите файл через «Загрузить» — PDF уйдёт в OCR."
+          message="Нет загруженных PDF. Сканы кладите через «Загрузить» — исходник останется в репозитории."
           className="py-4 text-sm"
         />
       )}
@@ -237,7 +237,10 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
                       {userFileStatusLabel(file.status)}
                     </span>
                     {file.pageCount != null && <span>{file.pageCount} стр.</span>}
-                    {file.ragSource && <span className="truncate max-w-[140px]">{file.ragSource}</span>}
+                    {file.size != null && file.size > 0 && (
+                      <span>{file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} МБ` : `${Math.max(1, Math.round(file.size / 1024))} КБ`}</span>
+                    )}
+                    {file.status === 'ready' && <span>исходник сохранён</span>}
                   </div>
                   {file.statusMessage && (
                     <p className="text-[11px] text-muted-foreground mt-1">{file.statusMessage}</p>

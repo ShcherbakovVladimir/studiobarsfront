@@ -495,15 +495,58 @@ function parseQwenInfoPayload(data: unknown): QwenInfoResponse {
 function parseDocumentsPayload(data: unknown): RagDocument[] {
   const row = asPayloadRecord(data);
   const nested = asPayloadRecord(row.data);
-  const candidates = [row.documents, row.files, row.items, nested.documents, nested.files, nested.items];
+  const candidates = [
+    row.documents,
+    row.sources,
+    row.files,
+    row.items,
+    nested.documents,
+    nested.sources,
+    nested.files,
+    nested.items,
+  ];
   const raw = candidates.find((item) => Array.isArray(item)) as unknown[] | undefined;
   if (!raw) return [];
   const seen = new Set<string>();
   return raw.map((item) => {
     const doc = asPayloadRecord(item);
-    const sourceValue = doc.source ?? doc.source_name ?? doc.name ?? doc.filename ?? doc.id;
+    const meta = asPayloadRecord(doc.metadata);
+    const sourceValue =
+      doc.source ?? doc.source_name ?? doc.ragSource ?? doc.rag_source ??
+      meta.source ?? doc.name ?? doc.filename ?? doc.id;
     const source = typeof sourceValue === 'string' ? sourceValue : String(sourceValue ?? '');
-    return { ...(item as RagDocument), source };
+    const chunks = doc.chunks ?? doc.chunk_count ?? doc.total_chunks;
+    const embedded = doc.embedded_chunks ?? doc.embeddedChunks;
+    const completion = doc.completion_percentage ?? doc.completionPercentage;
+    const fully = doc.is_fully_indexed ?? doc.isFullyIndexed;
+    const indexing = doc.indexing_in_progress ?? doc.indexingInProgress;
+    return {
+      ...(item as RagDocument),
+      source,
+      chunks: typeof chunks === 'number' ? chunks : Number(chunks) || (item as RagDocument).chunks,
+      embedded_chunks: typeof embedded === 'number' ? embedded : Number(embedded) || (item as RagDocument).embedded_chunks,
+      completion_percentage:
+        typeof completion === 'number' ? completion : Number(completion) || (item as RagDocument).completion_percentage,
+      is_fully_indexed:
+        typeof fully === 'boolean'
+          ? fully
+          : fully === 'true' || fully === 1
+            ? true
+            : fully === 'false' || fully === 0
+              ? false
+              : (item as RagDocument).is_fully_indexed,
+      indexing_in_progress:
+        typeof indexing === 'boolean'
+          ? indexing
+          : indexing === 'true' || indexing === 1
+            ? true
+            : (item as RagDocument).indexing_in_progress,
+      embedding_status: typeof doc.embedding_status === 'string'
+        ? doc.embedding_status
+        : typeof doc.embeddingStatus === 'string'
+          ? doc.embeddingStatus
+          : (item as RagDocument).embedding_status,
+    };
   }).filter((doc) => {
     if (!doc.source || seen.has(doc.source)) return false;
     seen.add(doc.source);

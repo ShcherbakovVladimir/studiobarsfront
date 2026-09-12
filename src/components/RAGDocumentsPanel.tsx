@@ -91,10 +91,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     (doc) => doc.indexing_in_progress || (doc.completion_percentage ?? 0) < 100
   );
 
-  const libraryDocuments = useMemo(() => {
-    const ocr = new Set(ocrRagSources);
-    return documents.filter((doc) => !ocr.has(doc.source));
-  }, [documents, ocrRagSources]);
+  const ocrSourceSet = useMemo(() => new Set(ocrRagSources), [ocrRagSources]);
 
   useEffect(() => {
     if (!pollIndexing || !indexingInProgress) return;
@@ -116,10 +113,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     }
   };
 
-  const selectAll = () => {
-    const ocrSelected = selectedSources.filter((source) => ocrRagSources.includes(source));
-    onSelectionChange([...new Set([...ocrSelected, ...libraryDocuments.map((d) => d.source)])]);
-  };
+  const selectAll = () => onSelectionChange(documents.map((d) => d.source));
   const clearSelection = () => onSelectionChange([]);
 
   const handleDelete = async (source: string) => {
@@ -183,10 +177,31 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
 
   return (
     <div className={compact ? '' : 'space-y-3'}>
-      <div className="flex items-center justify-between gap-2 mb-3">
+      {error && <InlineError message={error} className="mb-2 text-xs" />}
+
+      <UserFilesPanel
+        isDarkMode={isDarkMode}
+        selectedSources={selectedSources}
+        onSelectionChange={onSelectionChange}
+        compact={compact}
+        active={active}
+        onFilesChange={(files) => {
+          setOcrRagSources(
+            files
+              .map((file) => file.ragSource)
+              .filter((source): source is string => Boolean(source))
+          );
+        }}
+        onReady={() => {
+          void load(true);
+          onDocumentsChange?.();
+        }}
+      />
+
+      <div className="flex items-center justify-between gap-2 mb-3 mt-1">
         <div className="flex items-center gap-2 text-sm font-medium">
           <FileText className="w-4 h-4 text-blue-500" />
-          Документы ({libraryDocuments.length})
+          Индекс RAG ({documents.length})
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -214,6 +229,10 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         </div>
       </div>
 
+      <p className="text-[11px] text-muted-foreground mb-2">
+        Тексты в vector_store: Markdown после OCR и документы, загруженные напрямую. Исходный PDF здесь не хранится.
+      </p>
+
       {indexingInProgress && (
         <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
           Индексация в процессе — поиск по неготовым документам может быть пустым.
@@ -226,44 +245,24 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         </p>
       )}
 
-      {error && <InlineError message={error} className="mb-2 text-xs" />}
-
-      <UserFilesPanel
-        isDarkMode={isDarkMode}
-        selectedSources={selectedSources}
-        onSelectionChange={onSelectionChange}
-        compact={compact}
-        active={active}
-        onFilesChange={(files) => {
-          setOcrRagSources(
-            files
-              .map((file) => file.ragSource)
-              .filter((source): source is string => Boolean(source))
-          );
-        }}
-        onReady={() => {
-          void load(true);
-          onDocumentsChange?.();
-        }}
-      />
-
-      {loading && libraryDocuments.length === 0 && ocrRagSources.length === 0 && (
-        <LoadingState message="Загрузка документов..." className="py-6" />
+      {loading && documents.length === 0 && (
+        <LoadingState message="Загрузка индекса..." className="py-6" />
       )}
 
-      {!loading && libraryDocuments.length === 0 && ocrRagSources.length === 0 && (
+      {!loading && documents.length === 0 && (
         <EmptyState
-          message="Нет загруженных документов. Загрузите файлы через кнопку «Загрузить»."
+          message="В индексе пока нет текстов. После OCR скана здесь появится Markdown, либо загрузите DOCX/TXT."
           className="py-6 text-sm"
         />
       )}
 
       <div className={compact ? 'space-y-2' : 'space-y-2 max-h-80 overflow-y-auto'}>
-        {libraryDocuments.map((doc) => {
+        {documents.map((doc) => {
           const selected = selectedSources.includes(doc.source);
           const busy = actionId === doc.source;
           const pct = doc.completion_percentage ?? (doc.is_fully_indexed ? 100 : 0);
           const highlighted = highlightSource === doc.source;
+          const fromOcr = ocrSourceSet.has(doc.source);
 
           return (
             <div
@@ -291,6 +290,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
                     {doc.source}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1">
+                    {fromOcr && <span className="text-blue-500">из PDF</span>}
                     <span className={statusColor(doc)}>{statusLabel(doc)}</span>
                     {doc.chunks != null && <span>{doc.chunks} чанков</span>}
                     {doc.embedded_chunks != null && <span>{doc.embedded_chunks} эмб.</span>}
