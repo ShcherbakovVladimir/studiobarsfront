@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink, useNavigate, useParams } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, RefreshCw } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
@@ -7,13 +7,11 @@ import docsService from '../../services/docsService';
 import MarkdownContent from '../../components/MarkdownContent';
 import type { HelpDocArticle, HelpDocsCatalog } from '../../types';
 import { ApiError } from '../../services/apiClient';
-import { DEFAULT_HELP_SLUG, helpPath } from '../../utils/docsLinks';
+import { DEFAULT_HELP_SLUG, helpBasePath, helpPath } from '../../utils/docsLinks';
 import { AdminError, AdminLoading, adminBtnGhost } from './adminUi';
 import { getErrorMessage } from './adminUtils';
 import { cn } from '../../lib/utils';
 import { celestia } from '../../lib/celestia';
-
-const HELP_BASE = '/admin/help';
 
 function scrollToHelpHash(hash: string, root: HTMLElement | null) {
   const id = hash.startsWith('#') ? hash.slice(1) : hash;
@@ -28,6 +26,8 @@ function scrollToHelpHash(hash: string, root: HTMLElement | null) {
 const AdminHelpPage: React.FC = () => {
   const { slug: rawSlug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const HELP_BASE = helpBasePath(location.pathname);
   const isDarkMode = useSelector((state: RootState) => state.app.isDarkMode);
   const slug = rawSlug ? decodeURIComponent(rawSlug) : DEFAULT_HELP_SLUG;
   const articleRef = useRef<HTMLElement>(null);
@@ -57,9 +57,9 @@ const AdminHelpPage: React.FC = () => {
 
   useEffect(() => {
     if (!rawSlug) {
-      navigate(helpPath(DEFAULT_HELP_SLUG), { replace: true });
+      navigate(helpPath(DEFAULT_HELP_SLUG, '', HELP_BASE), { replace: true });
     }
-  }, [rawSlug, navigate]);
+  }, [rawSlug, navigate, HELP_BASE]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +100,7 @@ const AdminHelpPage: React.FC = () => {
         scrollToHelpHash(hash, articleRef.current);
       }
     },
-    [navigate, slug]
+    [navigate, slug, HELP_BASE]
   );
 
   const activeSectionId = useMemo(() => {
@@ -160,7 +160,7 @@ const AdminHelpPage: React.FC = () => {
                   return (
                     <NavLink
                       key={doc.slug}
-                      to={helpPath(doc.slug)}
+                      to={helpPath(doc.slug, '', HELP_BASE)}
                       title={doc.summary || doc.title}
                       onClick={() => setTocOpen(false)}
                       className={cn(

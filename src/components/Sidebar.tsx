@@ -18,6 +18,7 @@ import {
   Moon,
   X,
   UserRound,
+  BookOpen,
   LogOut,
   MessageSquare,
 } from 'lucide-react';
@@ -96,6 +97,7 @@ const NAV_GROUPS: Array<{
 const EMPLOYEE_NAV: Array<{ path: string; label: string; icon: LucideIcon }> = [
   { path: '/chat', label: 'Помощник AI', icon: MessageSquare },
   { path: '/rag', label: 'Аналитик', icon: BarChart3 },
+  { path: '/help', label: 'Справка', icon: BookOpen },
 ];
 
 const toModelFamily = (family: string | undefined): XLAMModel['modelFamily'] => {

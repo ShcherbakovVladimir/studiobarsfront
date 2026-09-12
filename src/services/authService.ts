@@ -2,6 +2,7 @@ import { api, setToken, clearToken, getToken } from './apiClient';
 import type { User, UserSettings } from '../types';
 import { parseUserRole, setActiveUserRole } from '../utils/auth';
 import { clearLocalChatStore, setChatSyncUserId } from './chatSyncService';
+import { abortActiveStreams } from '../utils/activeStreams';
 
 function normalizeUser(user: User): User {
   return { ...user, role: parseUserRole(user.role) };
@@ -116,6 +117,7 @@ export async function updateUserSettings(settings: UserSettings): Promise<UserSe
 }
 
 export function logout(): void {
+  abortActiveStreams();
   setActiveUserRole(null);
   clearLocalChatStore();
   setChatSyncUserId(null);

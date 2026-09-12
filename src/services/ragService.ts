@@ -811,6 +811,11 @@ export const ragService = {
   ): Promise<void> {
     const response = await ragFetch('/query/stream', {
       method: 'POST',
+      headers: {
+        Accept: 'text/event-stream',
+        'Accept-Encoding': 'identity',
+        'Cache-Control': 'no-cache',
+      },
       body: JSON.stringify(buildStreamRequestBody(request)),
       signal: handlers.signal,
     }, 200_000);

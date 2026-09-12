@@ -31,6 +31,7 @@ import { canExecuteToolForRole, filterToolsForRole } from '../utils/auth';
 import { buildGrammarApiFields } from '../utils/grammarUtils';
 import { isServerOnline } from '../utils/serverStatus';
 import { consumeChatStream } from '../utils/streamResponse';
+import { registerActiveStream } from '../utils/activeStreams';
 import { stripThinkingTags } from '../utils/thinkingContent';
 import { filesToVisionPayloads } from '../utils/chatVision';
 import type { UnknownRecord, XLAMModel } from '../types';
@@ -56,6 +57,15 @@ function getHeaders(sessionId?: string): HeadersInit {
   }
 
   return headers;
+}
+
+function getStreamHeaders(sessionId?: string): HeadersInit {
+  return {
+    ...getHeaders(sessionId),
+    Accept: 'text/event-stream',
+    'Accept-Encoding': 'identity',
+    'Cache-Control': 'no-cache',
+  };
 }
 
 // ========== ИНТЕРФЕЙСЫ ==========
@@ -212,10 +222,15 @@ function createStreamAbort(externalSignal?: AbortSignal): {
     }
   }, STREAM_TIMEOUT_MS);
 
+  const unregister = registerActiveStream(() => {
+    if (!controller.signal.aborted) controller.abort();
+  });
+
   return {
     signal: controller.signal,
     didTimeout: () => timedOut,
     cleanup: () => {
+      unregister();
       clearTimeout(timeoutId);
       externalSignal?.removeEventListener('abort', onExternalAbort);
     },
@@ -394,10 +409,7 @@ export async function chatStream(
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat', {
       method: 'POST',
-      headers: {
-        ...getHeaders(options.sessionId),
-        Accept: 'text/event-stream',
-      },
+      headers: getStreamHeaders(options.sessionId),
       body: JSON.stringify({
         message: prompt,
         stream: true,
@@ -472,10 +484,7 @@ export async function chatStreamVision(
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat/vision', {
       method: 'POST',
-      headers: {
-        ...getHeaders(options.sessionId),
-        Accept: 'text/event-stream',
-      },
+      headers: getStreamHeaders(options.sessionId),
       body: JSON.stringify({
         message: prompt,
         images,
@@ -563,14 +572,14 @@ export async function chatStreamWithTools(
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat/with-tools', {
       method: 'POST',
-      headers: {
-        ...getHeaders(options.sessionId),
-        Accept: 'text/event-stream',
-      },
+      headers: getStreamHeaders(options.sessionId),
       body: JSON.stringify({
+        message: prompt,
         messages: [{ role: 'user', content: prompt }],
         tools: options.tools ? filterToolsForRole(options.tools) : options.tools,
+        temperature: finalOptions.temperature ?? DEFAULT_TEMPERATURE,
         max_tokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
+        maxTokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: finalOptions.topP,
         topK: finalOptions.topK,
         repetitionPenalty: finalOptions.repetitionPenalty,
@@ -1503,10 +1512,7 @@ export async function completionStream(
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat', {
       method: 'POST',
-      headers: {
-        ...getHeaders(sessionId),
-        Accept: 'text/event-stream',
-      },
+      headers: getStreamHeaders(sessionId),
       body: JSON.stringify({
         message: prompt,
         stream: true,

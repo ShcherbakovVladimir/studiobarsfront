@@ -88,6 +88,8 @@ const App: React.FC = () => {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="account" element={<Navigate to="/profile" replace />} />
             <Route path="account/settings" element={<Navigate to="/profile" replace />} />
+            <Route path="help" element={<AdminHelpPage />} />
+            <Route path="help/:slug" element={<AdminHelpPage />} />
             {!employee && (
               <>
                 <Route path="system" element={<SystemInfoPage />} />

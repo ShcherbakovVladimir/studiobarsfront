@@ -1306,7 +1306,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }
     const timeoutId = setTimeout(() => {
       void saveCurrentChat();
-    }, 1000);
+    }, 0);
 
     return () => clearTimeout(timeoutId);
   }, [messages, saveCurrentChat, isStreaming]);

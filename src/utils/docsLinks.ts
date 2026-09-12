@@ -40,7 +40,11 @@ export function parseDocsApiHref(href: string | undefined): DocsLinkTarget | nul
   }
 }
 
-export function helpPath(slug: string, hash = '', base = '/admin/help'): string {
+export function helpBasePath(pathname = typeof window === 'undefined' ? '' : window.location.pathname): string {
+  return pathname.startsWith('/help') ? '/help' : '/admin/help';
+}
+
+export function helpPath(slug: string, hash = '', base = helpBasePath()): string {
   const path = `${base}/${encodeURIComponent(slug || DEFAULT_HELP_SLUG)}`;
   return hash ? `${path}${hash.startsWith('#') ? hash : `#${hash}`}` : path;
 }

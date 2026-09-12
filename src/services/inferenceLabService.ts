@@ -375,7 +375,12 @@ export const inferenceLabService = {
       '/inference-lab/run',
       {
         method: 'POST',
-        headers: { Accept: body.stream ? 'text/event-stream' : 'application/json' },
+        headers: {
+          Accept: body.stream ? 'text/event-stream' : 'application/json',
+          ...(body.stream
+            ? { 'Accept-Encoding': 'identity', 'Cache-Control': 'no-cache' }
+            : {}),
+        },
         body: JSON.stringify(payload),
         signal: options.signal,
       },

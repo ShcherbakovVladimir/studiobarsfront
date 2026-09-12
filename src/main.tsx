@@ -5,9 +5,11 @@ import { Provider } from 'react-redux';
 import { store } from './store/store';
 import App from './App';
 import { installVitePreloadReload } from './utils/lazyWithRetry';
+import { abortActiveStreams } from './utils/activeStreams';
 import './index.css';
 
 installVitePreloadReload();
+window.addEventListener('pagehide', () => abortActiveStreams());
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

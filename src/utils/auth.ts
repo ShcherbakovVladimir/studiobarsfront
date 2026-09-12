@@ -55,14 +55,15 @@ export function homePath(user: User | null | undefined): string {
   return isEmployee(user) ? '/chat' : '/catalog';
 }
 
-/** Разрешённые SPA-пути employee: чат, RAG, аккаунт. */
+/** Разрешённые SPA-пути employee: чат, RAG, аккаунт, справка. */
 export function isEmployeeAppPath(pathname: string): boolean {
   return (
     pathname === '/' ||
     pathname.startsWith('/chat') ||
     pathname.startsWith('/rag') ||
     pathname.startsWith('/account') ||
-    pathname.startsWith('/profile')
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/help')
   );
 }
 

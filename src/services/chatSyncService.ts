@@ -291,10 +291,17 @@ export async function listChatSummaries(): Promise<ChatSummary[]> {
     success: boolean;
     chats: Array<ChatSummary & { user_id?: string }>;
     userId?: string;
+    email?: string;
+    role?: string;
     total: number;
   }>('/chats?summary=true');
-  const myId = currentUserId() ?? data.userId ?? null;
-  return (data.chats ?? []).filter((chat) => isOwnChat(chat, myId));
+  const myId = currentUserId();
+  if (data.userId && myId && data.userId !== myId) {
+    console.warn('GET /chats userId mismatch — ignoring list');
+    return [];
+  }
+  const ownerId = myId ?? data.userId ?? null;
+  return (data.chats ?? []).filter((chat) => isOwnChat(chat, ownerId));
 }
 
 function messagesForSync(messages: ChatMessage[]): ChatMessage[] {
@@ -349,6 +356,10 @@ export async function saveChatToServer(chat: ChatData): Promise<boolean> {
     if (data.duplicated) return true;
     return data.success && data.synced !== false;
   } catch (error) {
+    if (error instanceof ApiError && (error.status === 409 || error.code === 'CHAT_ID_FOREIGN')) {
+      console.warn('CHAT_ID_FOREIGN: not copying chat id', chat.id);
+      return false;
+    }
     console.error('saveChatToServer failed:', getErrorMessage(error));
     return false;
   }
@@ -414,9 +425,18 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
     console.warn('restoreChatList: summary failed, using local', getErrorMessage(error));
   }
 
-  // Server wins after login. Never POST /chats/sync-batch (would copy another email's list).
-  // Local chats__u_{userId} is only used when GET /chats itself failed.
-  if (!listOk) {
+  // Server wins. sync-batch only for chats__u_{thisUserId}, never another email's store.
+  if (listOk && summaries.length === 0) {
+    const ownLocal = getAllLocalChats();
+    if (ownLocal.length > 0) {
+      await syncOwnLocalChats();
+      try {
+        summaries = await listChatSummaries();
+      } catch (error) {
+        console.warn('restoreChatList: re-list after sync-batch failed', getErrorMessage(error));
+      }
+    }
+  } else if (!listOk) {
     summaries = getAllLocalChats().map((chat) => ({
       id: chat.id,
       title: chat.title,
@@ -457,8 +477,59 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
   return { chats, active };
 }
 
+export async function syncOwnLocalChats(): Promise<SyncResult> {
+  const chats = getAllLocalChats();
+  if (chats.length === 0) return { success: true, synced: 0 };
+
+  try {
+    const data = await api<{
+      success?: boolean;
+      synced?: number;
+      conflicts?: Array<{
+        id?: string;
+        conflictReason?: string;
+        clientVersion?: ChatData;
+      }>;
+    }>('/chats/sync-batch', {
+      method: 'POST',
+      body: JSON.stringify({
+        chats: chats.map((chat) => ({
+          id: chat.id,
+          title: chat.title,
+          modelId: chat.modelId,
+          sessionId: chat.sessionId ?? chat.id,
+          messages: messagesForSync(chat.messages ?? []),
+          systemPrompt: chat.systemPrompt,
+          chatWrapper: chat.chatWrapper,
+          updatedAt: chat.updatedAt ?? new Date().toISOString(),
+        })),
+      }),
+    });
+
+    for (const conflict of data.conflicts ?? []) {
+      if (conflict.conflictReason !== 'foreign_user') continue;
+      const source = conflict.clientVersion ?? (conflict.id ? loadChatFromLocal(conflict.id) : null);
+      if (!source) continue;
+      deleteChatFromLocal(source.id);
+      const remintedId = createChatId();
+      const reminted: ChatData = {
+        ...source,
+        id: remintedId,
+        sessionId: remintedId,
+        updatedAt: new Date().toISOString(),
+      };
+      await saveChatToServer(reminted);
+    }
+
+    return { success: true, synced: data.synced ?? chats.length };
+  } catch (error) {
+    console.warn('sync-batch failed', getErrorMessage(error));
+    return { success: false, message: getErrorMessage(error) };
+  }
+}
+
 export async function syncToServer(): Promise<SyncResult> {
-  return { success: true, synced: 0, message: 'sync-batch disabled' };
+  return syncOwnLocalChats();
 }
 
 export async function loadFromServer(): Promise<ChatData[]> {
@@ -623,6 +694,7 @@ export const chatSyncService = {
   flushPendingChatSync,
   restoreChatList,
   syncToServer,
+  syncOwnLocalChats,
   loadFromServer,
   getChatFromServer,
   listChatSummaries,
