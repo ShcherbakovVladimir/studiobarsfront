@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, FileText, RefreshCw, RotateCcw, Trash2, CheckSquare, Square, Eye } from 'lucide-react';
+import { Download, FileText, FileType, RefreshCw, RotateCcw, Trash2, CheckSquare, Square, Eye } from 'lucide-react';
 import { confirmDialog } from '../services/dialogService';
 import userFilesService, {
   isUserFileActive,
@@ -37,6 +37,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [markdownPreview, setMarkdownPreview] = useState<{ name: string; text: string } | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<{ name: string; url: string } | null>(null);
   const onFilesChangeRef = useRef(onFilesChange);
   onFilesChangeRef.current = onFilesChange;
   const readyNotified = useRef(new Set<string>());
@@ -133,6 +134,33 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка удаления');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const closePdfPreview = () => {
+    setPdfPreview((current) => {
+      if (current?.url) URL.revokeObjectURL(current.url);
+      return null;
+    });
+  };
+
+  const handlePdfPreview = async (file: UserFile) => {
+    setActionId(file.id);
+    try {
+      const blob = await userFilesService.fetchOriginalBlob(file.id);
+      const pdfBlob =
+        blob.type === 'application/pdf' || blob.type === '' || blob.type === 'application/octet-stream'
+          ? blob
+          : new Blob([blob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(pdfBlob);
+      setPdfPreview((current) => {
+        if (current?.url) URL.revokeObjectURL(current.url);
+        return { name: file.originalName, url };
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось открыть PDF');
     } finally {
       setActionId(null);
     }
@@ -256,15 +284,24 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
                   )}
                 </div>
                 <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handlePdfPreview(file)}
+                    className="p-1.5 rounded hover:bg-accent/70 disabled:opacity-40"
+                    title="Открыть исходный PDF"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
                   {file.status === 'ready' && (
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void handleMarkdown(file)}
                       className="p-1.5 rounded hover:bg-accent/70 disabled:opacity-40"
-                      title="Показать Markdown"
+                      title="Показать распознанный Markdown"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <FileType className="w-3.5 h-3.5" />
                     </button>
                   )}
                   <button
@@ -304,9 +341,24 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
       </div>
 
       <RagPreviewDialog
+        open={Boolean(pdfPreview)}
+        title={pdfPreview ? `PDF: ${pdfPreview.name}` : 'PDF'}
+        description="Исходный файл из репозитория"
+        onClose={closePdfPreview}
+      >
+        {pdfPreview && (
+          <iframe
+            src={pdfPreview.url}
+            title={pdfPreview.name}
+            className="h-[min(75vh,44rem)] w-full rounded-xl border border-border bg-background"
+          />
+        )}
+      </RagPreviewDialog>
+
+      <RagPreviewDialog
         open={Boolean(markdownPreview)}
-        title={markdownPreview ? `Просмотр: ${markdownPreview.name}` : 'Просмотр'}
-        description="Распознанный Markdown после OCR"
+        title={markdownPreview ? `Markdown: ${markdownPreview.name}` : 'Просмотр'}
+        description="Распознанный текст после OCR"
         onClose={() => setMarkdownPreview(null)}
       >
         {markdownPreview && (

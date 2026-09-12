@@ -219,13 +219,18 @@ export const userFilesService = {
     return response.text();
   },
 
-  async downloadOriginal(fileId: string, filename = 'document.pdf'): Promise<void> {
+  async fetchOriginalBlob(fileId: string): Promise<Blob> {
     const response = await fetchFilesApi(`/${encodeURIComponent(fileId)}/download`, {}, 120_000);
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(data.error ?? `Не удалось скачать PDF: HTTP ${response.status}`);
+      throw new Error(data.error ?? `Не удалось открыть PDF: HTTP ${response.status}`);
     }
-    triggerDownload(await response.blob(), filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`);
+    return response.blob();
+  },
+
+  async downloadOriginal(fileId: string, filename = 'document.pdf'): Promise<void> {
+    const blob = await this.fetchOriginalBlob(fileId);
+    triggerDownload(blob, filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`);
   },
 };
 
