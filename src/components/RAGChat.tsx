@@ -1487,7 +1487,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 if (next && isWorkspaceOverlay()) setShowFilesSidebar(false);
                 setShowSessionSidebar(next);
               }}
-              className={cn(celestia.headerIcon, '-ml-0.5', showSessionSidebar && 'bg-accent text-foreground')}
+              className={cn(celestia.headerIcon, 'shrink-0', showSessionSidebar && 'bg-accent text-foreground')}
               aria-pressed={showSessionSidebar}
             >
               <PanelLeftIcon />
