@@ -16,9 +16,13 @@ export function usePostLoginBootstrap(): void {
   useEffect(() => {
     if (!isAuthenticated) return;
     applyUserSettings(settings);
+  }, [isAuthenticated, settings]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     chatSyncService.setChatSyncUserId(userId ?? null);
     chatSyncService.cleanupLegacyStorage();
     void dispatch(prefetchChatList(false));
     void dispatch(bootstrapRAG(userId));
-  }, [dispatch, isAuthenticated, userId, settings]);
+  }, [dispatch, isAuthenticated, userId]);
 }

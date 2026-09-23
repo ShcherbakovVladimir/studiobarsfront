@@ -1363,10 +1363,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     dispatch(loadRAGEmbeddingHealth());
     loadTables();
     loadQwenInfo();
-    if (!isSessionsLoaded) {
-      void dispatch(bootstrapRAG(userId));
-    }
-  }, [dispatch, loadTables, loadQwenInfo, isSessionsLoaded, userId]);
+  }, [dispatch, loadTables, loadQwenInfo]);
+
+  useEffect(() => {
+    if (isSessionsLoaded) return;
+    void dispatch(bootstrapRAG(userId));
+  }, [dispatch, isSessionsLoaded, userId]);
 
   useEffect(() => {
     saveRagQueryPrefs({

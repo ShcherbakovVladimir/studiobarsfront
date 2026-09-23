@@ -909,8 +909,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const [requireTools, setRequireTools] = useState(
     () => loadLocalToolPrefs().requireTools ?? false
   );
-  const settingsAppliedKeyRef = useRef('');
-  const skipSettingsSaveRef = useRef(true);
+  const settingsAppliedUserRef = useRef('');
+  const lastSavedChatSettingsRef = useRef('');
+  const authSettingsRef = useRef(authSettings);
+  authSettingsRef.current = authSettings;
   const {
     activeTab: activeTool,
     setActiveTab: setActiveTool,
@@ -963,12 +965,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const [grammarSelection, setGrammarSelection] = useState<GrammarSelection>(createEmptyGrammarSelection());
 
   useEffect(() => {
-    const chat = readChatUserSettings(authSettings);
-    const key = `${authUserId ?? ''}:${JSON.stringify(authSettings?.chat ?? null)}`;
-    if (!authSettings || settingsAppliedKeyRef.current === key) return;
-    settingsAppliedKeyRef.current = key;
-    skipSettingsSaveRef.current = true;
+    if (!authUserId) {
+      settingsAppliedUserRef.current = '';
+      return;
+    }
+    if (!authSettings) return;
+    if (settingsAppliedUserRef.current === authUserId) return;
+    settingsAppliedUserRef.current = authUserId;
 
+    const chat = readChatUserSettings(authSettings);
     if (typeof chat.systemPrompt === 'string' && chat.systemPrompt.trim()) {
       setSystemPrompt(chat.systemPrompt);
     }
@@ -983,6 +988,17 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     if (typeof toolsOn === 'boolean') setUseTools(toolsOn);
     if (chat.selectedTools) setSelectedToolNames(chat.selectedTools);
     if (typeof chat.requireTools === 'boolean') setRequireTools(chat.requireTools);
+    lastSavedChatSettingsRef.current = JSON.stringify({
+      systemPrompt: chat.systemPrompt ?? '',
+      temperature: chat.temperature,
+      maxTokens: chat.maxTokens,
+      enableThinking: chat.enableThinking,
+      mode: chat.mode,
+      use_tools: toolsOn ?? false,
+      useTools: toolsOn ?? false,
+      selectedTools: chat.selectedTools ?? [],
+      requireTools: chat.requireTools ?? false,
+    });
   }, [authSettings, authUserId, setEnableThinking, setUseTools]);
 
   useEffect(() => {
@@ -990,33 +1006,28 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   }, [selectedToolNames, requireTools]);
 
   useEffect(() => {
-    if (skipSettingsSaveRef.current) {
-      skipSettingsSaveRef.current = false;
-      return;
-    }
     if (!authUserId) return;
+    const payload = {
+      systemPrompt,
+      temperature: advancedOptions.temperature,
+      maxTokens: advancedOptions.maxTokens,
+      enableThinking,
+      mode: qwenMode,
+      use_tools: useTools,
+      useTools,
+      selectedTools: selectedToolNames,
+      requireTools,
+    };
+    const snapshot = JSON.stringify(payload);
+    if (snapshot === lastSavedChatSettingsRef.current) return;
     const timer = window.setTimeout(() => {
-      void dispatch(
-        saveUserSettings(
-          mergeChatSettings(authSettings, {
-            systemPrompt,
-            temperature: advancedOptions.temperature,
-            maxTokens: advancedOptions.maxTokens,
-            enableThinking,
-            mode: qwenMode,
-            use_tools: useTools,
-            useTools,
-            selectedTools: selectedToolNames,
-            requireTools,
-          })
-        )
-      );
+      lastSavedChatSettingsRef.current = snapshot;
+      void dispatch(saveUserSettings(mergeChatSettings(authSettingsRef.current, payload)));
     }, 800);
     return () => window.clearTimeout(timer);
   }, [
     dispatch,
     authUserId,
-    authSettings,
     systemPrompt,
     advancedOptions.temperature,
     advancedOptions.maxTokens,
