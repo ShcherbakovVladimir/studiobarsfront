@@ -160,9 +160,6 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
               }`}
               style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
             >
-              {isActive && (
-                <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-blue-500" aria-hidden />
-              )}
               {isEditing ? (
                 <div className="p-2">
                   <input
