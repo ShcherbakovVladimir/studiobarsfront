@@ -2153,7 +2153,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         onClick={() => setShowChatList(!showChatList)}
                         className={cn(
                           celestia.headerIcon,
-                          '-ml-0.5',
+                          'shrink-0',
                           showChatList && 'bg-accent text-foreground'
                         )}
                         aria-pressed={showChatList}
