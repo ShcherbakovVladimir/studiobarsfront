@@ -7,6 +7,7 @@ import type { RootState, AppDispatch } from '../store/store';
 import type { ModelInfo } from '../types';
 import { 
   setServerStatus as setAppServerStatus,
+  setModelOperation,
   setViewMode 
 } from '../store/appSlice';
 import { 
@@ -17,6 +18,13 @@ import {
 } from '../store/modelsSlice';
 import agentService from '../services/agentService';
 import { fetchChatApi } from '../services/apiClient';
+import { showSuccessToast } from '../services/toastService';
+import {
+  appliedLaunchFlags,
+  describeLoadError,
+  MODEL_LOAD_TIMEOUT_MS,
+  type LlamaLaunch,
+} from '../services/llamaLaunchService';
 import { confirmDialog } from '../services/dialogService';
 import { useViewModeRouteSync } from '../hooks/useViewModeRouteSync';
 import { pathFromViewMode, isFillAppPath } from '../utils/viewModeRoutes';
@@ -144,10 +152,11 @@ const MainApp: React.FC = () => {
   // Функция для запуска модели
   const handleStartModel = useCallback(async (
     modelId: string,
-    launch?: { launch?: import('../services/llamaLaunchService').LlamaLaunch; launchProfile?: string }
+    launch?: { launch?: LlamaLaunch; launchProfile?: string }
   ) => {
     console.log(`🚀 Запуск модели ${modelId}...`);
     setModelStartingError(null);
+    dispatch(setModelOperation('load'));
     
     try {
       // Получаем информацию о модели для определения типа
@@ -188,7 +197,7 @@ const MainApp: React.FC = () => {
       }
       
       // Если модель уже активна, просто переключаемся и обновляем wrapper если нужно
-      if (activeModelId === modelId) {
+      if (activeModelId === modelId && !launch?.launch && !launch?.launchProfile) {
         console.log(`✅ Модель ${modelId} уже активна`);
         
         // Обновляем wrapper если нужно
@@ -249,7 +258,7 @@ const MainApp: React.FC = () => {
           ...(launch?.launchProfile ? { launchProfile: launch.launchProfile } : {}),
           ...(launch?.launch && Object.keys(launch.launch).length ? { launch: launch.launch } : {}),
         })
-      });
+      }, MODEL_LOAD_TIMEOUT_MS);
 
       let loadResult: { success?: boolean; error?: string; message?: string } = {};
       try {
@@ -259,13 +268,11 @@ const MainApp: React.FC = () => {
       }
 
       if (!loadResponse.ok || !loadResult.success) {
-        throw new Error(
-          loadResult.error ||
-          loadResult.message ||
-          `${loadResponse.status} ${loadResponse.statusText}`
-        );
+        throw new Error(describeLoadError(loadResponse.status, loadResult));
       }
 
+      const applied = appliedLaunchFlags(loadResult);
+      if (applied.length) showSuccessToast(`Флаги запуска применены: ${applied.join(', ')}`);
       console.log(`✅ Модель ${modelId} запущена успешно`);
       dispatch(setActiveModel(modelId));
       dispatch(setSelectedModelId(modelId));
@@ -351,6 +358,9 @@ const MainApp: React.FC = () => {
       }
       
       setTimeout(() => setModelStartingError(null), 8000);
+      throw error instanceof Error ? error : new Error(errorMessage);
+    } finally {
+      dispatch(setModelOperation(null));
     }
   }, [dispatch, activeModelId, models, goToViewMode]);
 

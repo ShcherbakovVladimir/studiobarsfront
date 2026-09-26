@@ -21,7 +21,7 @@ import type { ChatImageAttachment, XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
 import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage } from '../store/chatSlice';
 import { saveUserSettings } from '../store/authSlice';
-import { setServerStatus } from '../store/appSlice';
+import { setModelOperation, setServerStatus } from '../store/appSlice';
 import { setSelectedModelId, setActiveModel } from '../store/modelsSlice';
 import { confirmDialog } from '../services/dialogService';
 import { showErrorToast } from '../services/toastService';
@@ -51,7 +51,9 @@ import { splitThinkingContent, stripThinkingTags } from '../utils/thinkingConten
 import ThinkingAwareContent from './ThinkingAwareContent';
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';
-import { filterToolsForRole, isEmployee } from '../utils/auth';
+import { filterToolsForRole, isAdmin, isEmployee } from '../utils/auth';
+import { ModelLaunchDialog } from './ModelLaunchDialog';
+import type { LoadLaunchOptions } from '../services/llamaLaunchService';
 import {
   loadLocalToolPrefs,
   mergeChatSettings,
@@ -876,6 +878,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const isDarkMode = useSelector((state: RootState) => state.app.isDarkMode);
   const loading = useSelector((state: RootState) => state.chat.isLoading);
   const productMode = useSelector((state: RootState) => isEmployee(state.auth.user));
+  const userIsAdmin = useSelector((state: RootState) => isAdmin(state.auth.user));
   const authSettings = useSelector((state: RootState) => state.auth.settings);
   const authUserId = useSelector((state: RootState) => state.auth.user?.id);
   
@@ -944,6 +947,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   pendingImagesRef.current = pendingImages;
   const [visionEnabled, setVisionEnabled] = useState(false);
   const [isModelActionLoading, setIsModelActionLoading] = useState(false);
+  const [launchDialogModelId, setLaunchDialogModelId] = useState<string | null>(null);
   const [, setLastOperationResult] = useState<ModelControlResponse | null>(null);
   const [, setAvailableWrappers] = useState<ChatWrapperInfo[]>([]);
   const [selectedWrapper, setSelectedWrapper] = useState<string>('default');
@@ -1679,13 +1683,26 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   // ========== ОБРАБОТЧИКИ УПРАВЛЕНИЯ МОДЕЛЬЮ ==========
   
-  const handleStartModel = async (modelId: string, contextSize?: number, threads?: number, gpuLayers?: number) => {
+  const handleStartModel = async (
+    modelId: string,
+    launchOptions?: LoadLaunchOptions
+  ): Promise<boolean> => {
     setIsModelActionLoading(true);
+    dispatch(setModelOperation('load'));
     setLastOperationResult(null);
     sessionCreatedRef.current = false;
     
     try {
-      const result = await agentService.startModel(modelId, contextSize, threads, gpuLayers);
+      let result = await agentService.startModel(modelId, undefined, undefined, undefined, launchOptions);
+      if (!result.success && result.httpStatus === 409) {
+        const confirmed = await confirmDialog({
+          title: 'Завершить сессии?',
+          description: `${result.message}. Активные inference-сессии будут сброшены, история чатов в БД сохранится.`,
+          confirmLabel: 'Завершить и запустить',
+        });
+        if (!confirmed) return false;
+        result = await agentService.startModel(modelId, undefined, undefined, undefined, { ...launchOptions, force: true });
+      }
       setLastOperationResult(result);
       
       if (result.success) {
@@ -1710,9 +1727,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           modelId: modelId, 
           message: { 
             role: 'assistant', 
-            content: `### 🚀 Модель запущена\n\n**Модель:** ${model?.name || modelId}\n**Тип:** ${modelTypeInfo}\n**Семейство:** ${model?.modelFamily || 'unknown'}\n**Инструменты:** ${model?.supportsTools ? '✅ Да' : '❌ Нет'}\n**Статус:** ✅ Готова к работе\n\nТеперь вы можете отправлять запросы этой модели.`
+            content: `### 🚀 ${result.alreadyLoaded ? 'Модель уже загружена' : 'Модель запущена'}\n\n**Модель:** ${model?.name || modelId}\n**Тип:** ${modelTypeInfo}\n**Семейство:** ${model?.modelFamily || 'unknown'}\n**Инструменты:** ${model?.supportsTools ? '✅ Да' : '❌ Нет'}\n**Статус:** ✅ Готова к работе${launchOptions?.launchProfile ? `\n**Профиль запуска:** ${launchOptions.launchProfile}` : ''}${result.launchApplied?.length ? `\n**Флаги llama-server:** ${result.launchApplied.join(', ')}` : ''}${result.alreadyLoaded ? '\n\nllama-server не перезапускался: флаги запуска не заданы.' : ''}\n\nТеперь вы можете отправлять запросы этой модели.`
           } 
         }));
+        return true;
       } else {
         throw new Error(result.message);
       }
@@ -1724,15 +1742,22 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           content: `### ❌ Ошибка запуска модели\n\n**Модель:** ${modelId}\n**Ошибка:** ${error instanceof Error ? error.message : 'Неизвестная ошибка'}\n\nПроверьте доступность файла модели и права доступа.`
         } 
       }));
+      return false;
     } finally {
       setIsModelActionLoading(false);
+      dispatch(setModelOperation(null));
     }
+  };
+
+  const requestStartModel = (modelId: string) => {
+    if (userIsAdmin) setLaunchDialogModelId(modelId);
   };
   
   const handleStopModel = async () => {
     if (!currentModelId) return;
     
     setIsModelActionLoading(true);
+    dispatch(setModelOperation('unload'));
     setLastOperationResult(null);
     
     try {
@@ -1763,53 +1788,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       }));
     } finally {
       setIsModelActionLoading(false);
-    }
-  };
-  
-  const handleSwitchModel = async (modelId: string) => {
-    setIsModelActionLoading(true);
-    setLastOperationResult(null);
-    sessionCreatedRef.current = false;
-    
-    try {
-      const result = await agentService.switchModel(modelId);
-      setLastOperationResult(result);
-      
-      if (result.success) {
-        const model = getModelById(modelId);
-        
-        dispatch(setSelectedModelId(modelId));
-        dispatch(setActiveModel(modelId));
-        
-        const status = await agentService.getServerStatus();
-        dispatch(setServerStatus(status));
-        
-        const modelPrompt = model ? getSystemPromptForModel(model) : DEFAULT_SYSTEM_PROMPT;
-        setSystemPrompt(modelPrompt);
-        sessionCreatedRef.current = true;
-        
-        const modelTypeInfo = model?.modelFamily === 'saiga' ? '🇷🇺 Saiga' :
-                              model?.modelFamily === 'qwen' ? '🐫 Qwen' :
-                              model?.supportsTools ? '🔧 xLAM' : '📝 Стандартная';
-        
-        dispatch(addMessage({ 
-          modelId: modelId, 
-          message: { 
-            role: 'assistant', 
-            content: `### 🔄 Модель переключена\n\n**С модели:** ${result.previousModel || 'Неизвестно'}\n**На модель:** ${model?.name || modelId}\n**Тип:** ${modelTypeInfo}\n**Семейство:** ${model?.modelFamily || 'unknown'}\n**Инструменты:** ${model?.supportsTools ? '✅ Да' : '❌ Нет'}\n**Статус:** ✅ Готова к работе`
-          } 
-        }));
-      }
-    } catch (error) {
-      dispatch(addMessage({ 
-        modelId: currentModelId, 
-        message: { 
-          role: 'assistant', 
-          content: `### ❌ Ошибка переключения модели\n\n**Модель:** ${modelId}\n**Ошибка:** ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
-        } 
-      }));
-    } finally {
-      setIsModelActionLoading(false);
+      dispatch(setModelOperation(null));
     }
   };
   
@@ -2287,10 +2266,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </div>
                   )}
                   
-                  {currentModel && !isServerReady && !isStreaming && !productMode && (
+                  {currentModel && !isServerReady && !isStreaming && userIsAdmin && (
                     <button
                       type="button"
-                      onClick={() => handleStartModel(currentModel.id)}
+                      onClick={() => requestStartModel(currentModel.id)}
                       disabled={isModelActionLoading}
                       className="hidden @[36rem]/agentchat:inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95 disabled:opacity-40"
                     >
@@ -2299,11 +2278,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </button>
                   )}
 
-                  {isServerReady && currentModel && !isStreaming && !productMode && (
+                  {isServerReady && currentModel && !isStreaming && userIsAdmin && (
                     <span className="hidden @[42rem]/agentchat:inline-flex items-center gap-0.5">
                       <IconButton
-                        label="Перезагрузить модель"
-                        onClick={() => handleSwitchModel(currentModel.id)}
+                        label="Перезапустить модель с флагами"
+                        onClick={() => requestStartModel(currentModel.id)}
                         disabled={isModelActionLoading}
                         className={celestia.headerIcon}
                       >
@@ -2388,14 +2367,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         )}
                       </>
                     )}
-                    {currentModel && !isServerReady && !isStreaming && !productMode && (
-                      <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleStartModel(currentModel.id); }}>
+                    {currentModel && !isServerReady && !isStreaming && userIsAdmin && (
+                      <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); requestStartModel(currentModel.id); }}>
                         {isModelActionLoading ? 'Запуск…' : 'Запустить модель'}
                       </button>
                     )}
-                    {isServerReady && currentModel && !isStreaming && !productMode && (
+                    {isServerReady && currentModel && !isStreaming && userIsAdmin && (
                       <>
-                        <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleSwitchModel(currentModel.id); }}>Перезагрузить</button>
+                        <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); requestStartModel(currentModel.id); }}>Перезапустить…</button>
                         <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleStopModel(); }}>Остановить</button>
                       </>
                     )}
@@ -2477,9 +2456,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                           : 'Модель не загружена. Нажмите "Запустить" для активации модели.'
                                         : 'Начните диалог'}
                                     </p>
-                                    {!isServerReady && currentModel && !productMode && (
+                                    {!isServerReady && currentModel && userIsAdmin && (
                                       <button
-                                        onClick={() => handleStartModel(currentModel.id)}
+                                        onClick={() => requestStartModel(currentModel.id)}
                                         className="mt-4 px-4 py-2 btn-gradient text-white rounded-lg text-sm font-medium"
                                       >
                                         Запустить модель
@@ -2689,6 +2668,18 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                 )}
             </div>
         </div>
+        {launchDialogModelId && (
+          <ModelLaunchDialog
+            open
+            modelId={launchDialogModelId}
+            modelName={getModelById(launchDialogModelId)?.name}
+            onClose={() => setLaunchDialogModelId(null)}
+            onStart={async (options) => {
+              const ok = await handleStartModel(launchDialogModelId, options);
+              if (!ok) throw new Error('Запуск не удался, подробности в чате');
+            }}
+          />
+        )}
     </div>
   );
 };

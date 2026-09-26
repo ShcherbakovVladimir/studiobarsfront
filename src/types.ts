@@ -438,11 +438,32 @@ export interface HardwareStats {
   lastUpdated?: string;
 }
 
+/** Состояние Node API по `GET /health` (FRONTEND_SERVER_MODEL_CONTROL §2.1). */
+export type ApiHealthState = 'checking' | 'online' | 'offline' | 'maintenance';
+
+/** Состояние inference по `GET /api/ready` (FRONTEND_SERVER_MODEL_CONTROL §2.2). */
+export type ModelReadinessState = 'unknown' | 'unloaded' | 'loading' | 'ready' | 'degraded' | 'error';
+
+export interface ServiceHealth {
+  api: ApiHealthState;
+  apiUptime?: number;
+  model: ModelReadinessState;
+  activeModel: string | null;
+  llamaServerHealthy: boolean;
+  /** Локально идёт POST /api/model/load|swap|unload. */
+  modelOperation: 'load' | 'swap' | 'unload' | null;
+  /** Только для admin: режим техработ включён, но admin проходит (GET /api/admin/maintenance). */
+  adminMaintenance?: { enabled: boolean; message?: string } | null;
+  lastError?: string;
+  checkedAt?: string;
+}
+
 export interface AppState {
   viewMode: ViewModeType;
   isDarkMode: boolean;
   hardwareStats: HardwareStats;
   serverStatus: ServerStatus;
+  health: ServiceHealth;
 }
 
 // ===================== МОДЕЛИ СТЕЙТ =====================

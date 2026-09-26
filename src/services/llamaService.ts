@@ -5,7 +5,14 @@ import { buildGrammarApiFields, normalizeGrammarTemplateList } from '../utils/gr
 import { normalizeServerStatusValue } from '../utils/serverStatus';
 import { consumeChatStream } from '../utils/streamResponse';
 import type { UnknownRecord } from '../types';
-import { fetchChatApi, getChatApiBase, getChatApiOrigin } from './apiClient';
+import { fetchChatApi, getChatApiBase } from './apiClient';
+import {
+  appliedLaunchFlags,
+  describeLoadError,
+  MODEL_LOAD_TIMEOUT_MS,
+  ModelLoadError,
+  type LoadLaunchOptions,
+} from './llamaLaunchService';
 
 /** Use getChatApiBase() for current runtime URL (after /api/config bootstrap). */
 export const getAPIBaseUrl = (): string => getChatApiBase();
@@ -186,6 +193,10 @@ export interface ModelControlResponse {
   model?: ModelInfo;
   previousModel?: string | null;
   details?: UnknownRecord;
+  alreadyLoaded?: boolean;
+  launchApplied?: string[];
+  httpStatus?: number;
+  sessions?: { before?: number; restored?: number; dropped?: number; current?: number; preserved?: boolean };
 }
 
 export interface EmbeddingResponse {
@@ -1040,10 +1051,10 @@ export const llamaApi = {
     }
   },
 
-  /** GET /health — public liveness at host root (without /api) */
+  /** GET /api/health — public liveness Node API; `/health` на origin фронтенда отдаёт nginx studioxlam, а не бэкенд. */
   async getRootHealth(): Promise<UnknownRecord> {
     try {
-      const response = await fetchWithTimeout(`${getChatApiOrigin()}/health`);
+      const response = await fetchWithTimeout(`${getChatApiBase()}/health`);
       return await safeJson(response);
     } catch (error) {
       console.error('Ошибка root health:', error);
@@ -1276,13 +1287,30 @@ export const llamaApi = {
     }
   },
 
-  async loadModel(modelId: string, contextSize?: number, threads?: number, gpuLayers?: number): Promise<ModelControlResponse> {
+  async loadModel(
+    modelId: string,
+    contextSize?: number,
+    threads?: number,
+    gpuLayers?: number,
+    launchOptions?: LoadLaunchOptions
+  ): Promise<ModelControlResponse> {
     try {
       const response = await fetchWithTimeout(`${getChatApiBase()}/model/load`, {
         method: 'POST',
-        body: JSON.stringify({ modelId, contextSize, threads, gpuLayers }),
-      });
-      await handleApiError(response, 'Не удалось загрузить модель');
+        body: JSON.stringify({
+          modelId,
+          contextSize,
+          threads,
+          gpuLayers,
+          ...(launchOptions?.force ? { force: true } : {}),
+          ...(launchOptions?.launchProfile ? { launchProfile: launchOptions.launchProfile } : {}),
+          ...(launchOptions?.launch && Object.keys(launchOptions.launch).length ? { launch: launchOptions.launch } : {}),
+        }),
+      }, MODEL_LOAD_TIMEOUT_MS);
+      if (!response.ok) {
+        const body = await safeJson(response).catch(() => ({}));
+        throw new ModelLoadError(describeLoadError(response.status, body), response.status);
+      }
       const data = await safeJson(response);
       clearCache();
       
@@ -1292,8 +1320,10 @@ export const llamaApi = {
       return {
         success: data.success,
         message: data.message,
-        activeModel: data.activeModel,
-        previousModel: data.previousModel || null,
+        activeModel: data.activeModel ?? data.newModel?.id ?? modelId,
+        previousModel: data.previousModel ?? data.oldModel?.id ?? null,
+        alreadyLoaded: data.alreadyLoaded === true,
+        launchApplied: appliedLaunchFlags(data),
         model: loadedModel || {
           id: modelId,
           name: data.details?.filename || modelId,
@@ -1339,23 +1369,31 @@ export const llamaApi = {
   /** POST /api/model/swap — hot-swap active model */
   async swapModel(
     modelId: string,
-    options?: { contextSize?: number; threads?: number; gpuLayers?: number; force?: boolean }
+    options?: { preserveSessions?: boolean; validateCompatibility?: boolean }
   ): Promise<ModelControlResponse> {
     try {
       const response = await fetchWithTimeout('/model/swap', {
         method: 'POST',
-        body: JSON.stringify({ modelId, ...options }),
-      });
-      await handleApiError(response, 'Не удалось переключить модель');
+        body: JSON.stringify({
+          modelId,
+          preserveSessions: options?.preserveSessions ?? true,
+          validateCompatibility: options?.validateCompatibility ?? true,
+        }),
+      }, MODEL_LOAD_TIMEOUT_MS);
+      if (!response.ok) {
+        const body = await safeJson(response).catch(() => ({}));
+        throw new ModelLoadError(describeLoadError(response.status, body), response.status);
+      }
       const data = await safeJson(response);
       clearCache();
       return {
         success: data.success,
         message: data.message,
-        activeModel: data.activeModel,
-        previousModel: data.previousModel ?? null,
+        activeModel: data.activeModel ?? data.newModel?.id ?? modelId,
+        previousModel: data.previousModel ?? data.oldModel?.id ?? null,
         model: data.model,
         details: data.details,
+        sessions: data.sessions,
       };
     } catch (error) {
       console.error('Ошибка swap модели:', error);

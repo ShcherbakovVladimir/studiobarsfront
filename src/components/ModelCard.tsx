@@ -318,7 +318,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
           )}
         </div>
         
-        {isAvailable && !isActive ? (
+        {isAvailable && !isActive && onStart ? (
           <button
             type="button"
             onClick={handleStart}
@@ -333,7 +333,22 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
             {isStarting ? 'Запуск…' : 'Запустить'}
           </button>
         ) : isActive ? (
-          <StatusPill variant="success" dot>Активна</StatusPill>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <StatusPill variant="success" dot>Активна</StatusPill>
+            {onStart && (
+              <button
+                type="button"
+                onClick={handleStart}
+                disabled={isStarting}
+                title="Перезапустить llama-server с другими флагами"
+                className="inline-flex items-center h-8 px-2.5 rounded-xl text-xs font-medium border border-border hover:bg-accent disabled:opacity-50"
+              >
+                {isStarting ? 'Запуск…' : 'Перезапуск'}
+              </button>
+            )}
+          </div>
+        ) : isAvailable ? (
+          <span className="text-xs text-muted-foreground">Только просмотр</span>
         ) : (
           <span className="text-xs text-muted-foreground">
             {isLocalOnly ? 'Информация' : 'Недоступна'}

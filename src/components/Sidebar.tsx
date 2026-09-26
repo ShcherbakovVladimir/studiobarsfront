@@ -21,7 +21,7 @@ import {
   LogOut,
   MessageSquare,
 } from 'lucide-react';
-import { type XLAMModel } from '../types';
+import { type ApiHealthState, type ModelReadinessState, type XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
 import { logout } from '../store/authSlice';
 import { clearChatList } from '../store/chatListSlice';
@@ -41,6 +41,42 @@ interface SidebarProps {
   onRefreshModels?: () => void;
   isOpen?: boolean;
   onClose?: () => void;
+  onCheckHealth?: () => Promise<void>;
+}
+
+type DotTone = 'ok' | 'warn' | 'bad' | 'idle' | 'pending';
+
+const DOT_CLASS: Record<DotTone, string> = {
+  ok: 'bg-green-500',
+  warn: 'bg-amber-500',
+  bad: 'bg-destructive',
+  idle: 'bg-muted-foreground/40',
+  pending: 'bg-amber-500 animate-pulse',
+};
+
+const API_VIEW: Record<ApiHealthState, { tone: DotTone; label: string; title: string }> = {
+  checking: { tone: 'pending', label: 'API…', title: 'Проверка GET /health' },
+  online: { tone: 'ok', label: 'API', title: 'Node API отвечает (GET /health)' },
+  offline: { tone: 'bad', label: 'API офлайн', title: 'Node API недоступен (GET /health)' },
+  maintenance: { tone: 'warn', label: 'Техработы', title: 'Режим обслуживания (503 MAINTENANCE)' },
+};
+
+const MODEL_VIEW: Record<ModelReadinessState, { tone: DotTone; label: string }> = {
+  unknown: { tone: 'idle', label: 'LLM ?' },
+  unloaded: { tone: 'idle', label: 'LLM нет' },
+  loading: { tone: 'pending', label: 'LLM загрузка' },
+  ready: { tone: 'ok', label: 'LLM' },
+  degraded: { tone: 'warn', label: 'LLM не готова' },
+  error: { tone: 'bad', label: 'LLM ошибка' },
+};
+
+function StatusChip({ tone, label, title }: { tone: DotTone; label: string; title: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 shrink-0 text-[11px] text-muted-foreground" title={title}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', DOT_CLASS[tone])} />
+      {label}
+    </span>
+  );
 }
 
 interface ServerModel {
@@ -220,11 +256,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   onRefreshModels,
   isOpen = false,
   onClose = () => {},
+  onCheckHealth,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode, serverStatus } = useSelector((state: RootState) => state.app);
   const hardwareStats = useSelector((state: RootState) => state.app.hardwareStats);
+  const health = useSelector((state: RootState) => state.app.health);
   const catalogModels = useSelector((state: RootState) => state.models.models);
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -257,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const triggerStatusCheck = async () => {
-    const status = await agentService.getServerStatus();
+    const [status] = await Promise.all([agentService.getServerStatus(), onCheckHealth?.()]);
     dispatch(setServerStatus(status));
   };
 
@@ -280,9 +318,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         ]
   ).slice(0, 2);
 
-  const online = isServerOnline(serverStatus);
-  const checking = serverStatus.status === 'checking';
-  const activeModelId = serverStatus.activeModel;
+  const apiView = API_VIEW[health.api];
+  const modelView = MODEL_VIEW[health.model];
+  const online = health.api === 'online' || (health.api === 'checking' && isServerOnline(serverStatus));
+  const activeModelId = health.activeModel ?? serverStatus.activeModel;
   const loadedCatalogModel = activeModelId
     ? catalogModels.find((model) => model.id === activeModelId) ??
       catalogModels.find((model) => model.active)
@@ -297,7 +336,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     ? [
         loadedLabel && loadedLabel !== activeModelId ? loadedLabel : null,
         `id: ${activeModelId}`,
-        serverStatus.serverReady || serverStatus.modelLoaded ? 'готова' : 'ещё не готова',
+        health.model === 'ready' ? 'готова' : 'ещё не готова',
+        health.llamaServerHealthy ? 'llama-server жив' : 'llama-server не отвечает',
       ]
         .filter(Boolean)
         .join(' · ')
@@ -423,19 +463,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 type="button"
                 onClick={() => void triggerStatusCheck()}
                 className="min-w-0 flex-1 flex items-center gap-2 rounded-xl px-1 py-1 text-left hover:bg-accent/70 transition-colors"
-                title="Обновить статус сервера"
+                title="Проверить API и модель"
               >
-                <span
-                  className={cn(
-                    'w-1.5 h-1.5 rounded-full shrink-0',
-                    online && 'bg-green-500',
-                    checking && 'bg-green-500/50 animate-pulse',
-                    !online && !checking && 'bg-destructive'
-                  )}
-                />
-                <span className="text-[11px] text-muted-foreground shrink-0">
-                  {online ? 'Онлайн' : checking ? 'Проверка…' : 'Офлайн'}
-                </span>
+                <StatusChip {...apiView} />
+                <StatusChip tone={modelView.tone} label={modelView.label} title={modelTitle} />
                 <span className="h-3 w-px bg-border shrink-0" />
                 <span
                   className="truncate font-mono text-[11px] text-muted-foreground"
@@ -478,14 +509,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {employee && (
           <div className={cn(footerCardClass, 'flex items-center gap-2 min-w-0')}>
-            <span
-              className={cn(
-                'w-1.5 h-1.5 rounded-full shrink-0',
-                online && 'bg-green-500',
-                checking && 'bg-green-500/50 animate-pulse',
-                !online && !checking && 'bg-destructive'
-              )}
-            />
+            <StatusChip {...apiView} />
+            <StatusChip tone={modelView.tone} label={modelView.label} title={modelTitle} />
             <span
               className="truncate font-mono text-[11px] text-muted-foreground"
               title={modelTitle}

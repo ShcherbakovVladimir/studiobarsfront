@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Sidebar from '../Sidebar';
 import type { AppDispatch, RootState } from '../../store/store';
 import { updateHardwareStats } from '../../store/appSlice';
 import { useHardwareMonitoring } from '../../hooks/useHardwareMonitoring';
 import { usePostLoginBootstrap } from '../../hooks/usePostLoginBootstrap';
+import { useServiceHealthPolling } from '../../hooks/useServiceHealthPolling';
 import { aggregateGpuMetrics, toGpuHardwareSnapshots } from '../../utils/gpuUtils';
-import { isEmployee } from '../../utils/auth';
+import { isAdmin, isEmployee } from '../../utils/auth';
 import { isFillAppPath } from '../../utils/viewModeRoutes';
 import { cn } from '../../lib/utils';
 import CelestiaBackground from './CelestiaBackground';
@@ -28,7 +29,9 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
+  const adminMaintenance = useSelector((state: RootState) => state.app.health.adminMaintenance);
   usePostLoginBootstrap();
+  const recheckHealth = useServiceHealthPolling();
 
   const { data: hardwareData } = useHardwareMonitoring({
     autoPoll: true,
@@ -58,6 +61,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        onCheckHealth={recheckHealth}
       />
 
       <div
@@ -84,6 +88,21 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
             </span>
           </div>
         </header>
+
+        {adminMaintenance?.enabled && isAdmin(user) && (
+          <div
+            role="status"
+            className="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200"
+          >
+            <span className="font-medium">Включён режим техработ.</span>
+            <span className="min-w-0 flex-1 truncate">
+              Пользователи видят экран техработ{adminMaintenance.message ? `: «${adminMaintenance.message}»` : ''}. Администраторы работают как обычно.
+            </span>
+            <Link to="/admin/maintenance" className="underline underline-offset-2 hover:no-underline">
+              Настройки
+            </Link>
+          </div>
+        )}
 
         <main
           className={cn(

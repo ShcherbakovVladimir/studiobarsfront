@@ -7,6 +7,7 @@ import { setUnauthorizedHandler, resetUnauthorizedHandler, setMaintenanceHandler
 import { showForbiddenToast } from '../services/toastService';
 import { homePath, isAdmin, isEmployee, isEmployeeAppPath, setActiveUserRole } from '../utils/auth';
 import ResendVerificationBlock from './ResendVerificationBlock';
+import MaintenanceScreen from './MaintenanceScreen';
 import AuthThemeToggle from './auth/AuthThemeToggle';
 import CelestiaBackground from './layout/CelestiaBackground';
 import { StudioLogo } from './brand/StudioLogo';
@@ -41,7 +42,7 @@ const AuthGuard: React.FC = () => {
       }
     });
     setMaintenanceHandler((data) => {
-      dispatch(setMaintenance({ enabled: true, message: typeof data === 'object' && data && 'message' in data ? String((data as { message?: string }).message) : undefined }));
+      dispatch(setMaintenance({ enabled: true, message: maintenanceMessage(data) }));
     });
     setForbiddenHandler((message, code) => {
       if (code === 'ROLE_FORBIDDEN') {
@@ -71,28 +72,7 @@ const AuthGuard: React.FC = () => {
   }
 
   if (maintenance?.enabled && !isAdmin(user)) {
-    return (
-      <div className={cn(celestia.page, authPageClass)}>
-        <CelestiaBackground />
-        <div className={authCardClass}>
-          <header className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
-            <div className="flex items-center gap-2 min-w-0 px-1">
-              <StudioLogo className="h-7 w-7" />
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold leading-tight">{APP_NAME}</span>
-                <span className={cn(authMutedClass, 'block')}>Техработы</span>
-              </span>
-            </div>
-            <AuthThemeToggle floating={false} />
-          </header>
-          <div className="p-4 sm:p-5 text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              {maintenance.message || 'Сервис временно недоступен.'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return <MaintenanceScreen message={maintenance.message} />;
   }
 
   if (!isAuthenticated) {
@@ -140,5 +120,12 @@ const AuthGuard: React.FC = () => {
 
   return <Outlet />;
 };
+
+function maintenanceMessage(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const row = data as { message?: unknown; error?: unknown };
+  const text = typeof row.message === 'string' ? row.message : typeof row.error === 'string' ? row.error : '';
+  return text && text !== 'MAINTENANCE' ? text : undefined;
+}
 
 export default AuthGuard;

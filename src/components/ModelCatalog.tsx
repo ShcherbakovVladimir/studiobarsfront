@@ -5,7 +5,8 @@ import ModelCard from './ModelCard';
 import type { RootState } from '../store/store';
 import type { XLAMModel } from '../types';
 import { setServerModels, setLoading, setError, setActiveModel, setSelectedModelId } from '../store/modelsSlice';
-import { setServerStatus } from '../store/appSlice';
+import { setModelOperation, setServerStatus } from '../store/appSlice';
+import { showSuccessToast } from '../services/toastService';
 import { isServerOnline } from '../utils/serverStatus';
 import { isAdmin } from '../utils/auth';
 import { ModelLaunchDialog } from './ModelLaunchDialog';
@@ -315,7 +316,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
     launchOptions?: { launch?: LlamaLaunch; launchProfile?: string }
   ) => {
     // Если модель уже активна, просто выбираем её
-    if (activeModelId === modelId) {
+    if (activeModelId === modelId && !launchOptions?.launch && !launchOptions?.launchProfile) {
       console.log(`✅ Модель ${modelId} уже активна, просто выбираем`);
       if (onSelectModel) {
         onSelectModel(modelId);
@@ -348,6 +349,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
         setStartingError(error instanceof Error ? error.message : 'Неизвестная ошибка');
         // Скрываем ошибку через 5 секунд
         setTimeout(() => setStartingError(null), 5000);
+        if (launchOptions) throw error;
       } finally {
         setStartingModelId(null);
       }
@@ -390,6 +392,36 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
       setStartingModelId(null);
     }
   }, [activeModelId, onStartModel, onSelectModel, dispatch, loadModels]);
+
+  const handleSwapModel = useCallback(async (modelId: string) => {
+    setStartingModelId(modelId);
+    setStartingError(null);
+    dispatch(setModelOperation('swap'));
+    try {
+      const result = await agentService.switchModel(modelId, { preserveSessions: true, validateCompatibility: true });
+      if (!result.success) throw new Error(result.message || 'Swap не удался');
+      const sessions = result.sessions;
+      showSuccessToast(
+        sessions
+          ? `Модель сменена. Сессий восстановлено: ${sessions.restored ?? 0}, сброшено: ${sessions.dropped ?? 0}`
+          : 'Модель сменена'
+      );
+      dispatch(setActiveModel(modelId));
+      dispatch(setSelectedModelId(modelId));
+      dispatch(setServerStatus(await agentService.getServerStatus()));
+      await loadModels(true);
+      onSelectModel?.(modelId);
+    } catch (error) {
+      setStartingError(error instanceof Error ? error.message : 'Swap не удался');
+      setTimeout(() => setStartingError(null), 5000);
+      dispatch(setServerStatus(await agentService.getServerStatus()));
+      await loadModels(true);
+      throw error;
+    } finally {
+      dispatch(setModelOperation(null));
+      setStartingModelId(null);
+    }
+  }, [dispatch, loadModels, onSelectModel]);
 
   // Функция для выбора модели (без запуска)
   const handleSelectModelOnly = useCallback((modelId: string) => {
@@ -573,13 +605,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
                 key={model.id}
                 model={model}
                 isStarting={startingModelId === model.id}
-                onStart={() => {
-                  if (admin) {
-                    setLaunchTarget({ id: model.id, name: model.name });
-                    return;
-                  }
-                  void handleStartModel(model.id);
-                }}
+                onStart={admin ? () => setLaunchTarget({ id: model.id, name: model.name }) : undefined}
                 onSelect={() => handleSelectModelOnly(model.id)}
               />
             ))}
@@ -598,6 +624,11 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
         onStart={async (options) => {
           if (!launchTarget) return;
           await handleStartModel(launchTarget.id, options);
+        }}
+        activeModelId={activeModelId}
+        onSwap={async () => {
+          if (!launchTarget) return;
+          await handleSwapModel(launchTarget.id);
         }}
       />
     </CatalogShell>

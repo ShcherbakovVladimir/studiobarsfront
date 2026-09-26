@@ -2,7 +2,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { ViewMode, ServerStatus } from '../types';
-import type { AppState, HardwareStats } from '../types';
+import type { AppState, HardwareStats, ServiceHealth } from '../types';
 import { resolveInitialTheme, saveTheme } from '../lib/theme';
 
 const initialState: AppState = {
@@ -24,6 +24,13 @@ const initialState: AppState = {
     modelLoaded: false,
     timestamp: '',
     sessions: 0
+  },
+  health: {
+    api: 'checking',
+    model: 'unknown',
+    activeModel: null,
+    llamaServerHealthy: false,
+    modelOperation: null,
   }
 };
 
@@ -51,9 +58,24 @@ const appSlice = createSlice({
     },
     setServerStatus: (state, action: PayloadAction<ServerStatus>) => {
       state.serverStatus = action.payload;
-    }
+    },
+    updateHealth: (state, action: PayloadAction<Partial<ServiceHealth>>) => {
+      state.health = { ...state.health, ...action.payload };
+    },
+    setModelOperation: (state, action: PayloadAction<ServiceHealth['modelOperation']>) => {
+      state.health.modelOperation = action.payload;
+      if (action.payload === 'load' || action.payload === 'swap') state.health.model = 'loading';
+    },
   }
 });
 
-export const { setViewMode, toggleTheme, setTheme, updateHardwareStats, setServerStatus } = appSlice.actions;
+export const {
+  setViewMode,
+  toggleTheme,
+  setTheme,
+  updateHardwareStats,
+  setServerStatus,
+  updateHealth,
+  setModelOperation,
+} = appSlice.actions;
 export default appSlice.reducer;

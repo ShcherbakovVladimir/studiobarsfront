@@ -15,12 +15,20 @@ const initialState: AuthState = {
 
 export const bootstrapAuth = createAsyncThunk(
   'auth/bootstrap',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const me = await authService.getMe();
       return me;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
+        return null;
+      }
+      if (error instanceof ApiError && error.code === 'MAINTENANCE') {
+        const details = error.data as { message?: unknown } | undefined;
+        dispatch(authSlice.actions.setMaintenance({
+          enabled: true,
+          message: typeof details?.message === 'string' && details.message !== 'MAINTENANCE' ? details.message : undefined,
+        }));
         return null;
       }
       return rejectWithValue(error instanceof Error ? error.message : 'Auth bootstrap failed');

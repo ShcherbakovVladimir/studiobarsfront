@@ -35,6 +35,7 @@ import { registerActiveStream } from '../utils/activeStreams';
 import { stripThinkingTags } from '../utils/thinkingContent';
 import { filesToVisionPayloads } from '../utils/chatVision';
 import type { UnknownRecord, XLAMModel } from '../types';
+import { ModelLoadError, type LoadLaunchOptions } from './llamaLaunchService';
 
 // ========== КОНСТАНТЫ ==========
 const DEFAULT_TEMPERATURE = 0.7;
@@ -764,23 +765,27 @@ export async function startModel(
   modelId: string, 
   contextSize?: number, 
   threads?: number, 
-  gpuLayers?: number
+  gpuLayers?: number,
+  launchOptions?: LoadLaunchOptions
 ): Promise<ModelControlResponseEx> {
   try {
-    const response = await llamaApi.loadModel(modelId, contextSize, threads, gpuLayers);
+    const response = await llamaApi.loadModel(modelId, contextSize, threads, gpuLayers, launchOptions);
     return {
       success: response.success,
       message: response.message,
       activeModel: response.activeModel,
       previousModel: response.previousModel || null,
-      model: response.model
+      model: response.model,
+      alreadyLoaded: response.alreadyLoaded,
+      launchApplied: response.launchApplied,
     };
   } catch (error: unknown) {
     return {
       success: false,
       message: getErrorMessage(error) || 'Ошибка загрузки модели',
       activeModel: null,
-      previousModel: null
+      previousModel: null,
+      httpStatus: error instanceof ModelLoadError ? error.status : undefined,
     };
   }
 }
@@ -805,27 +810,28 @@ export async function stopModel(): Promise<ModelControlResponseEx> {
   }
 }
 
+/** POST /api/model/swap — смена с сохранением in-memory сессий и откатом при ошибке. */
 export async function switchModel(
-  modelId: string, 
-  contextSize?: number, 
-  threads?: number, 
-  gpuLayers?: number
+  modelId: string,
+  options?: { preserveSessions?: boolean; validateCompatibility?: boolean }
 ): Promise<ModelControlResponseEx> {
   try {
-    const response = await llamaApi.swapModel(modelId, { contextSize, threads, gpuLayers });
+    const response = await llamaApi.swapModel(modelId, options);
     return {
       success: response.success,
       message: response.message,
       activeModel: response.activeModel,
       previousModel: response.previousModel || null,
-      model: response.model
+      model: response.model,
+      sessions: response.sessions,
     };
   } catch (error: unknown) {
     return {
       success: false,
       message: getErrorMessage(error) || 'Ошибка переключения модели',
       activeModel: null,
-      previousModel: null
+      previousModel: null,
+      httpStatus: error instanceof ModelLoadError ? error.status : undefined,
     };
   }
 }
