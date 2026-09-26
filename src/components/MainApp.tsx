@@ -142,7 +142,10 @@ const MainApp: React.FC = () => {
   }, []);
 
   // Функция для запуска модели
-  const handleStartModel = useCallback(async (modelId: string) => {
+  const handleStartModel = useCallback(async (
+    modelId: string,
+    launch?: { launch?: import('../services/llamaLaunchService').LlamaLaunch; launchProfile?: string }
+  ) => {
     console.log(`🚀 Запуск модели ${modelId}...`);
     setModelStartingError(null);
     
@@ -242,7 +245,9 @@ const MainApp: React.FC = () => {
         body: JSON.stringify({ 
           modelId, 
           force: true,
-          preserveSessions: false
+          preserveSessions: false,
+          ...(launch?.launchProfile ? { launchProfile: launch.launchProfile } : {}),
+          ...(launch?.launch && Object.keys(launch.launch).length ? { launch: launch.launch } : {}),
         })
       });
 

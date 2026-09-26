@@ -7,13 +7,19 @@ import type { XLAMModel } from '../types';
 import { setServerModels, setLoading, setError, setActiveModel, setSelectedModelId } from '../store/modelsSlice';
 import { setServerStatus } from '../store/appSlice';
 import { isServerOnline } from '../utils/serverStatus';
+import { isAdmin } from '../utils/auth';
+import { ModelLaunchDialog } from './ModelLaunchDialog';
+import type { LlamaLaunch } from '../services/llamaLaunchService';
 import agentService from '../services/agentService';
 import { cn } from '../lib/utils';
 import { celestia } from '../lib/celestia';
 
 interface ModelCatalogProps {
   onSelectModel?: (modelId: string) => void;
-  onStartModel?: (modelId: string) => Promise<void>;
+  onStartModel?: (
+    modelId: string,
+    launch?: { launch?: LlamaLaunch; launchProfile?: string }
+  ) => Promise<void>;
 }
 
 // Интерфейс для модели с сервера
@@ -92,6 +98,8 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [startingModelId, setStartingModelId] = useState<string | null>(null);
   const [startingError, setStartingError] = useState<string | null>(null);
+  const [launchTarget, setLaunchTarget] = useState<{ id: string; name: string } | null>(null);
+  const admin = useSelector((state: RootState) => isAdmin(state.auth.user));
 
   // Функция для определения семейства модели по имени
   const detectModelFamily = useCallback((model: ServerModel): XLAMModel['modelFamily'] => {
@@ -302,7 +310,10 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
   }, [serverStatus, dispatch, formatServerModel, loadFromCache, cacheModels]);
 
   // Функция для запуска модели
-  const handleStartModel = useCallback(async (modelId: string) => {
+  const handleStartModel = useCallback(async (
+    modelId: string,
+    launchOptions?: { launch?: LlamaLaunch; launchProfile?: string }
+  ) => {
     // Если модель уже активна, просто выбираем её
     if (activeModelId === modelId) {
       console.log(`✅ Модель ${modelId} уже активна, просто выбираем`);
@@ -317,7 +328,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
       setStartingModelId(modelId);
       setStartingError(null);
       try {
-        await onStartModel(modelId);
+        await onStartModel(modelId, launchOptions);
         // После успешного запуска обновляем активную модель в Redux
         dispatch(setActiveModel(modelId));
         dispatch(setSelectedModelId(modelId));
@@ -562,7 +573,13 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
                 key={model.id}
                 model={model}
                 isStarting={startingModelId === model.id}
-                onStart={() => handleStartModel(model.id)}
+                onStart={() => {
+                  if (admin) {
+                    setLaunchTarget({ id: model.id, name: model.name });
+                    return;
+                  }
+                  void handleStartModel(model.id);
+                }}
                 onSelect={() => handleSelectModelOnly(model.id)}
               />
             ))}
@@ -573,6 +590,16 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
           </div>
         )}
       </div>
+      <ModelLaunchDialog
+        open={Boolean(launchTarget)}
+        modelId={launchTarget?.id ?? ''}
+        modelName={launchTarget?.name}
+        onClose={() => setLaunchTarget(null)}
+        onStart={async (options) => {
+          if (!launchTarget) return;
+          await handleStartModel(launchTarget.id, options);
+        }}
+      />
     </CatalogShell>
   );
 };
