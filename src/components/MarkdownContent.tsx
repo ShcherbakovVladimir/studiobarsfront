@@ -2,6 +2,9 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
+import { PlainCodeBlock } from './markdown/PlainCodeBlock';
+import { fenceTextTrees, plainCodeFromPre } from './markdown/markdownText';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -57,7 +60,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   return (
     <div className={`break-words leading-relaxed ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}
         components={{
           code({ className: codeClassName, children, ...props }) {
@@ -121,7 +124,9 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
               </code>
             );
           },
-          pre({ children }) {
+          pre({ node, children }) {
+            const plain = plainCodeFromPre(node);
+            if (plain !== null) return <PlainCodeBlock code={plain} isDarkMode={isDarkMode} />;
             return <div className="overflow-x-auto my-4">{children}</div>;
           },
           a({ href, children }) {
@@ -309,7 +314,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
           },
         }}
       >
-        {content}
+        {fenceTextTrees(content)}
       </ReactMarkdown>
       {isStreaming && (
         <span className="inline-block w-2 h-4 ml-0.5 bg-blue-500 animate-pulse align-middle" />

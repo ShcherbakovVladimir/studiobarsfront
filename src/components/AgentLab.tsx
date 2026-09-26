@@ -4,6 +4,9 @@ import { useSelector, useDispatch } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
+import { PlainCodeBlock } from './markdown/PlainCodeBlock';
+import { fenceTextTrees, plainCodeFromPre } from './markdown/markdownText';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -337,7 +340,7 @@ const FormattedMessageBase: React.FC<{
         </details>
         {answerContent && (
           <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkMath]}
+            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
             rehypePlugins={[rehypeKatex, rehypeRaw]}
             components={{
               code({ className, children, ...props }) {
@@ -393,7 +396,9 @@ const FormattedMessageBase: React.FC<{
                 );
               },
               
-              pre({ children }) {
+              pre({ node, children }) {
+                const plain = plainCodeFromPre(node);
+                if (plain !== null) return <PlainCodeBlock code={plain} isDarkMode={isDarkMode} />;
                 return <div className="overflow-x-auto my-4">{children}</div>;
               },
               
@@ -566,7 +571,7 @@ const FormattedMessageBase: React.FC<{
               },
             }}
           >
-            {answerContent}
+            {fenceTextTrees(answerContent)}
           </ReactMarkdown>
         )}
         {isStreaming && <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>}
@@ -577,7 +582,7 @@ const FormattedMessageBase: React.FC<{
   return (
     <>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}
         components={{
           code({ className, children, ...props }) {
@@ -633,7 +638,9 @@ const FormattedMessageBase: React.FC<{
             );
           },
           
-          pre({ children }) {
+          pre({ node, children }) {
+            const plain = plainCodeFromPre(node);
+            if (plain !== null) return <PlainCodeBlock code={plain} isDarkMode={isDarkMode} />;
             return <div className="overflow-x-auto my-4">{children}</div>;
           },
           
@@ -806,7 +813,7 @@ const FormattedMessageBase: React.FC<{
           },
         }}
       >
-        {content}
+        {fenceTextTrees(content)}
       </ReactMarkdown>
       {isStreaming && <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>}
     </>

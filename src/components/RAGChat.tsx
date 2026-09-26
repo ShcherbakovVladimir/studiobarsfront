@@ -3,6 +3,9 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
+import { PlainCodeBlock } from './markdown/PlainCodeBlock';
+import { fenceTextTrees, plainCodeFromPre } from './markdown/markdownText';
 import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -402,7 +405,7 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
         </div>
       )}
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex]}
         components={{
           code({ className, children, ...props }) {
@@ -465,7 +468,9 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
             );
           },
           
-          pre({ children }) {
+          pre({ node, children }) {
+            const plain = plainCodeFromPre(node);
+            if (plain !== null) return <PlainCodeBlock code={plain} isDarkMode={isDarkMode} />;
             return <div className="overflow-x-auto max-w-full">{children}</div>;
           },
           
@@ -590,7 +595,7 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
           }
         }}
       >
-        {content}
+        {fenceTextTrees(content)}
       </ReactMarkdown>
     </>
   );
