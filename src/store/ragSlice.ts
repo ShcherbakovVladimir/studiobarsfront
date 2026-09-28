@@ -19,15 +19,10 @@ import ragService, {
   pickActiveRagSessionId,
 } from '../services/ragService';
 import { getRagDefaults } from '../config/runtimeConfig';
-import { loadRagQueryPrefs, sanitizeLimit, sanitizeRelevance } from '../utils/ragQueryPrefs';
+import { resolveRagQuerySettings } from '../utils/ragQueryPrefs';
 
 function defaultQuerySettings(): RAGState['querySettings'] {
-  const defaults = getRagDefaults();
-  const saved = typeof window !== 'undefined' ? loadRagQueryPrefs() : null;
-  return {
-    limit: sanitizeLimit(saved?.limit ?? defaults?.limit ?? 10),
-    relevanceScore: sanitizeRelevance(saved?.relevanceScore ?? defaults?.relevanceScore ?? 0.5),
-  };
+  return resolveRagQuerySettings(getRagDefaults());
 }
 
 function mergeSessionList(

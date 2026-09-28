@@ -52,11 +52,14 @@ import {
   isQwenThinkingModel,
 } from '../utils/modelDisplay';
 import {
+  FALLBACK_RELEVANCE_SCORE,
   loadRagQueryPrefs,
   mergeQwenModes,
   normalizeQwenMode,
+  resolveRagQuerySettings,
   saveRagQueryPrefs,
 } from '../utils/ragQueryPrefs';
+import { getRagDefaults } from '../config/runtimeConfig';
 import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
 import type { RagDocumentPreview, RAGSource, RAGGeneratedFile } from '../types';
 import { RAGMessage } from '../types';
@@ -895,7 +898,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     }
 
     if (uploadType === 'vector' && !isVectorDocumentFile(selectedFile)) {
-      setUploadError('Для векторного поиска используйте PDF, DOCX, TXT, MD и другие документы. Excel/CSV — через SQL-загрузку.');
+      setUploadError('Для векторного поиска используйте PDF, DOC, DOCX, TXT, MD и другие документы. Excel/CSV — через SQL-загрузку.');
       return;
     }
 
@@ -1376,12 +1379,17 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   }, [dispatch, isSessionsLoaded, userId]);
 
   useEffect(() => {
-    saveRagQueryPrefs({
-      limit: querySettings.limit,
-      relevanceScore: querySettings.relevanceScore,
-      qwenMode: normalizeQwenMode(qwenMode),
-    });
-  }, [querySettings.limit, querySettings.relevanceScore, qwenMode]);
+    dispatch(setQuerySettings(resolveRagQuerySettings(getRagDefaults())));
+  }, [dispatch]);
+
+  useEffect(() => {
+    saveRagQueryPrefs({ qwenMode: normalizeQwenMode(qwenMode) });
+  }, [qwenMode]);
+
+  const resetQuerySettings = useCallback(() => {
+    saveRagQueryPrefs({ limitCustom: false, relevanceCustom: false });
+    dispatch(setQuerySettings(resolveRagQuerySettings(getRagDefaults())));
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isSessionsLoaded || !sessionId) return;
@@ -1827,7 +1835,11 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     min={1}
                     max={100}
                     value={querySettings.limit}
-                    onChange={(e) => dispatch(setQuerySettings({ limit: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const limit = Number(e.target.value);
+                      saveRagQueryPrefs({ limit, limitCustom: true });
+                      dispatch(setQuerySettings({ limit }));
+                    }}
                     className="w-full"
                   />
                 </div>
@@ -1842,15 +1854,26 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     max={0.95}
                     step={0.05}
                     value={querySettings.relevanceScore}
-                    onChange={(e) =>
-                      dispatch(setQuerySettings({ relevanceScore: Number(e.target.value) }))
-                    }
+                    onChange={(e) => {
+                      const relevanceScore = Number(e.target.value);
+                      saveRagQueryPrefs({ relevanceScore, relevanceCustom: true });
+                      dispatch(setQuerySettings({ relevanceScore }));
+                    }}
                     className="w-full"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Лимит и порог уходят в каждый запрос. Значения запоминаются в браузере.
+                  Лимит и порог уходят в каждый запрос. Порог выше 0.5 заметно сокращает выдачу:
+                  для bge-m3 рекомендуется около 0.45. Изменённые значения запоминаются в браузере.
                 </p>
+                <button
+                  type="button"
+                  onClick={resetQuerySettings}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Сбросить к рекомендуемым (лимит {getRagDefaults()?.limit ?? 10}, порог{' '}
+                  {(getRagDefaults()?.relevanceScore ?? FALLBACK_RELEVANCE_SCORE).toFixed(2)})
+                </button>
               </div>
             </div>
           </div>
@@ -2229,7 +2252,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {uploadType === 'vector'
-                    ? 'PDF (OCR), DOCX, PPTX, TXT, MD, HTML, XML'
+                    ? 'PDF (OCR), DOC, DOCX, PPTX, TXT, MD, HTML, XML. Сканы внутри Word не распознаются — их загружайте в PDF'
                     : 'CSV, JSON, Excel (SQL-таблицы)'}
                 </p>
               </label>

@@ -2,10 +2,15 @@ const STORAGE_KEY = 'xlam-rag-query-prefs';
 
 export const DEFAULT_QWEN_MODES = ['auto', 'thinking', 'instruct', 'coding'] as const;
 
+export const FALLBACK_RELEVANCE_SCORE = 0.45;
+
 export interface RagQueryPrefs {
   limit: number;
   relevanceScore: number;
   qwenMode: string;
+  /** Пользователь сам двигал ползунок; иначе берётся `ragDefaults` из `/api/config`. */
+  limitCustom?: boolean;
+  relevanceCustom?: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -31,6 +36,19 @@ export function mergeQwenModes(...lists: Array<string[] | undefined | null>): st
   return result;
 }
 
+/** Настройки поиска: сохранённые пользователем значения, остальное — из `ragDefaults` сервера. */
+export function resolveRagQuerySettings(
+  defaults: { limit?: number; relevanceScore?: number } | null | undefined,
+): { limit: number; relevanceScore: number } {
+  const saved = typeof window !== 'undefined' ? loadRagQueryPrefs() : null;
+  return {
+    limit: sanitizeLimit(saved?.limitCustom ? saved.limit : defaults?.limit ?? 10),
+    relevanceScore: sanitizeRelevance(
+      saved?.relevanceCustom ? saved.relevanceScore : defaults?.relevanceScore ?? FALLBACK_RELEVANCE_SCORE,
+    ),
+  };
+}
+
 export function loadRagQueryPrefs(): Partial<RagQueryPrefs> | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -42,9 +60,9 @@ export function loadRagQueryPrefs(): Partial<RagQueryPrefs> | null {
   }
 }
 
-export function saveRagQueryPrefs(prefs: RagQueryPrefs): void {
+export function saveRagQueryPrefs(prefs: Partial<RagQueryPrefs>): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loadRagQueryPrefs(), ...prefs }));
   } catch {
     /* private mode */
   }
@@ -56,7 +74,7 @@ export function sanitizeLimit(value: unknown, fallback = 10): number {
   return Math.round(clamp(n, 1, 100));
 }
 
-export function sanitizeRelevance(value: unknown, fallback = 0.5): number {
+export function sanitizeRelevance(value: unknown, fallback = FALLBACK_RELEVANCE_SCORE): number {
   const n = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.round(clamp(n, 0.1, 0.95) * 100) / 100;

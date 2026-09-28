@@ -35,7 +35,7 @@ export function applyUserSettings(settings: UserSettings | null | undefined): vo
         temperature: 0.7,
         topP: 0.9,
         limit: 10,
-        relevanceScore: 0.5,
+        relevanceScore: 0.45,
         systemPrompt: '',
         enableThinking: true,
         preserveThinking: true,
