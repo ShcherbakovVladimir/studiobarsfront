@@ -42,7 +42,7 @@ function createPanel(activeTab: string, toggles: Record<string, boolean> = {}): 
 export const defaultWorkspaceUiState: WorkspaceUiState = {
   panels: {
     [PANEL_IDS.AGENT_LAB]: createPanel('chat', {
-      showSettings: false,
+      showRuntime: true,
       showMobileMenu: false,
       showChatList: true,
       useTools: false,

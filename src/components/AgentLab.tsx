@@ -42,6 +42,7 @@ import { splitThinkingContent, stripThinkingTags } from '../utils/thinkingConten
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';
 import { filterToolsForRole, isAdmin, isEmployee } from '../utils/auth';
+import { LiveRuntimePanel } from './LiveRuntimePanel';
 import { ModelLaunchDialog } from './ModelLaunchDialog';
 import type { LoadLaunchOptions } from '../services/llamaLaunchService';
 import {
@@ -358,6 +359,12 @@ const PanelLeftIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4v16" />
   </Icon>
 );
+const PanelRightIcon = () => (
+  <Icon className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 4v16" />
+  </Icon>
+);
 const MoreIcon = () => (
   <Icon className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6h.01M12 12h.01M12 18h.01" />
@@ -437,11 +444,13 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const preserveThinking = getToggle('preserveThinking', false);
   const showSettings = getToggle('showSettings', false);
   const showMobileMenu = getToggle('showMobileMenu', false);
+  const showRuntime = getToggle('showRuntime', true);
   const useTools = getToggle('useTools', false);
   const setEnableThinking = (value: boolean) => setToggle('enableThinking', value);
   const setPreserveThinking = (value: boolean) => setToggle('preserveThinking', value);
   const setShowSettings = (value: boolean) => setToggle('showSettings', value);
   const setShowMobileMenu = (value: boolean) => setToggle('showMobileMenu', value);
+  const setShowRuntime = (value: boolean) => setToggle('showRuntime', value);
   const setUseTools = (value: boolean) => setToggle('useTools', value);
 
   useEffect(() => {
@@ -572,6 +581,21 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const closeChatListIfMobile = () => {
     if (isWorkspaceOverlay()) setShowChatList(false);
   };
+  const toggleChatList = () => {
+    const next = !showChatList;
+    setShowChatList(next);
+    if (next && isWorkspaceOverlay()) setShowRuntime(false);
+  };
+  const toggleRuntime = () => {
+    const next = !showRuntime;
+    setShowRuntime(next);
+    if (next && isWorkspaceOverlay()) setShowChatList(false);
+  };
+  useEffect(() => {
+    if (!isStreaming) return;
+    setToggle('showRuntime', true);
+    if (isWorkspaceOverlay()) setToggle('showChatList', false);
+  }, [isStreaming, setToggle]);
   
   // Флаги для контроля инициализации
   const [isInitialized, setIsInitialized] = useState(false);
@@ -932,9 +956,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
 
   useEffect(() => {
     const phone = window.matchMedia(WORKSPACE_PHONE_MQ);
-    if (phone.matches) setToggle('showChatList', false);
+    if (phone.matches) {
+      setToggle('showChatList', false);
+      setToggle('showRuntime', false);
+    }
     const onPhone = (event: MediaQueryListEvent) => {
-      if (event.matches) setToggle('showChatList', false);
+      if (event.matches) {
+        setToggle('showChatList', false);
+        setToggle('showRuntime', false);
+      }
     };
     phone.addEventListener('change', onPhone);
     return () => phone.removeEventListener('change', onPhone);
@@ -1639,7 +1669,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     {activeTool === 'chat' && (
                       <IconButton
                         label={showChatList ? 'Скрыть список чатов' : 'Показать список чатов'}
-                        onClick={() => setShowChatList(!showChatList)}
+                        onClick={toggleChatList}
                         className={cn(
                           celestia.headerIcon,
                           'shrink-0',
@@ -1671,6 +1701,22 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                 </div>
                 
                 <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
+                  {activeTool === 'chat' && (
+                    <IconButton
+                      label={showRuntime ? 'Скрыть мониторинг' : 'Показать мониторинг'}
+                      onClick={toggleRuntime}
+                      className={cn(
+                        celestia.headerIcon,
+                        showRuntime && 'bg-accent text-foreground',
+                        isStreaming && 'text-amber-600 dark:text-amber-400'
+                      )}
+                      aria-pressed={showRuntime}
+                    >
+                      <span className={cn(isStreaming && 'animate-pulse')}>
+                        <PanelRightIcon />
+                      </span>
+                    </IconButton>
+                  )}
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
                     <span
                       className={cn(
@@ -1840,6 +1886,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     matchTriggerWidth={false}
                     minWidth={220}
                   >
+                    {activeTool === 'chat' && (
+                    <button
+                      type="button"
+                      className={celestia.headerMenuItem}
+                      onClick={() => { toggleRuntime(); setHeaderMenuOpen(false); }}
+                    >
+                      {showRuntime ? 'Скрыть мониторинг' : 'Показать мониторинг'}
+                    </button>
+                    )}
                     <button
                       type="button"
                       className={celestia.headerMenuItem}
@@ -2177,6 +2232,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </PanelScrollArea>
                 )}
             </div>
+
+        {activeTool === 'chat' && (
+            <LiveRuntimePanel
+              open={showRuntime}
+              onClose={() => setShowRuntime(false)}
+              streaming={isStreaming}
+            />
+        )}
         </div>
         {launchDialogModelId && (
           <ModelLaunchDialog
