@@ -25,34 +25,31 @@ export default defineConfig(({ mode }) => ({
     reportCompressedSize: false,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('react-dom') || id.includes('/react/')) return 'react'
-          if (id.includes('react-router')) return 'router'
-          if (id.includes('@reduxjs') || id.includes('react-redux')) return 'redux'
-          if (id.includes('recharts')) return 'charts'
-          if (id.includes('react-syntax-highlighter') || id.includes('prismjs') || id.includes('highlight.js')) {
-            return 'syntax'
-          }
-          if (
-            id.includes('katex') ||
-            id.includes('rehype') ||
-            id.includes('remark') ||
-            id.includes('react-markdown') ||
-            id.includes('/marked/')
-          ) {
-            return 'markdown'
-          }
-          if (id.includes('lucide-react')) return 'icons'
-          if (
-            id.includes('xlsx') ||
-            id.includes('officeparser') ||
-            id.includes('mammoth') ||
-            id.includes('pdf-parse') ||
-            id.includes('pdfjs')
-          ) {
-            return 'office'
-          }
+        advancedChunks: {
+          groups: [
+            { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 50 },
+            { name: 'router', test: /[\\/]node_modules[\\/](react-router|react-router-dom|@remix-run[\\/]router)[\\/]/, priority: 40 },
+            {
+              name: 'redux',
+              test: /[\\/]node_modules[\\/](@reduxjs[\\/]toolkit|react-redux|redux|redux-thunk|reselect|immer|use-sync-external-store)[\\/]/,
+              priority: 30,
+            },
+            { name: 'icons', test: /[\\/]node_modules[\\/]lucide-react[\\/]/, priority: 20 },
+            // Общие с recharts/react-markdown мелкие утилиты: без своей группы они попадают
+            // в тяжёлый чанк, и стартовая страница тянет его целиком ради `cn()`.
+            {
+              name: 'ui-utils',
+              test: /[\\/]node_modules[\\/](clsx|tailwind-merge|class-variance-authority)[\\/]/,
+              priority: 20,
+            },
+            { name: 'charts', test: /[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor)[\\/]/, priority: 10 },
+            {
+              name: 'syntax',
+              test: /[\\/]node_modules[\\/](react-syntax-highlighter|prismjs|refractor|highlight\.js)[\\/]/,
+              priority: 10,
+            },
+            { name: 'office', test: /[\\/]node_modules[\\/](xlsx|officeparser|mammoth|pdf-parse|pdfjs-dist)[\\/]/, priority: 10 },
+          ],
         },
       },
     },
