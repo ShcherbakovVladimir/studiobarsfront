@@ -19,18 +19,26 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [completedSeq, setCompletedSeq] = useState(0);
+  const [startedSeq, setStartedSeq] = useState(0);
   const [isPolling, setIsPolling] = useState(autoPoll);
 
   const isMounted = useRef(true);
   const isFetchingRef = useRef(false);
+  const queuedRef = useRef(false);
+  const seqRef = useRef(0);
   const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (!enabled || isFetchingRef.current) {
+    if (!enabled) return;
+    if (isFetchingRef.current) {
+      queuedRef.current = true;
       return;
     }
 
+    const seq = ++seqRef.current;
     isFetchingRef.current = true;
+    setStartedSeq(seq);
     setIsLoading(true);
     setError(null);
 
@@ -40,6 +48,7 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
       if (!isMounted.current) return;
       
       setData(result);
+      setCompletedSeq(seq);
       setLastUpdated(new Date().toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit',
@@ -68,6 +77,10 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
         setIsLoading(false);
       }
       isFetchingRef.current = false;
+      if (queuedRef.current && isMounted.current) {
+        queuedRef.current = false;
+        void fetchData();
+      }
     }
   }, [enabled]);
 
@@ -113,6 +126,8 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
     isLoading,
     error,
     lastUpdated,
+    startedSeq,
+    completedSeq,
     isPolling,
     refresh: fetchData,
     togglePolling,

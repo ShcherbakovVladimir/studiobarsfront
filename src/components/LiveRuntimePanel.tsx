@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Component, useEffect, type ReactNode } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, Cpu, Gauge, Thermometer, X, Zap } from 'lucide-react';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
@@ -13,6 +13,7 @@ import {
   type GpuClock,
 } from '../utils/gpuDetails';
 import { inferenceSourceLabel, readInference } from '../utils/inferenceSnapshot';
+import type { LiveTokenRate } from '../utils/liveTokenRate';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 
@@ -20,6 +21,8 @@ interface LiveRuntimePanelProps {
   open: boolean;
   onClose: () => void;
   streaming?: boolean;
+  /** Скорость по приходящим токенам, пока идёт стрим. */
+  streamRate?: LiveTokenRate | null;
 }
 
 function asNum(value: unknown): number | null {
@@ -89,20 +92,59 @@ export function LiveRuntimePanel(props: LiveRuntimePanelProps) {
   );
 }
 
-function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimePanelProps) {
+function LiveRuntimePanelView({ open, onClose, streaming = false, streamRate = null }: LiveRuntimePanelProps) {
   const overlay = useWorkspaceOverlay();
   const drawerRef = useDrawerRootRef(open);
-  const { data, error, lastUpdated, isLoading, refresh } = useHardwareMonitoring({
+  const { data, error, lastUpdated, isLoading, refresh, startedSeq, completedSeq } = useHardwareMonitoring({
     enabled: open,
     autoPoll: true,
     pollingInterval: streaming ? 1000 : 4000,
   });
+  const rememberedRate = useRef<LiveTokenRate | null>(null);
+  const wasStreaming = useRef(false);
+  const sawStream = useRef(false);
+  const cutoffSeq = useRef<number | null>(null);
+  const [serverReady, setServerReady] = useState(false);
 
   useEffect(() => {
     if (open && streaming) void refresh();
   }, [open, streaming, refresh]);
 
+  useEffect(() => {
+    if (streaming) {
+      sawStream.current = true;
+      cutoffSeq.current = null;
+      setServerReady(false);
+      return;
+    }
+    if (!sawStream.current) return;
+    if (cutoffSeq.current === null) {
+      cutoffSeq.current = startedSeq;
+      void refresh();
+    }
+    if (completedSeq > cutoffSeq.current) setServerReady(true);
+  }, [streaming, startedSeq, completedSeq, refresh]);
+
+  if (streaming && (!streamRate || streamRate.tokens === 0)) {
+    rememberedRate.current = null;
+    wasStreaming.current = true;
+  } else if (streaming && streamRate && streamRate.tokens > 0) {
+    rememberedRate.current = streamRate;
+    wasStreaming.current = true;
+  } else if (!streaming && wasStreaming.current) {
+    if (streamRate && streamRate.tokens > 0) rememberedRate.current = streamRate;
+    wasStreaming.current = false;
+  }
+
   const inference = readInference(data?.inference);
+  const holding =
+    !streaming &&
+    rememberedRate.current != null &&
+    rememberedRate.current.tokens > 0 &&
+    (!serverReady || inference.genTps === null);
+  const showLive = streaming || holding;
+  const liveRate = streaming ? streamRate : rememberedRate.current;
+  const genTps = showLive ? liveRate?.tps ?? null : inference.genTps;
   const gpus = listGpus(data?.gpu);
   const system = data?.system;
   const server = data?.server;
@@ -191,8 +233,15 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
           </p>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl bg-accent/50 px-2 py-1.5">
-              <div className="text-[10px] text-muted-foreground">Генерация</div>
-              <div className="text-sm font-semibold font-mono">{fmt(inference.genTps)} ток/с</div>
+              <div className="text-[10px] text-muted-foreground">
+                {showLive ? 'Генерация · поток' : 'Генерация'}
+              </div>
+              <div className="text-sm font-semibold font-mono">
+                {showLive && genTps === null ? '…' : `${fmt(genTps)} ток/с`}
+              </div>
+              {showLive && liveRate && liveRate.tokens > 0 && (
+                <div className="text-[10px] font-mono text-muted-foreground">{liveRate.tokens} ток</div>
+              )}
             </div>
             <div className="rounded-xl bg-accent/50 px-2 py-1.5">
               <div className="text-[10px] text-muted-foreground">Промпт</div>
@@ -210,8 +259,14 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
           <Row label="Квант" value={inference.precision ?? '—'} />
           <Row label="Контекст" value={inference.contextSize ?? '—'} />
           <Row label="Токены" value={`${fmt(inference.tokensPrompt, 0)} → ${fmt(inference.tokensGenerated, 0)}`} />
-          <Row label="Источник" value={inferenceSourceLabel(inference.source) || '—'} />
-          {inference.available && inference.genTps === null && inference.promptTps === null && (
+          <Row label="Источник" value={showLive ? 'поток чата' : inferenceSourceLabel(inference.source) || '—'} />
+          {streaming && (
+            <p className="text-[11px] text-muted-foreground">Скорость считается по приходящим токенам.</p>
+          )}
+          {holding && (
+            <p className="text-[11px] text-muted-foreground">Подставляем скорость с сервера…</p>
+          )}
+          {!showLive && inference.available && inference.genTps === null && inference.promptTps === null && (
             <p className="text-[11px] text-muted-foreground">Скорости появятся после первого ответа модели.</p>
           )}
         </section>

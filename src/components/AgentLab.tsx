@@ -26,6 +26,7 @@ import { MenuPopover } from './ui/menu-popover';
 import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDisplay';
 import { contextLimitUsageLabel, isContextLimitError, type ContextLimitNotice } from '../utils/contextLimit';
+import { nextLiveTokenRate, type LiveTokenRate } from '../utils/liveTokenRate';
 
 // Импорт компонентов инструментов
 import AdvancedSettings from './AdvancedSettings';
@@ -564,6 +565,23 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   // Streaming state
   const [isStreaming, setIsStreaming] = useState(false);
+  const liveRateRef = useRef({ tokens: 0, firstAt: 0, tps: null as number | null, paintedAt: 0 });
+  const [liveRate, setLiveRate] = useState<LiveTokenRate | null>(null);
+  const noteStreamChunk = (chunk: string) => {
+    const now = performance.now();
+    const next = nextLiveTokenRate(liveRateRef.current, chunk, now);
+    const paint = now - liveRateRef.current.paintedAt >= 100;
+    liveRateRef.current = { ...next, paintedAt: paint ? now : liveRateRef.current.paintedAt };
+    if (paint) setLiveRate({ tps: next.tps, tokens: next.tokens });
+  };
+  const resetLiveRate = () => {
+    liveRateRef.current = { tokens: 0, firstAt: 0, tps: null, paintedAt: 0 };
+    setLiveRate(null);
+  };
+  const flushLiveRate = () => {
+    const rate = liveRateRef.current;
+    setLiveRate({ tps: rate.tps, tokens: rate.tokens });
+  };
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentChatRef = useRef<ChatData | null>(null);
   const messagesRef = useRef(messages);
@@ -1457,6 +1475,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
 
     const settleAnswer = (fullResponse: string, promptForProcess: string, limit?: ContextLimitNotice | null) => {
       if (isAborted()) return;
+      flushLiveRate();
       const processedContent = postProcessResponse(
         fullResponse,
         currentModel?.modelFamily,
@@ -1478,6 +1497,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
 
     const failAnswer = (error: Error) => {
       if (isAborted()) return;
+      flushLiveRate();
       if (isContextLimitError(error)) {
         dispatch(discardStreamingAssistant(currentModelId));
         lockChatContext(chatId, error.notice);
@@ -1512,6 +1532,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }));
     
     setIsStreaming(true);
+    resetLiveRate();
     dispatch(setLoading(true));
     
     try {
@@ -1558,8 +1579,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           promptText,
           filesToSend,
           options,
-          (_chunk, fullResponse) => {
+          (chunk, fullResponse) => {
             if (isAborted()) return;
+            noteStreamChunk(chunk);
             dispatch(updateLastMessage({
               modelId: currentModelId,
               content: fullResponse,
@@ -1573,8 +1595,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         await agentService.chatStream(
           userMessageContent,
           options,
-          (_chunk, fullResponse) => {
+          (chunk, fullResponse) => {
             if (isAborted()) return;
+            noteStreamChunk(chunk);
             dispatch(updateLastMessage({
               modelId: currentModelId,
               content: fullResponse,
@@ -2180,7 +2203,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 {currentChat?.contextLimit
                                   ? 'Продолжение в новом чате'
                                   : isStreaming
-                                  ? 'Генерация ответа...'
+                                  ? liveRate?.tps != null
+                                    ? `Генерация · ${liveRate.tps.toFixed(1)} ток/с`
+                                    : 'Генерация ответа...'
                                   : !isServerReady
                                     ? 'Модель не загружена'
                                     : visionEnabled
@@ -2263,6 +2288,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               open={showRuntime}
               onClose={() => setShowRuntime(false)}
               streaming={isStreaming}
+              streamRate={liveRate}
             />
         )}
         </div>
