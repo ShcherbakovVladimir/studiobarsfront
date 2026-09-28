@@ -13,7 +13,7 @@ import agentService, {
 } from '../services/agentService';
 import type { ChatImageAttachment, XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
-import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage } from '../store/chatSlice';
+import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage, discardStreamingAssistant } from '../store/chatSlice';
 import { saveUserSettings } from '../store/authSlice';
 import { setModelOperation, setServerStatus } from '../store/appSlice';
 import { setSelectedModelId, setActiveModel } from '../store/modelsSlice';
@@ -25,6 +25,7 @@ import { cn } from '../lib/utils';
 import { MenuPopover } from './ui/menu-popover';
 import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDisplay';
+import { contextLimitUsageLabel, isContextLimitError, type ContextLimitNotice } from '../utils/contextLimit';
 
 // Импорт компонентов инструментов
 import AdvancedSettings from './AdvancedSettings';
@@ -1401,6 +1402,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }
   };
 
+  const lockChatContext = (chatId: string, notice: ContextLimitNotice) => {
+    setAvailableChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, contextLimit: notice } : c)));
+    if (currentChatRef.current?.id !== chatId) return;
+    const next = { ...currentChatRef.current, contextLimit: notice };
+    currentChatRef.current = next;
+    setCurrentChat(next);
+  };
+
   // ОСНОВНАЯ ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ С STREAMING
   const handleSendMessage = async () => {
     const filesToSend = pendingImages.map((item) => item.file);
@@ -1410,6 +1419,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       previewUrl: item.previewUrl,
     }));
     if ((!input.trim() && filesToSend.length === 0) || loading || isStreaming) return;
+    if (currentChatRef.current?.contextLimit) return;
     stickToBottomRef.current = true;
     
     if (!isServerReady) {
@@ -1443,6 +1453,51 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const isAborted = () => abortController.signal.aborted;
+    const chatId = currentChat?.id ?? sessionId;
+
+    const settleAnswer = (fullResponse: string, promptForProcess: string, limit?: ContextLimitNotice | null) => {
+      if (isAborted()) return;
+      const processedContent = postProcessResponse(
+        fullResponse,
+        currentModel?.modelFamily,
+        promptForProcess,
+        enableThinking
+      );
+      if (limit && !processedContent.trim()) {
+        dispatch(discardStreamingAssistant(currentModelId));
+      } else {
+        dispatch(finalizeLastMessage({
+          modelId: currentModelId,
+          content: processedContent,
+        }));
+      }
+      if (limit) lockChatContext(chatId, limit);
+      setIsStreaming(false);
+      dispatch(setLoading(false));
+    };
+
+    const failAnswer = (error: Error) => {
+      if (isAborted()) return;
+      if (isContextLimitError(error)) {
+        dispatch(discardStreamingAssistant(currentModelId));
+        lockChatContext(chatId, error.notice);
+        setIsStreaming(false);
+        dispatch(setLoading(false));
+        return;
+      }
+      console.error('Chat stream error:', error);
+      dispatch(updateLastMessage({
+        modelId: currentModelId,
+        content: `❌ Ошибка: ${error.message}`,
+        isError: true,
+      }));
+      dispatch(finalizeLastMessage({
+        modelId: currentModelId,
+        content: `❌ Ошибка: ${error.message}`,
+      }));
+      setIsStreaming(false);
+      dispatch(setLoading(false));
+    };
     
     // Добавляем пустое сообщение ассистента для streaming
     dispatch(addMessage({ 
@@ -1511,36 +1566,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse) => {
-            if (isAborted()) return;
-            const processedContent = postProcessResponse(
-              fullResponse, 
-              currentModel?.modelFamily,
-              promptText,
-              enableThinking
-            );
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: processedContent
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          },
-          (error) => {
-            if (isAborted()) return;
-            console.error('Vision stream error:', error);
-            dispatch(updateLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`,
-              isError: true
-            }));
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          }
+          (fullResponse, limit) => settleAnswer(fullResponse, promptText, limit),
+          failAnswer
         );
       } else {
         await agentService.chatStream(
@@ -1554,36 +1581,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse) => {
-            if (isAborted()) return;
-            const processedContent = postProcessResponse(
-              fullResponse, 
-              currentModel?.modelFamily,
-              userMessageContent,
-              enableThinking
-            );
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: processedContent
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          },
-          (error) => {
-            if (isAborted()) return;
-            console.error('Chat stream error:', error);
-            dispatch(updateLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`,
-              isError: true
-            }));
-            dispatch(finalizeLastMessage({ 
-              modelId: currentModelId, 
-              content: `❌ Ошибка: ${error.message}`
-            }));
-            setIsStreaming(false);
-            dispatch(setLoading(false));
-          }
+          (fullResponse, limit) => settleAnswer(fullResponse, userMessageContent, limit),
+          failAnswer
         );
       }
       
@@ -1591,15 +1590,20 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       if (!(e instanceof Error && e.name === 'AbortError') && !isAborted()) {
         console.error('Chat error:', e);
         const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-        dispatch(updateLastMessage({ 
-          modelId: currentModelId, 
-          content: `❌ Ошибка: ${errorMessage}`,
-          isError: true
-        }));
-        dispatch(finalizeLastMessage({ 
-          modelId: currentModelId, 
-          content: `❌ Ошибка: ${errorMessage}`
-        }));
+        if (isContextLimitError(e)) {
+          dispatch(discardStreamingAssistant(currentModelId));
+          lockChatContext(chatId, e.notice);
+        } else {
+          dispatch(updateLastMessage({ 
+            modelId: currentModelId, 
+            content: `❌ Ошибка: ${errorMessage}`,
+            isError: true
+          }));
+          dispatch(finalizeLastMessage({ 
+            modelId: currentModelId, 
+            content: `❌ Ошибка: ${errorMessage}`
+          }));
+        }
         setIsStreaming(false);
         dispatch(setLoading(false));
       }
@@ -2065,6 +2069,23 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         </div>
                         <div className={celestia.composerDock}>
                             <div className={celestia.chatColumn}>
+                            {currentChat?.contextLimit && (
+                              <div className="mb-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                                <p className="text-sm text-foreground">{currentChat.contextLimit.message}</p>
+                                {contextLimitUsageLabel(currentChat.contextLimit) && (
+                                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                                    {contextLimitUsageLabel(currentChat.contextLimit)}
+                                  </p>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => void createNewChat()}
+                                  className="mt-2 inline-flex h-8 items-center rounded-xl bg-foreground px-3 text-xs font-medium text-background"
+                                >
+                                  Новый чат
+                                </button>
+                              </div>
+                            )}
                             {pendingImages.length > 0 && (
                               <div className="mb-2 flex flex-wrap gap-2">
                                 {pendingImages.map((item) => (
@@ -2115,7 +2136,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                       type="button"
                                       aria-label="Прикрепить изображение"
                                       title="Прикрепить изображение"
-                                      disabled={loading || !isServerReady || isStreaming}
+                                      disabled={loading || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
                                       onClick={() => imageInputRef.current?.click()}
                                       className="shrink-0 h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
                                     >
@@ -2132,7 +2153,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     onKeyDown={handleKeyDown}
                                     onPaste={handlePaste}
                                     placeholder={
-                                      !isServerReady
+                                      currentChat?.contextLimit
+                                        ? 'Окно чата заполнено'
+                                        : !isServerReady
                                         ? "Дождитесь загрузки модели..."
                                         : visionEnabled
                                           ? "Сообщение или изображение..."
@@ -2141,12 +2164,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     className={celestia.chatComposerInput}
                                     rows={1}
                                     autoComplete="off"
-                                    disabled={loading || !isServerReady || isStreaming}
+                                    disabled={loading || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
                                 />
                                 <button
                                     type="button"
                                     onClick={handleSendMessage}
-                                    disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || isStreaming}
+                                    disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
                                     aria-label="Отправить"
                                     className={celestia.sendButton}
                                 >
@@ -2154,7 +2177,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 </button>
                             </div>
                             <div className="text-[11px] text-center mt-1.5 text-muted-foreground">
-                                {isStreaming
+                                {currentChat?.contextLimit
+                                  ? 'Продолжение в новом чате'
+                                  : isStreaming
                                   ? 'Генерация ответа...'
                                   : !isServerReady
                                     ? 'Модель не загружена'

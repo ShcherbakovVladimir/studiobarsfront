@@ -240,6 +240,13 @@ export interface PersistedChat {
   createdAt?: string;
   updatedAt?: string;
   messageCount?: number;
+  /** Локальная плашка: в POST /chats/sync не уходит и в messages не пишется. */
+  contextLimit?: {
+    message: string;
+    contextSize: number | null;
+    tokensPrompt: number | null;
+    tokensGenerated: number | null;
+  };
 }
 
 export type AdminUserChatUpdateBody = Partial<

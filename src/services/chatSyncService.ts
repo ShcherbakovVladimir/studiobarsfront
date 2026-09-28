@@ -327,8 +327,10 @@ export async function getChatFromServer(chatId: string): Promise<ChatData | null
     const chat = data.chat;
     if (!chat) return null;
     if (!isOwnChat(chat, currentUserId())) return null;
-    saveChatToLocal(chat);
-    return chat;
+    const localLimit = loadChatFromLocal(chat.id)?.contextLimit;
+    const merged: ChatData = { ...chat, contextLimit: chat.contextLimit ?? localLimit };
+    saveChatToLocal(merged);
+    return merged;
   } catch {
     return null;
   }
@@ -406,6 +408,7 @@ function summaryToChat(summary: ChatSummary): ChatData {
     messageCount,
     systemPrompt: local?.systemPrompt ?? '',
     chatWrapper: local?.chatWrapper ?? 'default',
+    contextLimit: local?.contextLimit,
     createdAt: summary.createdAt ?? local?.createdAt,
     updatedAt: summary.updatedAt ?? local?.updatedAt,
   };
@@ -461,6 +464,7 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
         ...full,
         sessionId: full.sessionId || full.id,
         messageCount: full.messages?.length ?? full.messageCount ?? active.messageCount,
+        contextLimit: active.contextLimit ?? full.contextLimit,
       };
       const index = chats.findIndex((chat) => chat.id === active?.id);
       if (index >= 0) chats[index] = active;

@@ -187,6 +187,16 @@ const chatSlice = createSlice({
       }
     },
     
+    discardStreamingAssistant: (state, action: PayloadAction<string>) => {
+      const history = state.histories[action.payload];
+      if (!history?.length) return;
+      const last = history[history.length - 1];
+      if (last?.role === 'assistant' && (last.isStreaming || !last.content.trim())) {
+        history.pop();
+        saveHistoriesToStorage(state.histories);
+      }
+    },
+    
     // Обновить конкретное сообщение по индексу
     updateMessageAtIndex: (state, action: PayloadAction<{
       modelId: string;
@@ -285,6 +295,7 @@ export const {
   reloadFromStorage,
   updateLastMessage,
   finalizeLastMessage,
+  discardStreamingAssistant,
   updateMessageAtIndex,
   removeMessageAtIndex,
   insertMessageAtIndex,

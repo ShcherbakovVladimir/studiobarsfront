@@ -1,13 +1,17 @@
 import type { UnknownRecord } from '../types';
+import { readContextLimit, type ContextLimitNotice } from './contextLimit';
 import { readSseFrames } from './sseStream';
 
 export type StreamChunkHandler = (chunk: string, fullResponse: string) => void;
+
+export type StreamDoneHandler = (fullResponse: string, contextLimit?: ContextLimitNotice | null) => void;
 
 export interface ChatStreamOptions {
   /** `performance.now()` снятый перед fetch — отделяет ожидание сервера от буферизации. */
   requestStartedAt?: number;
   /** Метка в диагностике: `chat`, `chat+tools`, `inference`. */
   label?: string;
+  onContextLimit?: (notice: ContextLimitNotice) => void;
 }
 
 function asRecord(value: unknown): UnknownRecord | undefined {
@@ -67,6 +71,8 @@ function extractToken(parsed: UnknownRecord, already: string): string {
 /** Without `stream: true` the backend answers with plain JSON `{ success, response }`. */
 function nonStreamText(data: UnknownRecord): string {
   if (typeof data.response === 'string') return data.response;
+  const message = asRecord(data.message);
+  if (typeof message?.content === 'string') return message.content;
   if (typeof data.completion === 'string') return data.completion;
   const fromChoices = extractOpenAiDelta(data);
   return fromChoices || '';
@@ -147,7 +153,7 @@ export async function consumeChatStream(
   response: Response,
   abortSignal: AbortSignal,
   onChunk: StreamChunkHandler,
-  onComplete?: (fullResponse: string) => void,
+  onComplete?: StreamDoneHandler,
   options: ChatStreamOptions = {}
 ): Promise<void> {
   const label = options.label ?? 'chat-stream';
@@ -162,20 +168,23 @@ export async function consumeChatStream(
       );
     }
     const data = (await response.json()) as UnknownRecord;
+    const contextLimit = readContextLimit(data);
+    if (contextLimit) options.onContextLimit?.(contextLimit);
     const text = nonStreamText(data);
     if (text) onChunk(text, text);
-    if (!abortSignal.aborted) onComplete?.(text);
+    if (!abortSignal.aborted) onComplete?.(text, contextLimit);
     return;
   }
 
   let fullResponse = '';
+  let contextLimit: ContextLimitNotice | null = null;
   let finished = false;
   const diagnostics: StreamDiagnostics = { frames: 0, firstAt: 0, lastAt: 0, lengths: [] };
 
   const finish = () => {
     if (finished) return;
     finished = true;
-    if (!abortSignal.aborted) onComplete?.(fullResponse);
+    if (!abortSignal.aborted) onComplete?.(fullResponse, contextLimit);
   };
 
   await readSseFrames(
@@ -190,6 +199,13 @@ export async function consumeChatStream(
       try {
         parsed = JSON.parse(payload) as UnknownRecord;
       } catch {
+        return;
+      }
+
+      const limit = readContextLimit(parsed);
+      if (limit) {
+        contextLimit = limit;
+        options.onContextLimit?.(limit);
         return;
       }
 

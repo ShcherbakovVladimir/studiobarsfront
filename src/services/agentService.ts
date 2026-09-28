@@ -31,6 +31,7 @@ import { canExecuteToolForRole, filterToolsForRole } from '../utils/auth';
 import { buildGrammarApiFields } from '../utils/grammarUtils';
 import { isServerOnline } from '../utils/serverStatus';
 import { consumeChatStream } from '../utils/streamResponse';
+import { ContextLimitError, contextLimitFromBody, type ContextLimitNotice } from '../utils/contextLimit';
 import { registerActiveStream } from '../utils/activeStreams';
 import { stripThinkingTags } from '../utils/thinkingContent';
 import { filesToVisionPayloads } from '../utils/chatVision';
@@ -194,7 +195,7 @@ export interface UITool {
 
 // Streaming callback types
 export type StreamChunkCallback = (chunk: string, fullResponse: string) => void;
-export type StreamCompleteCallback = (fullResponse: string) => void;
+export type StreamCompleteCallback = (fullResponse: string, contextLimit?: ContextLimitNotice | null) => void;
 export type StreamErrorCallback = (error: Error) => void;
 
 function createStreamAbort(externalSignal?: AbortSignal): {
@@ -256,6 +257,14 @@ function formatChatApiError(status: number, body: string): string {
   } catch {
     return body || `HTTP ${status}`;
   }
+}
+
+async function throwIfChatFailed(response: Response): Promise<void> {
+  if (response.ok) return;
+  const errorText = await response.text();
+  const limit = contextLimitFromBody(errorText);
+  if (limit) throw new ContextLimitError(limit);
+  throw new Error(formatChatApiError(response.status, errorText));
 }
 
 export async function getVisionStatus(): Promise<boolean> {
@@ -449,8 +458,7 @@ export async function chatStream(
     }, STREAM_TIMEOUT_MS);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(formatChatApiError(response.status, errorText));
+      await throwIfChatFailed(response);
     }
 
     if (!response.body) {
@@ -518,8 +526,7 @@ export async function chatStreamVision(
     }, STREAM_TIMEOUT_MS);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(formatChatApiError(response.status, errorText));
+      await throwIfChatFailed(response);
     }
 
     if (!response.body) {
@@ -618,8 +625,7 @@ export async function chatStreamWithTools(
     }, STREAM_TIMEOUT_MS);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+      await throwIfChatFailed(response);
     }
 
     if (!response.body) {
@@ -1553,8 +1559,7 @@ export async function completionStream(
     }, STREAM_TIMEOUT_MS);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+      await throwIfChatFailed(response);
     }
 
     if (!response.body) {
