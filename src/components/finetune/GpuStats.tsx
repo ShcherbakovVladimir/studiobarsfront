@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
 import type { GpuStat } from '../../types';
 import { GPU_DOT_COLORS, listGpus } from '../../utils/gpuUtils';
+import { readGpuDetails } from '../../utils/gpuDetails';
 
 interface GpuStatsProps {
   isMobile?: boolean;
@@ -67,6 +68,7 @@ function GpuCard({ gpuKey, index, stat, isMobile, chartColor }: GpuCardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const historyRef = useRef<number[]>(Array(20).fill(0));
   const gpu = stat as GpuStat;
+  const details = readGpuDetails(stat);
 
   useEffect(() => {
     if (gpu.percentage !== undefined) {
@@ -152,8 +154,15 @@ function GpuCard({ gpuKey, index, stat, isMobile, chartColor }: GpuCardProps) {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            {gpu.memoryClock || 0} MHz
+            {details.clocks.core.current ?? 0}
+            {details.clocks.core.max ? `/${details.clocks.core.max}` : ''} MHz
           </span>
+          {details.pstate && (
+            <span title={details.idle ? 'Простой: драйвер снизил частоты' : 'Энергорежим'}>
+              {details.pstate}
+              {details.idle ? ' · простой' : ''}
+            </span>
+          )}
         </div>
       </div>
     </div>

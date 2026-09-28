@@ -195,6 +195,7 @@ const normalizeGpuStats = (gpuData: UnknownRecord | GpuStat | null | undefined):
   const total = getRecordNumber(data, 'total') || (totalMb ? totalMb / 1024 : 24);
 
   return {
+    ...data,
     used,
     total,
     percentage: getRecordNumber(data, 'percentage') || Math.round((used / total) * 100) || 0,
