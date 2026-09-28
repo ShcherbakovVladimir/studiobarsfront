@@ -1668,11 +1668,9 @@ export const llamaApi = {
 
       await consumeChatStream(response, abortController.signal, onChunk, onComplete);
     } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        onComplete('');
-      } else {
-        onError(error instanceof Error ? error : new Error(getErrorMessage(error)));
-      }
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof Error && error.name === 'AbortError') return;
+      onError(error instanceof Error ? error : new Error(getErrorMessage(error)));
     }
   },
 

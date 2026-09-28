@@ -241,7 +241,22 @@ function createStreamAbort(externalSignal?: AbortSignal): {
 }
 
 function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
   return error instanceof Error && error.name === 'AbortError';
+}
+
+/** Обрыв по кнопке «стоп» не ошибка. Таймаут — отдельное сообщение. */
+function settleStreamAbort(
+  error: unknown,
+  abort: { signal: AbortSignal; didTimeout: () => boolean },
+  onError?: StreamErrorCallback,
+  timeoutMessage = 'Таймаут генерации ответа (10 минут)',
+): boolean {
+  if (!abort.signal.aborted && !isAbortError(error)) return false;
+  if (abort.didTimeout()) {
+    onError?.(new Error(timeoutMessage));
+  }
+  return true;
 }
 
 function formatChatApiError(status: number, body: string): string {
@@ -358,6 +373,11 @@ export async function chatStream(
   onError?: StreamErrorCallback
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
+  let streamDelivered = false;
+  const deliver: StreamCompleteCallback = (full, limit) => {
+    streamDelivered = true;
+    onComplete?.(full, limit);
+  };
 
   try {
     const activeModel = await getActiveModel();
@@ -414,7 +434,7 @@ export async function chatStream(
     }
 
     if (abort.signal.aborted) {
-      return;
+      throw new DOMException('Aborted', 'AbortError');
     }
 
     const requestStartedAt = performance.now();
@@ -465,15 +485,13 @@ export async function chatStream(
       throw new Error('Response body is not readable');
     }
 
-    await consumeChatStream(response, abort.signal, onChunk, onComplete, {
+    await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-stream',
     });
   } catch (error: unknown) {
-    if (isAbortError(error)) {
-      if (abort.didTimeout()) {
-        onError?.(new Error('Таймаут генерации ответа (10 минут)'));
-      }
+    if (settleStreamAbort(error, abort, onError)) {
+      if (!streamDelivered) onComplete?.('', null);
       return;
     }
     console.error('Stream chat error:', error);
@@ -492,6 +510,11 @@ export async function chatStreamVision(
   onError?: StreamErrorCallback
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
+  let streamDelivered = false;
+  const deliver: StreamCompleteCallback = (full, limit) => {
+    streamDelivered = true;
+    onComplete?.(full, limit);
+  };
 
   try {
     if (files.length === 0) {
@@ -499,7 +522,7 @@ export async function chatStreamVision(
     }
 
     const images = await filesToVisionPayloads(files);
-    if (abort.signal.aborted) return;
+    if (abort.signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat/vision', {
@@ -533,15 +556,13 @@ export async function chatStreamVision(
       throw new Error('Response body is not readable');
     }
 
-    await consumeChatStream(response, abort.signal, onChunk, onComplete, {
+    await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-vision-stream',
     });
   } catch (error: unknown) {
-    if (isAbortError(error)) {
-      if (abort.didTimeout()) {
-        onError?.(new Error('Таймаут генерации ответа (10 минут)'));
-      }
+    if (settleStreamAbort(error, abort, onError)) {
+      if (!streamDelivered) onComplete?.('', null);
       return;
     }
     console.error('Vision stream error:', error);
@@ -561,6 +582,11 @@ export async function chatStreamWithTools(
   onError?: StreamErrorCallback
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
+  let streamDelivered = false;
+  const deliver: StreamCompleteCallback = (full, limit) => {
+    streamDelivered = true;
+    onComplete?.(full, limit);
+  };
 
   try {
     const activeModel = await getActiveModel();
@@ -587,7 +613,7 @@ export async function chatStreamWithTools(
     }
 
     if (abort.signal.aborted) {
-      return;
+      throw new DOMException('Aborted', 'AbortError');
     }
 
     const requestStartedAt = performance.now();
@@ -632,15 +658,13 @@ export async function chatStreamWithTools(
       throw new Error('Response body is not readable');
     }
 
-    await consumeChatStream(response, abort.signal, onChunk, onComplete, {
+    await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-stream+tools',
     });
   } catch (error: unknown) {
-    if (isAbortError(error)) {
-      if (abort.didTimeout()) {
-        onError?.(new Error('Таймаут генерации ответа (10 минут)'));
-      }
+    if (settleStreamAbort(error, abort, onError)) {
+      if (!streamDelivered) onComplete?.('', null);
       return;
     }
     console.error('Stream chat with tools error:', error);
@@ -1524,6 +1548,11 @@ export async function completionStream(
   onError?: StreamErrorCallback
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
+  let streamDelivered = false;
+  const deliver: StreamCompleteCallback = (full, limit) => {
+    streamDelivered = true;
+    onComplete?.(full, limit);
+  };
 
   try {
     // /api/completion не стримит. /v1/completions с origin часто недоступен через nginx (502).
@@ -1566,15 +1595,13 @@ export async function completionStream(
       throw new Error('Response body is not readable');
     }
 
-    await consumeChatStream(response, abort.signal, onChunk, onComplete, {
+    await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'inference-stream',
     });
   } catch (error: unknown) {
-    if (isAbortError(error)) {
-      if (abort.didTimeout()) {
-        onError?.(new Error('Таймаут генерации (10 минут)'));
-      }
+    if (settleStreamAbort(error, abort, onError, 'Таймаут генерации (10 минут)')) {
+      if (!streamDelivered) onComplete?.('', null);
       return;
     }
     console.error('Completion stream error:', error);

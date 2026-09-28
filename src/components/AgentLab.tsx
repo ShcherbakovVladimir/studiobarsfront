@@ -1221,24 +1221,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   // Stop streaming function
   const stopStreaming = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    setIsStreaming(false);
-    dispatch(setLoading(false));
-    
-    // Update last message to remove streaming indicator
-    const history = messages;
-    if (history.length > 0) {
-      const lastMsg = history[history.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant' && lastMsg.isStreaming) {
-        dispatch(finalizeLastMessage({ 
-          modelId: currentModelId, 
-          content: lastMsg.content || 'Генерация прервана пользователем.'
-        }));
-      }
-    }
-  }, [dispatch, currentModelId, messages]);
+    abortControllerRef.current?.abort();
+  }, []);
   
   // ========== ОБРАБОТЧИКИ УПРАВЛЕНИЯ МОДЕЛЬЮ ==========
   
@@ -1474,7 +1458,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const chatId = currentChat?.id ?? sessionId;
 
     const settleAnswer = (fullResponse: string, promptForProcess: string, limit?: ContextLimitNotice | null) => {
-      if (isAborted()) return;
       flushLiveRate();
       const processedContent = postProcessResponse(
         fullResponse,
@@ -1482,6 +1465,19 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         promptForProcess,
         enableThinking
       );
+      if (isAborted()) {
+        if (processedContent.trim()) {
+          dispatch(finalizeLastMessage({
+            modelId: currentModelId,
+            content: processedContent,
+          }));
+        } else {
+          dispatch(discardStreamingAssistant(currentModelId));
+        }
+        setIsStreaming(false);
+        dispatch(setLoading(false));
+        return;
+      }
       if (limit && !processedContent.trim()) {
         dispatch(discardStreamingAssistant(currentModelId));
       } else {
@@ -1496,7 +1492,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     };
 
     const failAnswer = (error: Error) => {
-      if (isAborted()) return;
+      if (isAborted() || error.name === 'AbortError') {
+        setIsStreaming(false);
+        dispatch(setLoading(false));
+        return;
+      }
       flushLiveRate();
       if (isContextLimitError(error)) {
         dispatch(discardStreamingAssistant(currentModelId));
@@ -1610,7 +1610,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       }
       
     } catch (e: unknown) {
-      if (!(e instanceof Error && e.name === 'AbortError') && !isAborted()) {
+      if (isAborted() || (e instanceof Error && e.name === 'AbortError') || (e instanceof DOMException && e.name === 'AbortError')) {
+        setIsStreaming(false);
+        dispatch(setLoading(false));
+      } else if (!(e instanceof Error && e.name === 'AbortError')) {
         console.error('Chat error:', e);
         const errorMessage = e instanceof Error ? e.message : 'Unknown error';
         if (isContextLimitError(e)) {

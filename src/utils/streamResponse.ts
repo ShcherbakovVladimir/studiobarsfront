@@ -14,6 +14,11 @@ export interface ChatStreamOptions {
   onContextLimit?: (notice: ContextLimitNotice) => void;
 }
 
+function isStreamAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') return true;
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 function asRecord(value: unknown): UnknownRecord | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as UnknownRecord)
@@ -184,50 +189,59 @@ export async function consumeChatStream(
   const finish = () => {
     if (finished) return;
     finished = true;
-    if (!abortSignal.aborted) onComplete?.(fullResponse, contextLimit);
+    onComplete?.(fullResponse, contextLimit);
   };
 
-  await readSseFrames(
-    response,
-    (payload) => {
-      if (payload === '[DONE]') {
-        finish();
-        return 'stop';
-      }
+  let streamError: unknown;
+  try {
+    await readSseFrames(
+      response,
+      (payload) => {
+        if (payload === '[DONE]') {
+          finish();
+          return 'stop';
+        }
 
-      let parsed: UnknownRecord;
-      try {
-        parsed = JSON.parse(payload) as UnknownRecord;
-      } catch {
-        return;
-      }
+        let parsed: UnknownRecord;
+        try {
+          parsed = JSON.parse(payload) as UnknownRecord;
+        } catch {
+          return;
+        }
 
-      const limit = readContextLimit(parsed);
-      if (limit) {
-        contextLimit = limit;
-        options.onContextLimit?.(limit);
-        return;
-      }
+        const limit = readContextLimit(parsed);
+        if (limit) {
+          contextLimit = limit;
+          options.onContextLimit?.(limit);
+          return;
+        }
 
-      const token = extractToken(parsed, fullResponse);
-      if (!token) return;
+        const token = extractToken(parsed, fullResponse);
+        if (!token) return;
 
-      const now = performance.now();
-      if (diagnostics.frames === 0) diagnostics.firstAt = now;
-      diagnostics.lastAt = now;
-      diagnostics.frames += 1;
-      if (diagnostics.lengths.length < SAMPLED_FRAMES) {
-        diagnostics.lengths.push(token.length);
-      }
+        const now = performance.now();
+        if (diagnostics.frames === 0) diagnostics.firstAt = now;
+        diagnostics.lastAt = now;
+        diagnostics.frames += 1;
+        if (diagnostics.lengths.length < SAMPLED_FRAMES) {
+          diagnostics.lengths.push(token.length);
+        }
 
-      fullResponse += token;
-      onChunk(token, fullResponse);
-    },
-    abortSignal
-  );
+        fullResponse += token;
+        onChunk(token, fullResponse);
+      },
+      abortSignal
+    );
+  } catch (error) {
+    streamError = error;
+  } finally {
+    reportStream(diagnostics, label, startedAt, abortSignal.aborted);
+    finish();
+  }
 
-  reportStream(diagnostics, label, startedAt, abortSignal.aborted);
-  finish();
+  if (streamError && !abortSignal.aborted && !isStreamAbortError(streamError)) {
+    throw streamError;
+  }
 }
 
 /** @deprecated Use consumeChatStream. Kept for existing chat/inference call sites. */
