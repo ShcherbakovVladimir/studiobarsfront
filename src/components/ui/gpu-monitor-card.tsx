@@ -94,7 +94,8 @@ export function GpuMonitorCard({ gpuKey, gpuIndex, stat }: GpuMonitorCardProps) 
   const warnings = details.throttleReasons.filter(isThrottleWarning);
   const { info } = details;
   const hasInfo = Boolean(
-    info.uuid || info.architecture || info.vbios || info.driver || info.cuda || info.pciBusId ||
+    info.uuid || info.brand || info.architecture || info.vbios || info.driver || info.cuda || info.pciBusId ||
+      info.persistenceMode || info.computeMode ||
       info.pcieGen.current !== null || info.pcieWidth.current !== null,
   );
   const tempThresholds = [
@@ -140,6 +141,13 @@ export function GpuMonitorCard({ gpuKey, gpuIndex, stat }: GpuMonitorCardProps) 
               <span>{used.toFixed(2)} GB / {total.toFixed(0)} GB</span>
             </div>
             <Progress value={percentage} className="h-2" />
+            {(details.memoryFreeMb !== null || details.memoryReservedMb !== null) && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {details.memoryFreeMb !== null ? `свободно ${(details.memoryFreeMb / 1024).toFixed(2)} GB` : ''}
+                {details.memoryFreeMb !== null && details.memoryReservedMb !== null ? ' · ' : ''}
+                {details.memoryReservedMb !== null ? `резерв ${(details.memoryReservedMb / 1024).toFixed(2)} GB` : ''}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -197,6 +205,7 @@ export function GpuMonitorCard({ gpuKey, gpuIndex, stat }: GpuMonitorCardProps) 
                   {details.power.minLimit !== null && details.power.maxLimit !== null
                     ? ` · допустимый лимит ${details.power.minLimit.toFixed(0)}–${details.power.maxLimit.toFixed(0)} Вт`
                     : ''}
+                  {details.power.defaultLimit !== null ? ` · по умолчанию ${details.power.defaultLimit.toFixed(0)} Вт` : ''}
                 </div>
               )}
             </div>
@@ -252,10 +261,13 @@ export function GpuMonitorCard({ gpuKey, gpuIndex, stat }: GpuMonitorCardProps) 
             <details className="pt-2 border-t text-xs">
               <summary className="cursor-pointer text-sm text-muted-foreground">Сведения об устройстве</summary>
               <div className="mt-1.5">
+                <InfoRow label="Бренд" value={info.brand} />
                 <InfoRow label="Архитектура" value={info.architecture} />
                 <InfoRow label="Драйвер" value={info.driver} />
                 <InfoRow label="CUDA" value={info.cuda} />
                 <InfoRow label="VBIOS" value={info.vbios} />
+                <InfoRow label="Persistence" value={info.persistenceMode} />
+                <InfoRow label="Compute" value={info.computeMode} />
                 <InfoRow label="PCI" value={info.pciBusId} />
                 <InfoRow label="PCIe поколение" value={formatRange(info.pcieGen, (v) => `Gen${v}`)} />
                 <InfoRow label="PCIe ширина" value={formatRange(info.pcieWidth, (v) => `${v}x`)} />

@@ -22,10 +22,13 @@ export interface GpuDetails {
   idle: boolean;
   clocks: { core: GpuClock; memory: GpuClock; sm: GpuClock; video: GpuClock };
   throttleReasons: string[];
+  memoryFreeMb: number | null;
+  memoryReservedMb: number | null;
   power: {
     draw: number | null;
     instant: number | null;
     limit: number | null;
+    defaultLimit: number | null;
     minLimit: number | null;
     maxLimit: number | null;
   };
@@ -34,10 +37,13 @@ export interface GpuDetails {
   processes: GpuProcess[];
   info: {
     uuid: string | null;
+    brand: string | null;
     architecture: string | null;
     vbios: string | null;
     driver: string | null;
     cuda: string | null;
+    persistenceMode: string | null;
+    computeMode: string | null;
     pciBusId: string | null;
     pcieGen: GpuClock;
     pcieWidth: GpuClock;
@@ -97,16 +103,19 @@ export function readGpuDetails(stat: object): GpuDetails {
     pstate,
     idle: throttleReasons.includes('gpu_idle') || (Number.isFinite(pstateLevel) && pstateLevel >= 8),
     clocks: {
-      core: { current: num(raw, 'core_clock', 'graphicsClock'), max: num(raw, 'core_clock_max') },
-      memory: { current: num(raw, 'memory_clock', 'memoryClock'), max: num(raw, 'memory_clock_max') },
+      core: { current: num(raw, 'core_clock'), max: num(raw, 'core_clock_max') },
+      memory: { current: num(raw, 'memory_clock'), max: num(raw, 'memory_clock_max') },
       sm: { current: num(raw, 'sm_clock'), max: num(raw, 'sm_clock_max') },
       video: { current: num(raw, 'video_clock'), max: num(raw, 'video_clock_max') },
     },
     throttleReasons,
+    memoryFreeMb: num(raw, 'free_mb'),
+    memoryReservedMb: num(raw, 'reserved_mb'),
     power: {
-      draw: num(raw, 'power', 'powerDraw'),
+      draw: num(raw, 'power'),
       instant: num(raw, 'power_instant'),
       limit: num(raw, 'power_limit'),
+      defaultLimit: num(raw, 'power_default_limit'),
       minLimit: num(raw, 'power_min_limit'),
       maxLimit: num(raw, 'power_max_limit'),
     },
@@ -123,10 +132,13 @@ export function readGpuDetails(stat: object): GpuDetails {
     processes: parseProcesses(raw.processes),
     info: {
       uuid: str(raw, 'uuid'),
-      architecture: str(raw, 'architecture', 'arch'),
-      vbios: str(raw, 'vbios', 'vbios_version'),
-      driver: str(raw, 'driver', 'driver_version'),
-      cuda: str(raw, 'cuda', 'cuda_version'),
+      brand: str(raw, 'brand'),
+      architecture: str(raw, 'architecture'),
+      vbios: str(raw, 'vbios_version'),
+      driver: str(raw, 'driver_version'),
+      cuda: str(raw, 'cuda_version'),
+      persistenceMode: str(raw, 'persistence_mode'),
+      computeMode: str(raw, 'compute_mode'),
       pciBusId: str(raw, 'pci_bus_id'),
       pcieGen: { current: num(raw, 'pcie_gen_current'), max: num(raw, 'pcie_gen_max') },
       // Ширина приходит строкой `16x` / `8x`; parseFloat берёт число.

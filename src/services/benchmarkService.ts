@@ -1,22 +1,8 @@
-// /home/user/projects/studioxlam/src/services/benchmarkService.ts
 import { api } from './apiClient';
 import monitoringService, { type MonitoringFullData } from './monitoringService';
 import { listGpus } from '../utils/gpuUtils';
-
-export interface RealGpuData {
-  name: string;
-  used: number;
-  total: number;
-  used_mb: number;
-  total_mb: number;
-  percentage: number;
-  temperature: number;
-  utilization: number;
-  power: number;
-  fan: number;
-  memory_clock: number;
-  core_clock: number;
-}
+import { readGpuDetails } from '../utils/gpuDetails';
+import { readInference, type InferenceSnapshot } from '../utils/inferenceSnapshot';
 
 export interface SystemStats {
   cpuUsage: number;
@@ -34,43 +20,92 @@ export interface MonitoringData extends MonitoringFullData {
   training: MonitoringFullData['training'] & { active?: number };
 }
 
-export interface BenchmarkResult {
-  device: string;
-  tps: number;
-  latency: number;
-  memory: number;
-  precision: string;
+export interface GpuLiveRow {
+  key: string;
+  index: number;
+  name: string;
+  usedGb: number;
+  totalGb: number;
   temperature: number;
   utilization: number;
   powerDraw: number;
   fanSpeed: number;
-  memoryClock: number;
-  coreClock: number;
+  memoryClock: number | null;
+  coreClock: number | null;
+  memoryClockMax: number | null;
+  coreClockMax: number | null;
+}
+
+export interface InferenceHistoryPoint {
+  time: string;
   timestamp: string;
-  isMock?: boolean;
+  genTps: number | null;
+  promptTps: number | null;
+  ttftMs: number | null;
+  latencyMs: number | null;
+}
+
+export interface BenchmarkSnapshot {
+  gpus: GpuLiveRow[];
+  inference: InferenceSnapshot;
+  timestamp: string;
 }
 
 export interface BenchmarkStats {
-  avgTps: number;
-  maxTps: number;
-  minTps: number;
-  avgLatency: number;
-  maxLatency: number;
-  minLatency: number;
+  avgGenTps: number | null;
+  maxGenTps: number | null;
+  avgPromptTps: number | null;
+  avgLatencyMs: number | null;
+  avgTtftMs: number | null;
   avgTemperature: number;
   maxTemperature: number;
   avgUtilization: number;
   peakPowerDraw: number;
   totalSamples: number;
   activeDevices: number;
-  totalMemoryUsed: number;
   lastUpdated: string;
 }
 
+function mean(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function gpuRowFromStat(
+  key: string,
+  index: number,
+  stat: Record<string, unknown>,
+): GpuLiveRow {
+  const details = readGpuDetails(stat);
+  const usedMb = typeof stat.used_mb === 'number' ? stat.used_mb : null;
+  const totalMb = typeof stat.total_mb === 'number' ? stat.total_mb : null;
+  const used = typeof stat.used === 'number' ? stat.used : usedMb !== null ? usedMb / 1024 : 0;
+  const total = typeof stat.total === 'number' ? stat.total : totalMb !== null ? totalMb / 1024 : 0;
+  const name = typeof stat.name === 'string' && stat.name ? stat.name : `GPU ${index}`;
+
+  return {
+    key,
+    index,
+    name: `${name} (GPU ${index})`,
+    usedGb: used,
+    totalGb: total,
+    temperature: typeof stat.temperature === 'number' ? stat.temperature : 0,
+    utilization: typeof stat.utilization === 'number' ? stat.utilization : 0,
+    powerDraw: details.power.draw ?? 0,
+    fanSpeed: typeof stat.fan === 'number' ? stat.fan : 0,
+    memoryClock: details.clocks.memory.current,
+    coreClock: details.clocks.core.current,
+    memoryClockMax: details.clocks.memory.max,
+    coreClockMax: details.clocks.core.max,
+  };
+}
+
 class RealBenchmarkService {
-  private history: BenchmarkResult[] = [];
+  private gpuLatest: GpuLiveRow[] = [];
+  private inference: InferenceSnapshot = readInference({ available: false });
+  private inferenceHistory: InferenceHistoryPoint[] = [];
   private statsCache: BenchmarkStats | null = null;
-  private lastFetchTime: number = 0;
+  private lastFetchTime = 0;
   private abortController: AbortController | null = null;
   private inflightMonitoringRequest: Promise<MonitoringData> | null = null;
   private maxHistorySize = 100;
@@ -97,7 +132,6 @@ class RealBenchmarkService {
         if (error instanceof DOMException && error.name === 'AbortError') {
           throw new Error('Request cancelled');
         }
-        console.error('❌ Error fetching monitoring data:', error);
         throw error;
       } finally {
         this.inflightMonitoringRequest = null;
@@ -109,184 +143,86 @@ class RealBenchmarkService {
   }
 
   async fetchSystemStats(): Promise<SystemStats> {
-    try {
-      const data = await api<{ success: boolean; system?: SystemStats }>('/finetune/system-stats');
-
-      if (data.success && data.system) {
-        return data.system;
-      }
-
-      throw new Error('API returned неуспешный ответ или отсутствуют данные');
-    } catch (error) {
-      console.error('❌ Error fetching system stats:', error);
-      throw error;
-    }
+    const data = await api<{ success: boolean; system?: SystemStats }>('/finetune/system-stats');
+    if (data.success && data.system) return data.system;
+    throw new Error('API returned неуспешный ответ или отсутствуют данные');
   }
 
-  // Преобразование данных GPU в формат для бенчмаркинга
-  convertGpuToBenchmark(gpuData: RealGpuData | undefined, gpuIndex = 0): BenchmarkResult | null {
-    if (!gpuData || !gpuData.name) {
-      return null;
-    }
-
-    // Расчет TPS на основе утилизации GPU (приблизительный расчет для визуализации)
-    // В реальном сценарии TPS должен приходить от API инференса, 
-    // но здесь мы используем метрики железа
-    const calculateTps = (utilization: number): number => {
-      // Это эвристика, так как реальный TPS зависит от модели
-      const baseTps = 3000; 
-      const tps = (utilization / 100) * baseTps;
-      return Math.round(tps * 10) / 10;
-    };
-
-    return {
-      device: `${gpuData.name} (GPU ${gpuIndex})`,
-      tps: calculateTps(gpuData.utilization || 0),
-      latency: gpuData.temperature || 0, // Используем температуру как прокси метрику для графика
-      memory: gpuData.used || 0,
-      precision: 'FP16',
-      temperature: gpuData.temperature || 0,
-      utilization: gpuData.utilization || 0,
-      powerDraw: gpuData.power || 0,
-      fanSpeed: gpuData.fan || 0,
-      memoryClock: gpuData.memory_clock || 0,
-      coreClock: gpuData.core_clock || 0,
-      timestamp: new Date().toISOString(),
-      isMock: false
-    };
-  }
-
-  // Получение реальных данных для бенчмаркинга
-  async fetchRealBenchmarkData(): Promise<BenchmarkResult[]> {
-    try {
-      const monitoringData = await this.fetchMonitoringData();
-      const results: BenchmarkResult[] = [];
-
-      listGpus(monitoringData.gpu).forEach(({ index, stat }) => {
-        const benchmark = this.convertGpuToBenchmark(stat as RealGpuData, index);
-        if (benchmark) {
-          results.push(benchmark);
-        }
-      });
-
-      // Добавляем в историю только если есть данные
-      if (results.length > 0) {
-        this.addToHistory(results);
-      }
-      
-      return results;
-      
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Request cancelled') {
-        throw error; // Пробрасываем отмену
-      }
-      console.error('❌ Error fetching real benchmark data:', error);
-      // Возвращаем пустой массив при ошибке, UI должен обработать состояние ошибки
-      return []; 
-    }
-  }
-
-  // Добавление данных в историю
-  private addToHistory(data: BenchmarkResult[]): void {
-    const validData = data.filter(item => 
-      item.device && item.timestamp
+  async fetchRealBenchmarkData(): Promise<BenchmarkSnapshot> {
+    const monitoringData = await this.fetchMonitoringData();
+    const gpus = listGpus(monitoringData.gpu).map(({ key, index, stat }) =>
+      gpuRowFromStat(key, index, stat as Record<string, unknown>),
     );
+    const inference = readInference(monitoringData.inference);
+    const timestamp = monitoringData.timestamp || new Date().toISOString();
 
-    if (validData.length === 0) return;
-
-    this.history = [...this.history, ...validData];
-    
-    if (this.history.length > this.maxHistorySize) {
-      const removeCount = this.history.length - this.maxHistorySize;
-      this.history = this.history.slice(removeCount);
-    }
-
+    this.gpuLatest = gpus;
+    this.inference = inference;
+    this.inferenceHistory = [
+      ...this.inferenceHistory,
+      {
+        time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        timestamp,
+        genTps: inference.available ? inference.genTps : null,
+        promptTps: inference.available ? inference.promptTps : null,
+        ttftMs: inference.available ? inference.ttftMs : null,
+        latencyMs: inference.available ? inference.latencyMs : null,
+      },
+    ].slice(-this.maxHistorySize);
     this.calculateStats();
+
+    return { gpus, inference, timestamp };
   }
 
-  // Расчет статистики
   private calculateStats(): void {
-    if (this.history.length === 0) {
-      this.statsCache = null;
-      return;
-    }
-
-    const tpsValues = this.history.map(d => d.tps);
-    const latencyValues = this.history.map(d => d.latency);
-    const temperatureValues = this.history.map(d => d.temperature);
-    const utilizationValues = this.history.map(d => d.utilization);
-    const powerValues = this.history.map(d => d.powerDraw);
-    const memoryValues = this.history.map(d => d.memory);
-
-    const uniqueDevices = new Set(this.history.map(d => d.device));
+    const gen = this.inferenceHistory.map((point) => point.genTps).filter((value): value is number => value !== null);
+    const prompt = this.inferenceHistory.map((point) => point.promptTps).filter((value): value is number => value !== null);
+    const latency = this.inferenceHistory.map((point) => point.latencyMs).filter((value): value is number => value !== null);
+    const ttft = this.inferenceHistory.map((point) => point.ttftMs).filter((value): value is number => value !== null);
 
     this.statsCache = {
-      avgTps: tpsValues.reduce((a, b) => a + b, 0) / tpsValues.length,
-      maxTps: Math.max(...tpsValues),
-      minTps: Math.min(...tpsValues),
-      avgLatency: latencyValues.reduce((a, b) => a + b, 0) / latencyValues.length,
-      maxLatency: Math.max(...latencyValues),
-      minLatency: Math.min(...latencyValues),
-      avgTemperature: temperatureValues.reduce((a, b) => a + b, 0) / temperatureValues.length,
-      maxTemperature: Math.max(...temperatureValues),
-      avgUtilization: utilizationValues.reduce((a, b) => a + b, 0) / utilizationValues.length,
-      peakPowerDraw: Math.max(...powerValues),
-      totalSamples: this.history.length,
-      activeDevices: uniqueDevices.size,
-      totalMemoryUsed: memoryValues.reduce((a, b) => a + b, 0),
-      lastUpdated: new Date().toLocaleTimeString('ru-RU')
+      avgGenTps: mean(gen),
+      maxGenTps: gen.length > 0 ? Math.max(...gen) : null,
+      avgPromptTps: mean(prompt),
+      avgLatencyMs: mean(latency),
+      avgTtftMs: mean(ttft),
+      avgTemperature: mean(this.gpuLatest.map((gpu) => gpu.temperature)) ?? 0,
+      maxTemperature: this.gpuLatest.reduce((max, gpu) => Math.max(max, gpu.temperature), 0),
+      avgUtilization: mean(this.gpuLatest.map((gpu) => gpu.utilization)) ?? 0,
+      peakPowerDraw: this.gpuLatest.reduce((max, gpu) => Math.max(max, gpu.powerDraw), 0),
+      totalSamples: this.inferenceHistory.length,
+      activeDevices: this.gpuLatest.length,
+      lastUpdated: new Date().toLocaleTimeString('ru-RU'),
     };
   }
 
-  // Получение истории
-  getHistory(): BenchmarkResult[] {
-    return [...this.history];
+  getHistory(): InferenceHistoryPoint[] {
+    return [...this.inferenceHistory];
   }
 
-  // Получение статистики
   getStats(): BenchmarkStats | null {
     return this.statsCache ? { ...this.statsCache } : null;
   }
 
-  // Получение последних данных по каждому устройству
-  getLatestData(): BenchmarkResult[] {
-    if (this.history.length === 0) {
-      return [];
-    }
-
-    const latestByDevice = new Map<string, BenchmarkResult>();
-    
-    // Сортируем от новых к старым
-    const sortedHistory = [...this.history].sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    sortedHistory.forEach(data => {
-      if (!latestByDevice.has(data.device)) {
-        latestByDevice.set(data.device, data);
-      }
-    });
-
-    return Array.from(latestByDevice.values());
+  getLatestGpus(): GpuLiveRow[] {
+    return [...this.gpuLatest];
   }
 
-  // Получение данных по конкретному устройству
-  getDeviceData(deviceName: string): BenchmarkResult[] {
-    return this.history.filter(data => data.device === deviceName);
+  getInference(): InferenceSnapshot {
+    return this.inference;
   }
 
-  // Очистка истории
   clearHistory(): void {
-    this.history = [];
+    this.inferenceHistory = [];
+    this.gpuLatest = [];
+    this.inference = readInference({ available: false });
     this.statsCache = null;
   }
 
-  // Получение времени последнего обновления
   getLastFetchTime(): number {
     return this.lastFetchTime;
   }
 
-  // Отмена текущего запроса
   cancelCurrentRequest(): void {
     if (this.abortController) {
       this.abortController.abort();
@@ -296,5 +232,4 @@ class RealBenchmarkService {
   }
 }
 
-// Экспортируем singleton
 export const realBenchmarkService = new RealBenchmarkService();

@@ -1,11 +1,16 @@
-// /home/user/projects/studioxlam/src/hooks/useRealBenchmark.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { realBenchmarkService, BenchmarkResult, BenchmarkStats } from '../services/benchmarkService';
+import {
+  realBenchmarkService,
+  type BenchmarkSnapshot,
+  type BenchmarkStats,
+  type GpuLiveRow,
+  type InferenceHistoryPoint,
+} from '../services/benchmarkService';
+import { readInference, type InferenceSnapshot } from '../utils/inferenceSnapshot';
 
 interface UseRealBenchmarkOptions {
   autoPoll?: boolean;
   pollingInterval?: number;
-  deviceFilter?: string[];
 }
 
 function isCancelledRequestError(err: unknown): boolean {
@@ -20,27 +25,24 @@ function isCancelledRequestError(err: unknown): boolean {
 }
 
 export const useRealBenchmark = (options: UseRealBenchmarkOptions = {}) => {
-  const {
-    autoPoll = true,
-    pollingInterval = 5000,
-    deviceFilter = [],
-  } = options;
+  const { autoPoll = true, pollingInterval = 5000 } = options;
 
-  const [realData, setRealData] = useState<BenchmarkResult[]>([]);
+  const [snapshot, setSnapshot] = useState<BenchmarkSnapshot | null>(null);
+  const [gpus, setGpus] = useState<GpuLiveRow[]>([]);
+  const [inference, setInference] = useState<InferenceSnapshot>(() => readInference({ available: false }));
   const [stats, setStats] = useState<BenchmarkStats | null>(null);
+  const [history, setHistory] = useState<InferenceHistoryPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPolling, setIsPolling] = useState(autoPoll);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [lastUpdate, setLastUpdate] = useState('');
 
   const isMounted = useRef(true);
   const isFetchingRef = useRef(false);
   const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
-    if (isFetchingRef.current) {
-      return;
-    }
+    if (isFetchingRef.current) return;
 
     isFetchingRef.current = true;
     setIsLoading(true);
@@ -48,35 +50,25 @@ export const useRealBenchmark = (options: UseRealBenchmarkOptions = {}) => {
 
     try {
       const data = await realBenchmarkService.fetchRealBenchmarkData();
+      if (!isMounted.current) return;
 
-      if (!isMounted.current) {
-        return;
-      }
-
-      const filteredData = deviceFilter.length > 0
-        ? data.filter(item => deviceFilter.includes(item.device))
-        : data;
-
-      setRealData(filteredData);
+      setSnapshot(data);
+      setGpus(data.gpus);
+      setInference(data.inference);
       setStats(realBenchmarkService.getStats());
+      setHistory(realBenchmarkService.getHistory());
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (err) {
-      if (isCancelledRequestError(err) || !isMounted.current) {
-        return;
-      }
-
+      if (isCancelledRequestError(err) || !isMounted.current) return;
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
-      console.error('Error in fetchData:', err);
     } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-      }
+      if (isMounted.current) setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [deviceFilter]);
+  }, []);
 
   const togglePolling = useCallback(() => {
-    setIsPolling(prev => !prev);
+    setIsPolling((prev) => !prev);
   }, []);
 
   useEffect(() => {
@@ -91,9 +83,7 @@ export const useRealBenchmark = (options: UseRealBenchmarkOptions = {}) => {
 
     if (isPolling && autoPoll) {
       pollingIntervalRef.current = setInterval(() => {
-        if (!isFetchingRef.current) {
-          void fetchData();
-        }
+        if (!isFetchingRef.current) void fetchData();
       }, pollingInterval);
     }
 
@@ -107,34 +97,31 @@ export const useRealBenchmark = (options: UseRealBenchmarkOptions = {}) => {
 
   useEffect(() => {
     isMounted.current = true;
-
     return () => {
       isMounted.current = false;
-
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
-
       realBenchmarkService.cancelCurrentRequest();
     };
   }, []);
 
-  const getDeviceData = useCallback((deviceName: string) => {
-    return realBenchmarkService.getDeviceData(deviceName);
-  }, []);
-
   const clearHistory = useCallback(() => {
     realBenchmarkService.clearHistory();
+    setSnapshot(null);
+    setGpus([]);
+    setInference(readInference({ available: false }));
     setStats(realBenchmarkService.getStats());
-    setRealData([]);
+    setHistory([]);
   }, []);
 
   return {
-    realData,
+    snapshot,
+    gpus,
+    inference,
     stats,
-    history: realBenchmarkService.getHistory(),
-    latestData: realBenchmarkService.getLatestData(),
+    history,
     isLoading,
     isPolling,
     error,
@@ -142,6 +129,5 @@ export const useRealBenchmark = (options: UseRealBenchmarkOptions = {}) => {
     fetchData,
     togglePolling,
     clearHistory,
-    getDeviceData,
   };
 };

@@ -1,5 +1,6 @@
 import { api } from './apiClient';
 import type { GpuStatsBundle } from '../types';
+import type { InferenceSnapshot } from '../utils/inferenceSnapshot';
 
 export interface MonitoringGpuStat {
   name: string;
@@ -46,6 +47,8 @@ export interface MonitoringFullData {
   timestamp: string;
   system: MonitoringSystemStats;
   gpu: GpuStatsBundle;
+  /** Только в `/monitoring/full`, не в `/finetune/gpu-stats`. */
+  inference?: InferenceSnapshot | { available: false };
   training: {
     sessions: MonitoringTrainingSession[];
     total: number;
