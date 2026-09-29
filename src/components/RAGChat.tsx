@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import { PlainCodeBlock } from './markdown/PlainCodeBlock';
+import { CodeCopyButton } from './markdown/CodeCopyButton';
 import { fenceTextTrees, plainCodeFromPre } from './markdown/markdownText';
 import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -147,7 +148,6 @@ const PanelRightIcon = () => (
 const TableIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></Icon>;
 const ClearIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></Icon>;
 const VectorIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></Icon>;
-const CopyIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></Icon>;
 const ThinkingIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></Icon>;
 const LLMIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></Icon>;
 const DirectIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></Icon>;
@@ -380,13 +380,6 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
   thinkBlocks,
   searchMode
 }) => {
-  const [copiedBlock, setCopiedBlock] = useState<string | null>(null);
-
-  const handleCopyCode = async (code: string, blockId: string) => {
-    await navigator.clipboard.writeText(code);
-    setCopiedBlock(blockId);
-    setTimeout(() => setCopiedBlock(null), 2000);
-  };
 
   if (isUser) {
     return (
@@ -421,7 +414,6 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
             const match = /language-(\w+)/.exec(className || '');
             const isInline = !match;
             const codeString = String(children).replace(/\n$/, '');
-            const blockId = Math.random().toString(36);
             
             if (!isInline && match) {
               const language = match[1];
@@ -429,21 +421,7 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
               
               return (
                 <div className="relative group my-3 rounded-lg overflow-hidden">
-                  <div className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleCopyCode(codeString, blockId)}
-                      className="p-1.5 bg-muted hover:bg-accent text-foreground rounded-md text-xs transition-colors"
-                      title="Копировать код"
-                    >
-                      {copiedBlock === blockId ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <CopyIcon />
-                      )}
-                    </button>
-                  </div>
+                  <CodeCopyButton code={codeString} />
                   <div className="text-xs text-muted-foreground px-3 pt-1.5 pb-0 bg-muted/50 dark:bg-card/50">
                     {language}
                   </div>

@@ -1,22 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { CodeCopyButton } from './CodeCopyButton';
 
 export const PlainCodeBlock: React.FC<{ code: string; isDarkMode: boolean }> = ({ code, isDarkMode }) => {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="relative group my-3 min-w-0 max-w-full">
-      <button
-        type="button"
-        onClick={() => {
-          void navigator.clipboard.writeText(code).then(() => {
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1500);
-          });
-        }}
-        className="absolute right-2 top-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-muted hover:bg-accent text-foreground rounded-md text-xs shadow"
-        title="Копировать"
-      >
-        {copied ? 'Скопировано' : 'Копировать'}
-      </button>
+      <CodeCopyButton code={code} />
       <pre
         className="overflow-x-auto rounded-lg border px-3 py-2.5 text-[13px] leading-snug font-mono whitespace-pre"
         style={{
