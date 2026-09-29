@@ -57,7 +57,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
 
   return (
     <div className={cn(celestia.page, 'relative transition-colors duration-300')}>
-      <CelestiaBackground />
+      <CelestiaBackground animated={!fill} />
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}

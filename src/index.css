@@ -650,3 +650,8 @@ select.ui-native-select {
 html.tab-hidden .floating-orb {
   animation-play-state: paused;
 }
+
+.celestia-static .floating-orb {
+  animation: none;
+  will-change: auto;
+}
