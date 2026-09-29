@@ -13,7 +13,8 @@ export type SseFrameHandler = (payload: string) => 'stop' | void | Promise<'stop
 export async function readSseFrames(
   response: Response,
   onFrame: SseFrameHandler,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  onBytes?: () => void
 ): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) {
@@ -37,6 +38,7 @@ export async function readSseFrames(
       const { done, value } = await reader.read();
 
       if (value) {
+        onBytes?.();
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() ?? '';

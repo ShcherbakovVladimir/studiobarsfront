@@ -17,6 +17,10 @@ export interface ChatStreamOptions {
   /** Метка в диагностике: `chat`, `chat+tools`, `inference`. */
   label?: string;
   onContextLimit?: (notice: ContextLimitNotice) => void;
+  /** Любые пришедшие байты, включая пинги `: ping`: сбрасывают таймер тишины. */
+  onActivity?: () => void;
+  /** Обрыв по таймеру тишины, а не кнопкой «стоп». */
+  didTimeout?: () => boolean;
 }
 
 function isStreamAbortError(error: unknown): boolean {
@@ -117,7 +121,7 @@ function reportStream(
   diagnostics: StreamDiagnostics,
   label: string,
   startedAt: number,
-  aborted: boolean
+  aborted: 'user' | 'timeout' | null
 ): void {
   if (!debugEnabled()) return;
 
@@ -136,8 +140,10 @@ function reportStream(
     sampled.length >= 3 &&
     sampled.slice(0, -1).every((length) => length === TOOL_SLICE_SIZE);
 
-  const verdict = aborted
-    ? 'остановлено пользователем'
+  const verdict = aborted === 'timeout'
+    ? 'закрыто по таймеру тишины: сервер перестал присылать кадры'
+    : aborted === 'user'
+    ? 'остановлено (кнопка «стоп», выход или закрытие вкладки)'
     : sliced && burst
       ? `бэкенд нарезал готовый ответ по ${TOOL_SLICE_SIZE} символов (путь с tools) — живого стрима тут нет`
       : burst
@@ -243,12 +249,14 @@ export async function consumeChatStream(
         fullResponse += token;
         onChunk(token, fullResponse);
       },
-      abortSignal
+      abortSignal,
+      options.onActivity
     );
   } catch (error) {
     streamError = error;
   } finally {
-    reportStream(diagnostics, label, startedAt, abortSignal.aborted);
+    const abortedBy = !abortSignal.aborted ? null : options.didTimeout?.() ? 'timeout' : 'user';
+    reportStream(diagnostics, label, startedAt, abortedBy);
     finish();
   }
 

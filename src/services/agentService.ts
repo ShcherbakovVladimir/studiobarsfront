@@ -43,6 +43,9 @@ import { ModelLoadError, type LoadLaunchOptions } from './llamaLaunchService';
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 4096;
 const STREAM_TIMEOUT_MS = 600000;
+/** Сколько сервер может молчать (ни одного SSE-кадра), прежде чем стрим закроется. */
+const STREAM_IDLE_TIMEOUT_MS = 5 * 60_000;
+const STREAM_IDLE_TIMEOUT_LABEL = '5 минут';
 
 // Формирование заголовков для запросов (JWT Bearer)
 function getHeaders(sessionId?: string): HeadersInit {
@@ -199,13 +202,16 @@ export type StreamChunkCallback = (chunk: string, fullResponse: string) => void;
 export type StreamCompleteCallback = (
   fullResponse: string,
   contextLimit?: ContextLimitNotice | null,
-  usage?: ContextUsage | null
+  usage?: ContextUsage | null,
+  meta?: { timedOut: boolean }
 ) => void;
 export type StreamErrorCallback = (error: Error) => void;
 
+/** Таймер тишины: сбрасывается на каждом кадре, длинный живой ответ не обрывает. */
 function createStreamAbort(externalSignal?: AbortSignal): {
   signal: AbortSignal;
   didTimeout: () => boolean;
+  touch: () => void;
   cleanup: () => void;
 } {
   const controller = new AbortController();
@@ -223,12 +229,13 @@ function createStreamAbort(externalSignal?: AbortSignal): {
     externalSignal?.addEventListener('abort', onExternalAbort);
   }
 
-  const timeoutId = setTimeout(() => {
+  const onIdle = () => {
     timedOut = true;
     if (!controller.signal.aborted) {
       controller.abort();
     }
-  }, STREAM_TIMEOUT_MS);
+  };
+  let timeoutId = setTimeout(onIdle, STREAM_IDLE_TIMEOUT_MS);
 
   const unregister = registerActiveStream(() => {
     if (!controller.signal.aborted) controller.abort();
@@ -237,6 +244,11 @@ function createStreamAbort(externalSignal?: AbortSignal): {
   return {
     signal: controller.signal,
     didTimeout: () => timedOut,
+    touch: () => {
+      if (controller.signal.aborted) return;
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(onIdle, STREAM_IDLE_TIMEOUT_MS);
+    },
     cleanup: () => {
       unregister();
       clearTimeout(timeoutId);
@@ -255,7 +267,7 @@ function settleStreamAbort(
   error: unknown,
   abort: { signal: AbortSignal; didTimeout: () => boolean },
   onError?: StreamErrorCallback,
-  timeoutMessage = 'Таймаут генерации ответа (10 минут)',
+  timeoutMessage = `Сервер не присылал данные ${STREAM_IDLE_TIMEOUT_LABEL} — соединение закрыто`,
 ): boolean {
   if (!abort.signal.aborted && !isAbortError(error)) return false;
   if (abort.didTimeout()) {
@@ -381,7 +393,7 @@ export async function chatStream(
   let streamDelivered = false;
   const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit, usage);
+    onComplete?.(full, limit, usage, { timedOut: abort.didTimeout() });
   };
 
   try {
@@ -493,10 +505,12 @@ export async function chatStream(
     await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-stream',
+      onActivity: abort.touch,
+      didTimeout: abort.didTimeout,
     });
   } catch (error: unknown) {
     if (settleStreamAbort(error, abort, onError)) {
-      if (!streamDelivered) onComplete?.('', null);
+      if (!streamDelivered && !abort.didTimeout()) onComplete?.('', null);
       return;
     }
     console.error('Stream chat error:', error);
@@ -518,7 +532,7 @@ export async function chatStreamVision(
   let streamDelivered = false;
   const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit, usage);
+    onComplete?.(full, limit, usage, { timedOut: abort.didTimeout() });
   };
 
   try {
@@ -564,10 +578,12 @@ export async function chatStreamVision(
     await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-vision-stream',
+      onActivity: abort.touch,
+      didTimeout: abort.didTimeout,
     });
   } catch (error: unknown) {
     if (settleStreamAbort(error, abort, onError)) {
-      if (!streamDelivered) onComplete?.('', null);
+      if (!streamDelivered && !abort.didTimeout()) onComplete?.('', null);
       return;
     }
     console.error('Vision stream error:', error);
@@ -590,7 +606,7 @@ export async function chatStreamWithTools(
   let streamDelivered = false;
   const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit, usage);
+    onComplete?.(full, limit, usage, { timedOut: abort.didTimeout() });
   };
 
   try {
@@ -666,10 +682,12 @@ export async function chatStreamWithTools(
     await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'chat-stream+tools',
+      onActivity: abort.touch,
+      didTimeout: abort.didTimeout,
     });
   } catch (error: unknown) {
     if (settleStreamAbort(error, abort, onError)) {
-      if (!streamDelivered) onComplete?.('', null);
+      if (!streamDelivered && !abort.didTimeout()) onComplete?.('', null);
       return;
     }
     console.error('Stream chat with tools error:', error);
@@ -1556,7 +1574,7 @@ export async function completionStream(
   let streamDelivered = false;
   const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit, usage);
+    onComplete?.(full, limit, usage, { timedOut: abort.didTimeout() });
   };
 
   try {
@@ -1603,10 +1621,12 @@ export async function completionStream(
     await consumeChatStream(response, abort.signal, onChunk, deliver, {
       requestStartedAt,
       label: 'inference-stream',
+      onActivity: abort.touch,
+      didTimeout: abort.didTimeout,
     });
   } catch (error: unknown) {
-    if (settleStreamAbort(error, abort, onError, 'Таймаут генерации (10 минут)')) {
-      if (!streamDelivered) onComplete?.('', null);
+    if (settleStreamAbort(error, abort, onError)) {
+      if (!streamDelivered && !abort.didTimeout()) onComplete?.('', null);
       return;
     }
     console.error('Completion stream error:', error);

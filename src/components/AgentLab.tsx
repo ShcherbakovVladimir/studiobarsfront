@@ -1486,7 +1486,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       fullResponse: string,
       promptForProcess: string,
       limit?: ContextLimitNotice | null,
-      usage?: ContextUsage | null
+      usage?: ContextUsage | null,
+      timedOut = false
     ) => {
       flushLiveRate();
       const processedContent = postProcessResponse(
@@ -1495,6 +1496,27 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         promptForProcess,
         enableThinking
       );
+      if (timedOut && !isAborted()) {
+        const notice = 'Сервер перестал присылать данные — соединение закрыто. Полученная часть ответа сохранена.';
+        if (processedContent.trim()) {
+          dispatch(finalizeLastMessage({
+            modelId: currentModelId,
+            content: processedContent,
+            interrupted: true,
+          }));
+          showErrorToast(notice);
+        } else {
+          dispatch(updateLastMessage({
+            modelId: currentModelId,
+            content: `❌ ${notice}`,
+            isStreaming: false,
+            isError: true,
+          }));
+        }
+        setIsStreaming(false);
+        dispatch(setLoading(false));
+        return;
+      }
       if (isAborted()) {
         if (processedContent.trim()) {
           dispatch(finalizeLastMessage({
@@ -1620,7 +1642,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse, limit, usage) => settleAnswer(fullResponse, promptText, limit, usage),
+          (fullResponse, limit, usage, meta) => settleAnswer(fullResponse, promptText, limit, usage, meta?.timedOut),
           failAnswer
         );
       } else {
@@ -1636,7 +1658,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse, limit, usage) => settleAnswer(fullResponse, userMessageContent, limit, usage),
+          (fullResponse, limit, usage, meta) => settleAnswer(fullResponse, userMessageContent, limit, usage, meta?.timedOut),
           failAnswer
         );
       }
