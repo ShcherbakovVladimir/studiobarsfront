@@ -123,6 +123,11 @@ const UploadIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round
 const RefreshIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></Icon>;
 const TrashIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></Icon>;
 const SendIcon = () => <Icon className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" /></Icon>;
+const StopIcon = () => (
+  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="5" y="5" width="14" height="14" rx="2.5" />
+  </svg>
+);
 const DatabaseIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></Icon>;
 const CloseIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></Icon>;
 const FolderIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></Icon>;
@@ -2131,25 +2136,27 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             disabled={isLoading || isStreaming || !isConnected}
           />
 
-          {(isLoading || isStreaming) && (
+          {isLoading || isStreaming ? (
             <button
               type="button"
               onClick={handleStopGeneration}
-              className={celestia.chatComposerStop}
+              aria-label="Остановить генерацию"
+              title="Остановить генерацию"
+              className={celestia.sendButton}
             >
-              Стоп
+              <StopIcon />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSendMessage}
+              disabled={!input.trim() || !isConnected}
+              aria-label="Отправить"
+              className={celestia.sendButton}
+            >
+              <SendIcon />
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={handleSendMessage}
-            disabled={isLoading || isStreaming || !input.trim() || !isConnected}
-            aria-label="Отправить"
-            className={celestia.sendButton}
-          >
-            <SendIcon />
-          </button>
         </div>
 
         <div className="text-[10px] sm:text-xs text-center mt-2 text-muted-foreground flex items-center justify-center gap-2 flex-wrap">

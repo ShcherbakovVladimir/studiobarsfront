@@ -381,8 +381,8 @@ const ThinkingIcon = () => (
 );
 
 const StopStreamingIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <rect x="6" y="6" width="12" height="12" rx="2" strokeWidth={2} />
+  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="5" y="5" width="14" height="14" rx="2.5" />
   </svg>
 );
 
@@ -1764,18 +1764,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </span>
                   </span>
 
-                  {isStreaming && (
-                    <button
-                      type="button"
-                      onClick={stopStreaming}
-                      title="Остановить генерацию"
-                      className="inline-flex items-center gap-1 h-8 px-2 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95"
-                    >
-                      <StopStreamingIcon />
-                      <span className="hidden @[36rem]/agentchat:inline">Стоп</span>
-                    </button>
-                  )}
-                  
                   <div className="flex">
                     <AssistantToolsMenu
                       enabled={useTools}
@@ -2192,15 +2180,27 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     autoComplete="off"
                                     disabled={loading || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={handleSendMessage}
-                                    disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
-                                    aria-label="Отправить"
-                                    className={celestia.sendButton}
-                                >
-                                    <SendIcon />
-                                </button>
+                                {isStreaming ? (
+                                  <button
+                                      type="button"
+                                      onClick={stopStreaming}
+                                      aria-label="Остановить генерацию"
+                                      title="Остановить генерацию"
+                                      className={celestia.sendButton}
+                                  >
+                                      <StopStreamingIcon />
+                                  </button>
+                                ) : (
+                                  <button
+                                      type="button"
+                                      onClick={handleSendMessage}
+                                      disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || Boolean(currentChat?.contextLimit)}
+                                      aria-label="Отправить"
+                                      className={celestia.sendButton}
+                                  >
+                                      <SendIcon />
+                                  </button>
+                                )}
                             </div>
                             <div className="text-[11px] text-center mt-1.5 text-muted-foreground">
                                 {currentChat?.contextLimit
