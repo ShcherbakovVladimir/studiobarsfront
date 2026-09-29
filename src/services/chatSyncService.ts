@@ -309,11 +309,27 @@ function messagesForSync(messages: ChatMessage[]): ChatMessage[] {
     const imageCount = message.images?.length ?? 0;
     const rest = { ...message };
     delete rest.images;
+    delete rest.interrupted;
     return {
       ...rest,
       content: persistableVisionContent(rest.content, imageCount),
     };
   });
+}
+
+/** Сервер не хранит пометку «остановлено» — возвращаем её из локальной копии. */
+function withLocalInterrupted(serverMessages: ChatMessage[], localMessages: ChatMessage[] | undefined): ChatMessage[] {
+  const stopped = new Set(
+    (localMessages ?? [])
+      .filter((m) => m.interrupted && m.role === 'assistant')
+      .map((m) => `${m.timestamp ?? ''}\u0000${m.content}`)
+  );
+  if (stopped.size === 0) return serverMessages;
+  return serverMessages.map((m) =>
+    m.role === 'assistant' && stopped.has(`${m.timestamp ?? ''}\u0000${m.content}`)
+      ? { ...m, interrupted: true }
+      : m
+  );
 }
 
 export function isDeletedChatId(chatId: string): boolean {
@@ -327,8 +343,13 @@ export async function getChatFromServer(chatId: string): Promise<ChatData | null
     const chat = data.chat;
     if (!chat) return null;
     if (!isOwnChat(chat, currentUserId())) return null;
-    const localLimit = loadChatFromLocal(chat.id)?.contextLimit;
-    const merged: ChatData = { ...chat, contextLimit: chat.contextLimit ?? localLimit };
+    const local = loadChatFromLocal(chat.id);
+    const merged: ChatData = {
+      ...chat,
+      messages: withLocalInterrupted(chat.messages ?? [], local?.messages),
+      contextLimit: chat.contextLimit ?? local?.contextLimit,
+      contextUsage: chat.contextUsage ?? local?.contextUsage,
+    };
     saveChatToLocal(merged);
     return merged;
   } catch {
@@ -409,6 +430,7 @@ function summaryToChat(summary: ChatSummary): ChatData {
     systemPrompt: local?.systemPrompt ?? '',
     chatWrapper: local?.chatWrapper ?? 'default',
     contextLimit: local?.contextLimit,
+    contextUsage: local?.contextUsage,
     createdAt: summary.createdAt ?? local?.createdAt,
     updatedAt: summary.updatedAt ?? local?.updatedAt,
   };
@@ -465,6 +487,7 @@ export async function restoreChatList(activeChatId?: string | null): Promise<{
         sessionId: full.sessionId || full.id,
         messageCount: full.messages?.length ?? full.messageCount ?? active.messageCount,
         contextLimit: active.contextLimit ?? full.contextLimit,
+        contextUsage: active.contextUsage ?? full.contextUsage,
       };
       const index = chats.findIndex((chat) => chat.id === active?.id);
       if (index >= 0) chats[index] = active;

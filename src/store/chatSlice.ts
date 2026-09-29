@@ -169,8 +169,9 @@ const chatSlice = createSlice({
     finalizeLastMessage: (state, action: PayloadAction<{
       modelId: string;
       content: string;
+      interrupted?: boolean;
     }>) => {
-      const { modelId, content } = action.payload;
+      const { modelId, content, interrupted } = action.payload;
       const history = state.histories[modelId];
       
       if (history && history.length > 0) {
@@ -180,6 +181,8 @@ const chatSlice = createSlice({
           lastMessage.isStreaming = false;
           delete lastMessage.isStreaming; // Удаляем флаг streaming
           if (lastMessage.isError) delete lastMessage.isError;
+          if (interrupted) lastMessage.interrupted = true;
+          else delete lastMessage.interrupted;
           
           // Сохраняем финальную версию сообщения
           saveHistoriesToStorage(state.histories);

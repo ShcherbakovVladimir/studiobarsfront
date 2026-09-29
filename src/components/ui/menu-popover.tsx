@@ -11,6 +11,7 @@ interface MenuPopoverProps {
   minWidth?: number;
   matchTriggerWidth?: boolean;
   zIndex?: number;
+  align?: 'start' | 'end';
 }
 
 export function MenuPopover({
@@ -22,6 +23,7 @@ export function MenuPopover({
   minWidth = 176,
   matchTriggerWidth = true,
   zIndex = 80,
+  align = 'start',
 }: MenuPopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({});
@@ -36,7 +38,8 @@ export function MenuPopover({
     const openUp = spaceBelow < panelHeight + 8 && rect.top > spaceBelow;
     const width = Math.max(matchTriggerWidth ? rect.width : 0, minWidth);
     const maxLeft = Math.max(8, window.innerWidth - width - 8);
-    const left = Math.min(Math.max(8, rect.left), maxLeft);
+    const anchor = align === 'end' ? rect.right - width : rect.left;
+    const left = Math.min(Math.max(8, anchor), maxLeft);
 
     setStyle({
       position: 'fixed',
@@ -46,7 +49,7 @@ export function MenuPopover({
       bottom: openUp ? window.innerHeight - rect.top + 6 : undefined,
       zIndex,
     });
-  }, [matchTriggerWidth, minWidth, triggerRef, zIndex]);
+  }, [align, matchTriggerWidth, minWidth, triggerRef, zIndex]);
 
   useLayoutEffect(() => {
     if (!open) return;

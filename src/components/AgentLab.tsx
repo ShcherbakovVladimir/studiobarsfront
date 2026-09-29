@@ -26,6 +26,8 @@ import { MenuPopover } from './ui/menu-popover';
 import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDisplay';
 import { contextLimitUsageLabel, isContextLimitError, type ContextLimitNotice } from '../utils/contextLimit';
+import { usageFromContextLimit, type ContextUsage } from '../utils/contextUsage';
+import { ContextUsageRing } from './ContextUsageRing';
 import { nextLiveTokenRate, type LiveTokenRate } from '../utils/liveTokenRate';
 
 // Импорт компонентов инструментов
@@ -239,18 +241,29 @@ const postProcessResponse = (text: string, modelFamily?: string, originalPrompt?
   return processed;
 };
 
+const InterruptedNote = () => (
+  <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="5" width="14" height="14" rx="2.5" />
+    </svg>
+    Генерация остановлена
+  </div>
+);
+
 // Форматированное сообщение с профессиональным выводом
 const FormattedMessageBase: React.FC<{
   content: string;
   isDarkMode: boolean;
   isUser?: boolean;
   isStreaming?: boolean;
+  interrupted?: boolean;
   images?: ChatImageAttachment[];
 }> = ({ 
   content, 
   isDarkMode, 
   isUser = false,
   isStreaming = false,
+  interrupted = false,
   images,
 }) => {
   const imagePreviews = images?.filter((image) => image.previewUrl) ?? [];
@@ -322,6 +335,7 @@ const FormattedMessageBase: React.FC<{
         )
       )}
       {answerStreaming && <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>}
+      {interrupted && !isStreaming && <InterruptedNote />}
     </div>
   );
 };
@@ -1404,12 +1418,23 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }
   };
 
-  const lockChatContext = (chatId: string, notice: ContextLimitNotice) => {
-    setAvailableChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, contextLimit: notice } : c)));
+  const patchChatContext = (chatId: string, patch: Pick<ChatData, 'contextLimit' | 'contextUsage'>) => {
+    setAvailableChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, ...patch } : c)));
     if (currentChatRef.current?.id !== chatId) return;
-    const next = { ...currentChatRef.current, contextLimit: notice };
+    const next = { ...currentChatRef.current, ...patch };
     currentChatRef.current = next;
     setCurrentChat(next);
+  };
+
+  const lockChatContext = (chatId: string, notice: ContextLimitNotice, usage?: ContextUsage | null) => {
+    patchChatContext(chatId, {
+      contextLimit: notice,
+      contextUsage: usage ?? usageFromContextLimit(notice) ?? undefined,
+    });
+  };
+
+  const recordContextUsage = (chatId: string, usage: ContextUsage) => {
+    patchChatContext(chatId, { contextUsage: usage });
   };
 
   // ОСНОВНАЯ ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ С STREAMING
@@ -1457,7 +1482,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const isAborted = () => abortController.signal.aborted;
     const chatId = currentChat?.id ?? sessionId;
 
-    const settleAnswer = (fullResponse: string, promptForProcess: string, limit?: ContextLimitNotice | null) => {
+    const settleAnswer = (
+      fullResponse: string,
+      promptForProcess: string,
+      limit?: ContextLimitNotice | null,
+      usage?: ContextUsage | null
+    ) => {
       flushLiveRate();
       const processedContent = postProcessResponse(
         fullResponse,
@@ -1470,6 +1500,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           dispatch(finalizeLastMessage({
             modelId: currentModelId,
             content: processedContent,
+            interrupted: true,
           }));
         } else {
           dispatch(discardStreamingAssistant(currentModelId));
@@ -1486,7 +1517,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           content: processedContent,
         }));
       }
-      if (limit) lockChatContext(chatId, limit);
+      if (limit) lockChatContext(chatId, limit, usage);
+      else if (usage) recordContextUsage(chatId, usage);
       setIsStreaming(false);
       dispatch(setLoading(false));
     };
@@ -1588,7 +1620,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse, limit) => settleAnswer(fullResponse, promptText, limit),
+          (fullResponse, limit, usage) => settleAnswer(fullResponse, promptText, limit, usage),
           failAnswer
         );
       } else {
@@ -1604,7 +1636,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               isStreaming: true,
             }));
           },
-          (fullResponse, limit) => settleAnswer(fullResponse, userMessageContent, limit),
+          (fullResponse, limit, usage) => settleAnswer(fullResponse, userMessageContent, limit, usage),
           failAnswer
         );
       }
@@ -2065,6 +2097,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                           isDarkMode={isDarkMode}
                                           isUser={msg.role === 'user'}
                                           isStreaming={msg.isStreaming}
+                                          interrupted={msg.interrupted}
                                           images={msg.images}
                                         />
                                     </div>
@@ -2179,6 +2212,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     rows={1}
                                     autoComplete="off"
                                     disabled={loading || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
+                                />
+                                <ContextUsageRing
+                                  usage={currentChat?.contextUsage}
+                                  limitMessage={currentChat?.contextLimit?.message}
+                                  streaming={isStreaming}
                                 />
                                 {isStreaming ? (
                                   <button

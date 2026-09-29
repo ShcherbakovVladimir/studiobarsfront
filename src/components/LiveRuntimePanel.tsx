@@ -258,7 +258,16 @@ function LiveRuntimePanelView({ open, onClose, streaming = false, streamRate = n
           </div>
           <Row label="Квант" value={inference.precision ?? '—'} />
           <Row label="Контекст" value={inference.contextSize ?? '—'} />
-          <Row label="Токены" value={`${fmt(inference.tokensPrompt, 0)} → ${fmt(inference.tokensGenerated, 0)}`} />
+          <Row label="Посчитано → ответ" value={`${fmt(inference.tokensPrompt, 0)} → ${fmt(inference.tokensGenerated, 0)}`} />
+          <Row label="Промпт весь / из кэша" value={`${fmt(inference.tokensPromptTotal, 0)} / ${fmt(inference.tokensCached, 0)}`} />
+          <Row
+            label="Слот занят"
+            value={
+              inference.tokensTotal !== null && inference.contextSize
+                ? `${fmt(inference.tokensTotal, 0)} из ${fmt(inference.contextSize, 0)}`
+                : fmt(inference.tokensTotal, 0)
+            }
+          />
           <Row label="Источник" value={showLive ? 'поток чата' : inferenceSourceLabel(inference.source) || '—'} />
           {streaming && (
             <p className="text-[11px] text-muted-foreground">Скорость считается по приходящим токенам.</p>

@@ -18,8 +18,13 @@ export interface InferenceSnapshot {
   genTps: number | null;
   ttftMs: number | null;
   latencyMs: number | null;
+  /** Заново посчитанная часть промпта последнего запроса. */
   tokensPrompt: number | null;
+  tokensCached: number | null;
+  tokensPromptTotal: number | null;
   tokensGenerated: number | null;
+  /** Сколько слот занят после ответа. */
+  tokensTotal: number | null;
   running: boolean;
   idle: boolean;
   source: InferenceSource | null;
@@ -53,7 +58,10 @@ export function readInference(raw: unknown): InferenceSnapshot {
       ttftMs: null,
       latencyMs: null,
       tokensPrompt: null,
+      tokensCached: null,
+      tokensPromptTotal: null,
       tokensGenerated: null,
+      tokensTotal: null,
       running: false,
       idle: true,
       source: null,
@@ -77,7 +85,10 @@ export function readInference(raw: unknown): InferenceSnapshot {
     ttftMs: num(data, 'ttftMs'),
     latencyMs: num(data, 'latencyMs'),
     tokensPrompt: num(data, 'tokensPrompt'),
+    tokensCached: num(data, 'tokensCached'),
+    tokensPromptTotal: num(data, 'tokensPromptTotal'),
     tokensGenerated: num(data, 'tokensGenerated'),
+    tokensTotal: num(data, 'tokensTotal'),
     running: bool(data, 'running'),
     idle: bool(data, 'idle'),
     source: str(data, 'source'),

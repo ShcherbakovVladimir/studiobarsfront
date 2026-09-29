@@ -104,6 +104,8 @@ const initialState: RAGState = {
 };
 
 // Асинхронные thunks
+export const ABORTED_PLACEHOLDER = '⏹ Генерация остановлена';
+
 export const bootstrapRAGSessions = createAsyncThunk(
   'rag/bootstrapSessions',
   async (userId: string | undefined) => {
@@ -332,7 +334,7 @@ export const sendRAGQueryStream = createAsyncThunk(
       dispatch(
         finalizeRAGMessage({
           id: assistantId,
-          content: isAbort ? (streamedContent || '⏹ Генерация остановлена') : `❌ ${message}`,
+          content: isAbort ? (streamedContent || ABORTED_PLACEHOLDER) : `❌ ${message}`,
           isError: !isAbort && Boolean(message),
           isAborted: isAbort,
           search_mode: mode,

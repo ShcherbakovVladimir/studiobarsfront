@@ -247,6 +247,16 @@ export interface PersistedChat {
     tokensPrompt: number | null;
     tokensGenerated: number | null;
   };
+  /** Последний счётчик слота (`chat.usage`); локально, в sync не уходит. */
+  contextUsage?: {
+    contextSize: number | null;
+    tokensPrompt: number | null;
+    tokensCached: number | null;
+    tokensEvaluated: number | null;
+    tokensGenerated: number | null;
+    tokensTotal: number | null;
+    updatedAt: string;
+  };
 }
 
 export type AdminUserChatUpdateBody = Partial<
@@ -385,6 +395,8 @@ export interface ChatMessage {
   // ========== ДОБАВИТЬ ДЛЯ STREAMING ==========
   isStreaming?: boolean;     // Флаг, что сообщение в процессе получения
   // ===========================================
+  /** Остановлено кнопкой «стоп». Только локально: в sync и history не уходит. */
+  interrupted?: boolean;
 }
 
 export interface ChatResponse {

@@ -31,6 +31,7 @@ import {
   setSearchMode,
   setQuerySettings,
   loadRAGEmbeddingHealth,
+  ABORTED_PLACEHOLDER,
 } from '../store/ragSlice';
 import { saveLocalRagSessionStore } from '../services/ragService';
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
@@ -1179,7 +1180,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     };
 
     const history = messages
-      .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content.trim())
+      .filter(
+        (m) =>
+          (m.role === 'user' || m.role === 'assistant') &&
+          m.content.trim() &&
+          !(m.isAborted && m.content === ABORTED_PLACEHOLDER)
+      )
       .slice(-20)
       .map((m) => ({ role: m.role, content: m.content }));
 
@@ -1967,6 +1973,15 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 thinkBlocks={msg.think_blocks}
                 searchMode={msg.search_mode}
               />
+
+              {msg.role === 'assistant' && msg.isAborted && !msg.isStreaming && msg.content !== ABORTED_PLACEHOLDER && (
+                <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="5" width="14" height="14" rx="2.5" />
+                  </svg>
+                  Генерация остановлена
+                </div>
+              )}
 
               {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
                 <RAGSourcesList

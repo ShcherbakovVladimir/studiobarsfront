@@ -1,10 +1,15 @@
 import type { UnknownRecord } from '../types';
 import { readContextLimit, type ContextLimitNotice } from './contextLimit';
+import { isUsageFrame, readContextUsage, usageFromContextLimit, type ContextUsage } from './contextUsage';
 import { readSseFrames } from './sseStream';
 
 export type StreamChunkHandler = (chunk: string, fullResponse: string) => void;
 
-export type StreamDoneHandler = (fullResponse: string, contextLimit?: ContextLimitNotice | null) => void;
+export type StreamDoneHandler = (
+  fullResponse: string,
+  contextLimit?: ContextLimitNotice | null,
+  usage?: ContextUsage | null
+) => void;
 
 export interface ChatStreamOptions {
   /** `performance.now()` снятый перед fetch — отделяет ожидание сервера от буферизации. */
@@ -175,21 +180,23 @@ export async function consumeChatStream(
     const data = (await response.json()) as UnknownRecord;
     const contextLimit = readContextLimit(data);
     if (contextLimit) options.onContextLimit?.(contextLimit);
+    const usage = readContextUsage(data);
     const text = nonStreamText(data);
     if (text) onChunk(text, text);
-    if (!abortSignal.aborted) onComplete?.(text, contextLimit);
+    if (!abortSignal.aborted) onComplete?.(text, contextLimit, usage);
     return;
   }
 
   let fullResponse = '';
   let contextLimit: ContextLimitNotice | null = null;
+  let usage: ContextUsage | null = null;
   let finished = false;
   const diagnostics: StreamDiagnostics = { frames: 0, firstAt: 0, lastAt: 0, lengths: [] };
 
   const finish = () => {
     if (finished) return;
     finished = true;
-    onComplete?.(fullResponse, contextLimit);
+    onComplete?.(fullResponse, contextLimit, usage);
   };
 
   let streamError: unknown;
@@ -209,9 +216,15 @@ export async function consumeChatStream(
           return;
         }
 
+        if (isUsageFrame(parsed)) {
+          usage = readContextUsage(parsed);
+          return;
+        }
+
         const limit = readContextLimit(parsed);
         if (limit) {
           contextLimit = limit;
+          usage ??= usageFromContextLimit(limit);
           options.onContextLimit?.(limit);
           return;
         }

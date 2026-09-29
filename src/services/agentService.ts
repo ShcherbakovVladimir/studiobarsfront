@@ -32,6 +32,7 @@ import { buildGrammarApiFields } from '../utils/grammarUtils';
 import { isServerOnline } from '../utils/serverStatus';
 import { consumeChatStream } from '../utils/streamResponse';
 import { ContextLimitError, contextLimitFromBody, type ContextLimitNotice } from '../utils/contextLimit';
+import type { ContextUsage } from '../utils/contextUsage';
 import { registerActiveStream } from '../utils/activeStreams';
 import { stripThinkingTags } from '../utils/thinkingContent';
 import { filesToVisionPayloads } from '../utils/chatVision';
@@ -195,7 +196,11 @@ export interface UITool {
 
 // Streaming callback types
 export type StreamChunkCallback = (chunk: string, fullResponse: string) => void;
-export type StreamCompleteCallback = (fullResponse: string, contextLimit?: ContextLimitNotice | null) => void;
+export type StreamCompleteCallback = (
+  fullResponse: string,
+  contextLimit?: ContextLimitNotice | null,
+  usage?: ContextUsage | null
+) => void;
 export type StreamErrorCallback = (error: Error) => void;
 
 function createStreamAbort(externalSignal?: AbortSignal): {
@@ -374,9 +379,9 @@ export async function chatStream(
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
   let streamDelivered = false;
-  const deliver: StreamCompleteCallback = (full, limit) => {
+  const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit);
+    onComplete?.(full, limit, usage);
   };
 
   try {
@@ -511,9 +516,9 @@ export async function chatStreamVision(
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
   let streamDelivered = false;
-  const deliver: StreamCompleteCallback = (full, limit) => {
+  const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit);
+    onComplete?.(full, limit, usage);
   };
 
   try {
@@ -583,9 +588,9 @@ export async function chatStreamWithTools(
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
   let streamDelivered = false;
-  const deliver: StreamCompleteCallback = (full, limit) => {
+  const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit);
+    onComplete?.(full, limit, usage);
   };
 
   try {
@@ -1549,9 +1554,9 @@ export async function completionStream(
 ): Promise<void> {
   const abort = createStreamAbort(options.signal);
   let streamDelivered = false;
-  const deliver: StreamCompleteCallback = (full, limit) => {
+  const deliver: StreamCompleteCallback = (full, limit, usage) => {
     streamDelivered = true;
-    onComplete?.(full, limit);
+    onComplete?.(full, limit, usage);
   };
 
   try {
