@@ -11,6 +11,7 @@ import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { RootState, AppDispatch } from '../store/store';
 import { 
   sendRAGQueryStream, 
@@ -615,7 +616,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   const setShowSessionSidebar = (value: boolean) => setToggle('sessionListOpen', value);
   const showFilesSidebar = getToggle('filesListOpen', true);
   const setShowFilesSidebar = (value: boolean) => setToggle('filesListOpen', value);
-  const [highlightFileSource, setHighlightFileSource] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  /** `/rag?source=workspace/…` — «Спросить в Аналитике» из рабочей папки. */
+  const [linkedSource] = useState(() => searchParams.get('source'));
+  const [highlightFileSource, setHighlightFileSource] = useState<string | null>(linkedSource);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const headerMenuRef = useRef<HTMLButtonElement>(null);
   const closeSessionSidebarIfMobile = () => {
@@ -640,9 +644,20 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   const streamAbortRef = useRef<(() => void) | null>(null);
   
   // Состояния для загрузки данных
-  const [selectedDocumentSources, setSelectedDocumentSources] = useState<string[]>([]);
+  const [selectedDocumentSources, setSelectedDocumentSources] = useState<string[]>(() =>
+    linkedSource ? [linkedSource] : []
+  );
   const [compareMode, setCompareMode] = useState(false);
   const [compareDocumentSources, setCompareDocumentSources] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!linkedSource) return;
+    setToggle('filesListOpen', true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('source');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- один раз при входе по ссылке
+  }, []);
   const [selectedTableNames, setSelectedTableNames] = useState<string[]>([]);
   const [showRagSettings, setShowRagSettings] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);

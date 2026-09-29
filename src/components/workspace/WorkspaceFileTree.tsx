@@ -220,6 +220,8 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
         </button>
         <input
           ref={inputRef}
+          id="workspace-upload-input"
+          name="file"
           type="file"
           multiple
           accept={WORKSPACE_UPLOAD_ACCEPT}
@@ -260,7 +262,17 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1.5 py-2">
-        {error ? (
+        {error && tree.length > 0 && (
+          <div className="mx-1 mb-2 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+            <span className="min-w-0 flex-1 truncate" title={error}>
+              Список мог устареть: {error}
+            </span>
+            <button type="button" onClick={onRefresh} className="shrink-0 underline underline-offset-2">
+              Обновить
+            </button>
+          </div>
+        )}
+        {error && tree.length === 0 ? (
           <div className="space-y-2 px-2 py-4 text-center text-xs text-destructive">
             <p>{error}</p>
             <button type="button" onClick={onRefresh} className="underline underline-offset-2">

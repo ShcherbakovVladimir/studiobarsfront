@@ -22,6 +22,10 @@ import { IconButton } from './ui/icon-button';
 import { EmptyState, LoadingState } from './ui/page-states';
 import MarkdownContent from './MarkdownContent';
 import RagPreviewDialog from './RagPreviewDialog';
+import { WorkspaceSourcesSection } from './WorkspaceSourcesSection';
+
+/** Источники рабочей папки (`workspace/…`) живут в своём разделе: DELETE по имени со `/` не работает. */
+const isWorkspaceSource = (source: string) => source.startsWith('workspace/');
 
 interface RAGDocumentsPanelProps {
   isDarkMode: boolean;
@@ -59,6 +63,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   active = true,
 }) => {
   const [documents, setDocuments] = useState<RagDocument[]>([]);
+  const [indexLoaded, setIndexLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -67,6 +72,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   const [ocrRagSources, setOcrRagSources] = useState<string[]>([]);
   const { getToggle, setToggle } = useWorkspacePanel(PANEL_IDS.RAG_CHAT, 'chat');
   const indexOpen = getToggle('ragIndexOpen', false);
+  const workspaceOpen = getToggle('ragWorkspaceOpen', true);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) {
@@ -76,6 +82,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     try {
       const res = await ragService.getDocuments();
       setDocuments(res.documents);
+      setIndexLoaded(true);
     } catch (err) {
       if (!silent) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить документы');
@@ -98,6 +105,11 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
   );
 
   const ocrSourceSet = useMemo(() => new Set(ocrRagSources), [ocrRagSources]);
+  const indexDocs = useMemo(() => documents.filter((doc) => !isWorkspaceSource(doc.source)), [documents]);
+  const workspaceIndex = useMemo(
+    () => new Map(documents.filter((doc) => isWorkspaceSource(doc.source)).map((doc) => [doc.source, doc])),
+    [documents]
+  );
 
   useEffect(() => {
     if (!pollIndexing || !indexingInProgress) return;
@@ -119,7 +131,9 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     }
   };
 
-  const selectAll = () => onSelectionChange(documents.map((d) => d.source));
+  const selectAll = () =>
+    onSelectionChange([...new Set([...selectedSources, ...indexDocs.map((d) => d.source)])]);
+  const selectMany = (sources: string[]) => onSelectionChange([...new Set([...selectedSources, ...sources])]);
   const clearSelection = () => onSelectionChange([]);
 
   const handleDelete = async (source: string) => {
@@ -185,6 +199,18 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
     <div className={compact ? '' : 'space-y-3'}>
       {error && <InlineError message={error} className="mb-2 text-xs" />}
 
+      <WorkspaceSourcesSection
+        selectedSources={selectedSources}
+        onToggle={toggleSource}
+        onSelectMany={selectMany}
+        indexBySource={workspaceIndex}
+        indexLoaded={indexLoaded}
+        open={workspaceOpen}
+        onOpenChange={(next) => setToggle('ragWorkspaceOpen', next)}
+        active={active}
+        highlightSource={highlightSource}
+      />
+
       <UserFilesPanel
         isDarkMode={isDarkMode}
         selectedSources={selectedSources}
@@ -218,7 +244,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
             <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
           )}
           <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-          <span className="truncate">Индекс RAG ({documents.length})</span>
+          <span className="truncate">Индекс RAG ({indexDocs.length})</span>
         </button>
         <div className="flex items-center gap-1">
           {indexOpen && (
@@ -268,11 +294,11 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
         </p>
       )}
 
-      {loading && documents.length === 0 && (
+      {loading && indexDocs.length === 0 && (
         <LoadingState message="Загрузка индекса..." className="py-6" />
       )}
 
-      {!loading && documents.length === 0 && (
+      {!loading && indexDocs.length === 0 && (
         <EmptyState
           message="В индексе пока нет текстов. После OCR скана здесь появится Markdown, либо загрузите DOCX/TXT."
           className="py-6 text-sm"
@@ -280,7 +306,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
       )}
 
       <div className={compact ? 'space-y-2' : 'space-y-2 max-h-80 overflow-y-auto'}>
-        {documents.map((doc) => {
+        {indexDocs.map((doc) => {
           const selected = selectedSources.includes(doc.source);
           const busy = actionId === doc.source;
           const pct = doc.completion_percentage ?? (doc.is_fully_indexed ? 100 : 0);

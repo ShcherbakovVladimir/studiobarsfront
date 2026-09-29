@@ -27,6 +27,8 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
   const isFetchingRef = useRef(false);
   const queuedRef = useRef(false);
   const seqRef = useRef(0);
+  /** Одна и та же ошибка опроса пишется в консоль один раз, а не каждые 30 с. */
+  const lastLoggedErrorRef = useRef('');
   const pollingIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -47,6 +49,7 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
       
       if (!isMounted.current) return;
       
+      lastLoggedErrorRef.current = '';
       setData(result);
       setCompletedSeq(seq);
       setLastUpdated(new Date().toLocaleTimeString([], { 
@@ -68,7 +71,10 @@ export const useHardwareMonitoring = (options: UseHardwareMonitoringOptions = {}
         return;
       }
       
-      console.error('Error fetching hardware monitoring:', err);
+      if (errorMessage !== lastLoggedErrorRef.current) {
+        lastLoggedErrorRef.current = errorMessage;
+        console.warn('GET /api/monitoring/full:', errorMessage);
+      }
       if (isMounted.current) {
         setError(errorMessage || 'Неизвестная ошибка');
       }

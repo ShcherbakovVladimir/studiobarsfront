@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, X } from 'lucide-react';
 import type { RootState } from '../store/store';
 import { cn } from '../lib/utils';
@@ -81,6 +82,7 @@ const WorkspacePage: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const isDarkMode = useSelector((state: RootState) => state.app.isDarkMode);
   const employee = isEmployee(user);
+  const navigate = useNavigate();
   const userId = user?.id ?? 'anon';
 
   // --- Папка -----------------------------------------------------------------
@@ -121,19 +123,39 @@ const WorkspacePage: React.FC = () => {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const refresh = useCallback(async () => {
+  const listSeqRef = useRef(0);
+
+  /**
+   * Список обновляется из нескольких мест сразу (конец задачи, опрос распознавания, фокус окна):
+   * применяется только самый свежий ответ. Разовый сбой не стирает дерево — один повтор через 1.5 с.
+   */
+  const refresh = useCallback(async (): Promise<WorkspaceEntry[] | null> => {
+    const seq = ++listSeqRef.current;
     setListLoading(true);
     try {
-      const listing = await workspaceService.list();
-      setEntries(listing.entries);
-      setTruncated(listing.truncated);
-      setListError(null);
-      return listing.entries;
-    } catch (error) {
-      setListError(error instanceof Error ? error.message : 'Не удалось получить список файлов');
-      return null;
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          const listing = await workspaceService.list();
+          if (seq !== listSeqRef.current) return listing.entries;
+          setEntries(listing.entries);
+          setTruncated(listing.truncated);
+          setListError(null);
+          return listing.entries;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Не удалось получить список файлов';
+          const status = error instanceof ApiError ? error.status : 0;
+          console.warn(`GET /api/workspace (попытка ${attempt + 1}): ${message}`);
+          if (attempt === 0 && status !== 401 && status !== 403) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1500));
+            if (seq !== listSeqRef.current) return null;
+            continue;
+          }
+          if (seq === listSeqRef.current) setListError(message);
+          return null;
+        }
+      }
     } finally {
-      setListLoading(false);
+      if (seq === listSeqRef.current) setListLoading(false);
     }
   }, []);
 
@@ -151,8 +173,11 @@ const WorkspacePage: React.FC = () => {
       const content = await workspaceService.read(path);
       if (selectedPathRef.current === path) setFile(content);
     } catch (error) {
-      if (selectedPathRef.current === path) {
-        setFileError(error instanceof Error ? error.message : 'Не удалось открыть файл');
+      const message = error instanceof Error ? error.message : 'Не удалось открыть файл';
+      console.warn(`GET /api/workspace/file?path=${path}: ${message}`);
+      // Тихое перечитывание после правки не прячет уже показанный текст.
+      if (selectedPathRef.current === path && !quiet) {
+        setFileError(message);
       }
     } finally {
       if (selectedPathRef.current === path) setFileLoading(false);
@@ -676,6 +701,9 @@ const WorkspacePage: React.FC = () => {
             >
               <textarea
                 ref={inputRef}
+                id="workspace-task-input"
+                name="message"
+                aria-label="Задача для рабочей папки"
                 value={input}
                 rows={1}
                 onChange={(event) => setInput(event.target.value)}
@@ -728,6 +756,7 @@ const WorkspacePage: React.FC = () => {
               onDelete={() => void deleteFile()}
               onSave={saveFile}
               onMention={() => mentionFile(selectedPath)}
+              onAsk={(ragSource) => navigate(`/rag?source=${encodeURIComponent(ragSource)}`)}
             />
           </aside>
         </>

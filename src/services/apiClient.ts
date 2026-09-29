@@ -252,11 +252,26 @@ export async function fetchRagApi(
 }
 
 function apiErrorMessage(data: Record<string, unknown>, fallback: string): string {
-  const candidates = [data.error, data.message, data.detail, data.details];
+  const nested = data.error && typeof data.error === 'object' ? (data.error as Record<string, unknown>).message : undefined;
+  const candidates = [data.error, nested, data.message, data.detail, data.details, data.reason];
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return value;
   }
-  return fallback;
+  const code = typeof data.code === 'string' ? data.code : '';
+  return code ? `${fallback} ${code}` : fallback;
+}
+
+/**
+ * Ответ не JSON — его отдал не Express, а прокси перед ним (nginx: HTML-страница 400/502/504).
+ * Заголовок `Server` при CORS недоступен, поэтому показываем тип и `<title>` тела.
+ */
+function nonJsonHint(res: Response, raw: string): string {
+  const type = res.headers.get('content-type') ?? '';
+  if (type.includes('application/json')) return '';
+  if (!raw.trim()) return ' · пустое тело';
+  const title = /<title>([^<]*)<\/title>/i.exec(raw)?.[1]?.trim();
+  const text = title || raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  return ` · не JSON (${type.split(';')[0] || 'без типа'}): ${text}`;
 }
 
 export async function api<T>(
@@ -277,9 +292,16 @@ export async function api<T>(
   const res = await fetch(buildUrl(baseUrl, path), { ...options, headers });
 
   let parsedBody: Record<string, unknown> | null = null;
+  let rawBody = '';
   const readBody = async (): Promise<Record<string, unknown>> => {
     if (parsedBody !== null) return parsedBody;
-    parsedBody = await res.json().catch(() => ({})) as Record<string, unknown>;
+    rawBody = await res.text().catch(() => '');
+    try {
+      const parsed: unknown = rawBody ? JSON.parse(rawBody) : {};
+      parsedBody = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      parsedBody = {};
+    }
     return parsedBody;
   };
 
@@ -306,8 +328,9 @@ export async function api<T>(
 
   const data = await readBody();
   if (!res.ok) {
+    const fallback = `${res.statusText || `HTTP ${res.status}`}${nonJsonHint(res, rawBody)}`;
     throw new ApiError(
-      apiErrorMessage(data, res.statusText || `HTTP ${res.status}`),
+      apiErrorMessage(data, fallback),
       res.status,
       typeof data.code === 'string' ? data.code : undefined,
       data

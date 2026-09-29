@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
+import { BarChart3, Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ChatMarkdown } from '../markdown/ChatMarkdown';
 import {
@@ -23,6 +23,8 @@ interface WorkspaceFilePanelProps {
   onDelete: () => void;
   onSave: (content: string) => Promise<boolean>;
   onMention: () => void;
+  /** Открыть Аналитик с этим документом в `documentSources`. */
+  onAsk?: (ragSource: string) => void;
 }
 
 const iconButton =
@@ -41,6 +43,7 @@ export function WorkspaceFilePanel({
   onDelete,
   onSave,
   onMention,
+  onAsk,
 }: WorkspaceFilePanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -104,10 +107,16 @@ export function WorkspaceFilePanel({
         >
           {isRecognitionPending(recognition) && <Loader2 className="h-3 w-3 animate-spin" />}
           <span className="min-w-0 flex-1 truncate">{recognitionLabel(recognition)}</span>
-          {recognition.ragSource && recognition.status === 'ready' && (
-            <span className="truncate font-mono opacity-80" title="Источник в поиске по документам">
-              {recognition.ragSource}
-            </span>
+          {recognition.ragSource && recognition.status === 'ready' && onAsk && (
+            <button
+              type="button"
+              onClick={() => onAsk(recognition.ragSource!)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-0.5 font-medium text-primary hover:bg-primary/10"
+              title={`Источник в поиске: ${recognition.ragSource}`}
+            >
+              <BarChart3 className="h-3 w-3" />
+              Спросить в Аналитике
+            </button>
           )}
         </div>
       )}
@@ -121,6 +130,9 @@ export function WorkspaceFilePanel({
           <p className="p-4 text-sm text-destructive">{error}</p>
         ) : editing ? (
           <textarea
+            id="workspace-file-editor"
+            name="content"
+            aria-label={`Содержимое ${path}`}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             spellCheck={false}
