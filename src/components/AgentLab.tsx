@@ -400,6 +400,82 @@ const StopStreamingIcon = () => (
   </svg>
 );
 
+const RailButton = React.memo(function RailButton({
+  tool,
+  label,
+  icon,
+  active,
+  onSelect,
+}: {
+  tool: ActiveTool;
+  label: string;
+  icon: React.ReactNode;
+  active: boolean;
+  onSelect: (tool: ActiveTool) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={label}
+      onClick={() => onSelect(tool)}
+      className={cn(
+        'group relative w-full flex items-center justify-center rounded-xl transition-all duration-200',
+        active
+          ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm'
+          : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground dark:hover:text-foreground'
+      )}
+      style={{ aspectRatio: '1 / 1' }}
+    >
+      <div className="w-5 h-5 flex items-center justify-center">{icon}</div>
+      <span className="absolute left-full ml-2 px-2 py-1 bg-foreground text-background text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg z-50">
+        {label}
+      </span>
+    </button>
+  );
+});
+
+type RailItem = { tool: ActiveTool; label: string; icon: React.ReactNode };
+
+const RAIL_TOP: RailItem[] = [{ tool: 'chat', label: 'Чат', icon: <ChatIcon /> }];
+const RAIL_TOOLS: RailItem[] = [
+  { tool: 'wrappers', label: 'Chat Wrappers', icon: <WrappersIcon /> },
+  { tool: 'grammar', label: 'Грамматика', icon: <GrammarIcon /> },
+  { tool: 'embedding', label: 'Embeddings', icon: <EmbeddingIcon /> },
+  { tool: 'ranking', label: 'Rerank', icon: <RankingIcon /> },
+  { tool: 'functions', label: 'Функции', icon: <FunctionsIcon /> },
+  { tool: 'insights', label: 'Инсайты', icon: <InsightsIcon /> },
+];
+const RAIL_BOTTOM: RailItem[] = [
+  { tool: 'settings', label: 'Настройки', icon: <SettingsIcon /> },
+  { tool: 'system', label: 'Система', icon: <SystemIcon /> },
+];
+
+/** Вне AgentLab и под memo: токены стрима не перерисовывают панель и не сбивают подсказки. */
+const ToolRail = React.memo(function ToolRail({
+  activeTool,
+  onSelect,
+}: {
+  activeTool: ActiveTool;
+  onSelect: (tool: ActiveTool) => void;
+}) {
+  const renderGroup = (items: RailItem[]) =>
+    items.map((item) => (
+      <RailButton key={item.tool} {...item} active={activeTool === item.tool} onSelect={onSelect} />
+    ));
+  return (
+    <div className="w-14 flex-shrink-0 border-r border-border bg-background/40 flex flex-col">
+      <div className="flex flex-col items-center gap-1 py-2 px-1 flex-1">
+        <div className="flex flex-col items-center gap-1 w-full">{renderGroup(RAIL_TOP)}</div>
+        <div className="w-6 h-px bg-border dark:bg-muted my-2" />
+        <div className="flex flex-col items-center gap-1 w-full">{renderGroup(RAIL_TOOLS)}</div>
+        <div className="w-6 h-px bg-border dark:bg-muted my-2" />
+        <div className="flex flex-col items-center gap-1 w-full mt-auto">{renderGroup(RAIL_BOTTOM)}</div>
+      </div>
+    </div>
+  );
+});
+
 const AgentLab: React.FC<AgentLabProps> = () => {
   const dispatch = useDispatch<AppDispatch>();
   
@@ -456,6 +532,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     setToggle,
   } = useWorkspacePanel(PANEL_IDS.AGENT_LAB, 'chat');
   const activeToolId = activeTool as ActiveTool;
+  const setActiveToolRef = useRef(setActiveTool);
+  setActiveToolRef.current = setActiveTool;
+  const selectTool = useCallback((tool: ActiveTool) => setActiveToolRef.current(tool), []);
   const enableThinking = getToggle('enableThinking', false);
   const preserveThinking = getToggle('preserveThinking', false);
   const showSettings = getToggle('showSettings', false);
@@ -1694,56 +1773,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     }
   };
 
-  const SidebarButton = ({ tool, icon, label }: { tool: ActiveTool; icon: React.ReactNode; label: string }) => {
-      const isActive = activeToolId === tool;
-      
-      return (
-        <button 
-          type="button"
-          aria-pressed={isActive}
-          onClick={() => setActiveTool(tool)} 
-          className={`
- group relative
-            w-full
-            flex items-center justify-center
-            rounded-xl
-            transition-all duration-200
-            ${isActive 
-              ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm' 
-              : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground dark:hover:text-foreground'
-            }
-`}
-          style={{ aspectRatio: '1 / 1' }}
-          title={label}
-        >
-          <div className="w-5 h-5 flex items-center justify-center">
-            {React.isValidElement(icon) 
-              ? React.cloneElement(icon as React.ReactElement<{ className?: string; stroke?: string; fill?: string }>, { 
-                  className: "w-5 h-5",
-                  stroke: "currentColor",
-                  fill: "none"
-                })
-              : icon
-            }
-          </div>
-          
-          <span className="
-            absolute left-full ml-2
-            px-2 py-1
-            bg-foreground text-background text-xs
-            rounded-lg
-            whitespace-nowrap
-            opacity-0 group-hover:opacity-100
-            transition-opacity duration-200
-            pointer-events-none
-            shadow-lg
-            z-50
-          ">
-            {label}
-          </span>
-        </button>
-      );
-    };
 
     return (
       <div className="@container/agentchat flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
@@ -2030,31 +2059,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
 
             <div className="flex min-h-0 flex-1 overflow-hidden">
         {!productMode && (
-        <div className="w-14 flex-shrink-0 border-r border-border bg-background/40 flex flex-col">
-          <div className="flex flex-col items-center gap-1 py-2 px-1 flex-1">
-            <div className="flex flex-col items-center gap-1 w-full">
-              <SidebarButton tool="chat" icon={<ChatIcon />} label="Чат" />
-            </div>
-            
-            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
-            
-            <div className="flex flex-col items-center gap-1 w-full">
-              <SidebarButton tool="wrappers" icon={<WrappersIcon />} label="Chat Wrappers" />
-              <SidebarButton tool="grammar" icon={<GrammarIcon />} label="Грамматика" />
-              <SidebarButton tool="embedding" icon={<EmbeddingIcon />} label="Embeddings" />
-              <SidebarButton tool="ranking" icon={<RankingIcon />} label="Rerank" />
-              <SidebarButton tool="functions" icon={<FunctionsIcon />} label="Функции" />
-              <SidebarButton tool="insights" icon={<InsightsIcon />} label="Инсайты" />
-            </div>
-            
-            <div className="w-6 h-px bg-border dark:bg-muted my-2" />
-            
-            <div className="flex flex-col items-center gap-1 w-full mt-auto">
-              <SidebarButton tool="settings" icon={<SettingsIcon />} label="Настройки" />
-              <SidebarButton tool="system" icon={<SystemIcon />} label="Система" />
-            </div>
-          </div>
-        </div>
+        <ToolRail activeTool={activeToolId} onSelect={selectTool} />
         )}
 
         {activeTool === 'chat' && (

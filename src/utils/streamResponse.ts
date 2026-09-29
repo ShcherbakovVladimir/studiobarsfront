@@ -196,6 +196,7 @@ export async function consumeChatStream(
   let fullResponse = '';
   let contextLimit: ContextLimitNotice | null = null;
   let usage: ContextUsage | null = null;
+  const serviceObjects = new Set<string>();
   let finished = false;
   const diagnostics: StreamDiagnostics = { frames: 0, firstAt: 0, lastAt: 0, lengths: [] };
 
@@ -220,6 +221,10 @@ export async function consumeChatStream(
           parsed = JSON.parse(payload) as UnknownRecord;
         } catch {
           return;
+        }
+
+        if (typeof parsed.object === 'string' && parsed.object !== 'chat.completion.chunk') {
+          serviceObjects.add(parsed.object);
         }
 
         if (isUsageFrame(parsed)) {
@@ -257,6 +262,19 @@ export async function consumeChatStream(
   } finally {
     const abortedBy = !abortSignal.aborted ? null : options.didTimeout?.() ? 'timeout' : 'user';
     reportStream(diagnostics, label, startedAt, abortedBy);
+    if (!abortedBy && debugEnabled()) {
+      const seen = serviceObjects.size ? [...serviceObjects].join(', ') : 'нет';
+      const got = usage as ContextUsage | null;
+      if (got) {
+        console.debug(
+          `[${label}] chat.usage: ${got.tokensTotal ?? '—'} из ${got.contextSize ?? '—'} · служебные кадры: ${seen}`
+        );
+      } else {
+        console.warn(
+          `[${label}] кадр chat.usage не пришёл — бублик контекста не обновится · служебные кадры: ${seen}`
+        );
+      }
+    }
     finish();
   }
 
