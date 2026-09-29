@@ -17,8 +17,8 @@ import {
 /** Use getChatApiBase() for current runtime URL (after /api/config bootstrap). */
 export const getAPIBaseUrl = (): string => getChatApiBase();
 
-const DEFAULT_TEMPERATURE = 0.7;
-const DEFAULT_MAX_TOKENS = 2048;
+const DEFAULT_TEMPERATURE = 1.0;
+const DEFAULT_MAX_TOKENS = 16384;
 
 // ========== INTERFACES ==========
 export interface ModelInfo {
@@ -1584,6 +1584,9 @@ export const llamaApi = {
         temperature: options.temperature ?? DEFAULT_TEMPERATURE,
         maxTokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
         stream: false,
+        ...(options.mode && { mode: options.mode }),
+        ...(options.enableThinking !== undefined && { enableThinking: options.enableThinking }),
+        ...(options.preserveThinking !== undefined && { preserveThinking: options.preserveThinking }),
         ...buildGrammarApiFields({
           grammar: options.grammar,
           jsonSchema: options.jsonSchema,

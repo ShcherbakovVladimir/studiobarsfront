@@ -40,8 +40,9 @@ import type { UnknownRecord, XLAMModel } from '../types';
 import { ModelLoadError, type LoadLaunchOptions } from './llamaLaunchService';
 
 // ========== КОНСТАНТЫ ==========
-const DEFAULT_TEMPERATURE = 0.7;
-const DEFAULT_MAX_TOKENS = 4096;
+const DEFAULT_TEMPERATURE = 1.0;
+/** Как DEFAULT_MAX_TOKENS на сервере; в лимит входят и рассуждения, и ответ. */
+const DEFAULT_MAX_TOKENS = 16384;
 const STREAM_TIMEOUT_MS = 600000;
 /** Сколько сервер может молчать (ни одного SSE-кадра), прежде чем стрим закроется. */
 const STREAM_IDLE_TIMEOUT_MS = 5 * 60_000;
@@ -404,50 +405,7 @@ export async function chatStream(
     let finalOptions = { ...options };
     
     if (isQwen36ModelFlag) {
-      const mode = options.mode || 'auto';
-      
-      switch (mode) {
-        case 'thinking':
-          finalOptions = {
-            ...finalOptions,
-            temperature: options.temperature ?? 1.0,
-            topP: options.topP ?? 0.95,
-            topK: options.topK ?? 20,
-            repeatPenalty: options.repeatPenalty ?? 1.0,
-            maxTokens: options.maxTokens ?? 32768,
-            enableThinking: true
-          };
-          break;
-        case 'instruct':
-          finalOptions = {
-            ...finalOptions,
-            temperature: options.temperature ?? 0.7,
-            topP: options.topP ?? 0.80,
-            topK: options.topK ?? 20,
-            repeatPenalty: options.repeatPenalty ?? 1.5,
-            maxTokens: options.maxTokens ?? 8192,
-            enableThinking: false
-          };
-          break;
-        case 'coding':
-          finalOptions = {
-            ...finalOptions,
-            temperature: options.temperature ?? 0.6,
-            topP: options.topP ?? 0.95,
-            topK: options.topK ?? 20,
-            repeatPenalty: options.repeatPenalty ?? 1.0,
-            maxTokens: options.maxTokens ?? 81920,
-            enableThinking: true
-          };
-          break;
-        default:
-          finalOptions = {
-            ...finalOptions,
-            enableThinking: options.enableThinking === true
-          };
-      }
-      
-      console.log(`📤 Qwen3.6 stream request: mode=${mode}, enableThinking=${finalOptions.enableThinking}`);
+      finalOptions = applyQwenMode(finalOptions);
     }
 
     if (abort.signal.aborted) {
@@ -465,7 +423,7 @@ export async function chatStream(
         stream: true,
         use_tools: useTools,
         useTools,
-        temperature: finalOptions.temperature ?? DEFAULT_TEMPERATURE,
+        temperature: isQwen36ModelFlag ? finalOptions.temperature : finalOptions.temperature ?? DEFAULT_TEMPERATURE,
         maxTokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: finalOptions.topP,
         topK: finalOptions.topK,
@@ -486,9 +444,9 @@ export async function chatStream(
             }
           : {}),
         ...(isQwen36ModelFlag && {
-          enableThinking: finalOptions.enableThinking === true,
+          enableThinking: finalOptions.enableThinking,
           preserveThinking: options.preserveThinking,
-          mode: options.mode || 'auto',
+          mode: finalOptions.mode,
         })
       }),
       signal: abort.signal,
@@ -620,17 +578,8 @@ export async function chatStreamWithTools(
     
     let finalOptions = { ...options };
     
-    if (isQwen36ModelFlag && options.mode) {
-      const qwenOpts = getQwen36Options(options.mode);
-      finalOptions = {
-        ...finalOptions,
-        temperature: options.temperature ?? qwenOpts.temperature,
-        maxTokens: options.maxTokens ?? qwenOpts.maxTokens,
-        topP: options.topP ?? qwenOpts.topP,
-        topK: options.topK ?? qwenOpts.topK,
-        repetitionPenalty: options.repetitionPenalty ?? qwenOpts.repeatPenalty,
-        enableThinking: options.enableThinking ?? qwenOpts.enableThinking
-      };
+    if (isQwen36ModelFlag) {
+      finalOptions = applyQwenMode(finalOptions);
     }
 
     if (abort.signal.aborted) {
@@ -645,7 +594,7 @@ export async function chatStreamWithTools(
         message: prompt,
         messages: [{ role: 'user', content: prompt }],
         tools: options.tools ? filterToolsForRole(options.tools) : options.tools,
-        temperature: finalOptions.temperature ?? DEFAULT_TEMPERATURE,
+        temperature: isQwen36ModelFlag ? finalOptions.temperature : finalOptions.temperature ?? DEFAULT_TEMPERATURE,
         max_tokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         maxTokens: finalOptions.maxTokens ?? DEFAULT_MAX_TOKENS,
         topP: finalOptions.topP,
@@ -664,7 +613,7 @@ export async function chatStreamWithTools(
         ...(isQwen36ModelFlag && {
           enableThinking: finalOptions.enableThinking,
           preserveThinking: options.preserveThinking,
-          mode: options.mode
+          mode: finalOptions.mode
         }),
         stream: true
       }),
@@ -1024,65 +973,7 @@ export async function chatAgent(
     let finalOptions = { ...options };
     
     if (isQwen36ModelFlag) {
-      const mode = options.mode || 'thinking';
-      
-      const qwenDefaults: GenerationOptions = {
-        temperature: 0.7,
-        topP: 0.95,
-        topK: 20,
-        repeatPenalty: 1.05,
-        enableThinking: true,
-        preserveThinking: false
-      };
-      
-      switch (mode) {
-        case 'thinking':
-          qwenDefaults.temperature = 1.0;
-          qwenDefaults.topP = 0.95;
-          qwenDefaults.repeatPenalty = 1.0;
-          qwenDefaults.enableThinking = true;
-          qwenDefaults.maxTokens = options.maxTokens || 32768;
-          console.log(`🧠 Qwen3.6 thinking mode: temp=1.0, top_p=0.95`);
-          break;
-          
-        case 'instruct':
-          qwenDefaults.temperature = 0.7;
-          qwenDefaults.topP = 0.80;
-          qwenDefaults.repeatPenalty = 1.5;
-          qwenDefaults.enableThinking = false;
-          qwenDefaults.maxTokens = options.maxTokens || 8192;
-          console.log(`⚡ Qwen3.6 instruct mode: temp=0.7, top_p=0.80, repeat_penalty=1.5`);
-          break;
-          
-        case 'coding':
-          qwenDefaults.temperature = 0.6;
-          qwenDefaults.topP = 0.95;
-          qwenDefaults.repeatPenalty = 1.0;
-          qwenDefaults.enableThinking = true;
-          qwenDefaults.maxTokens = options.maxTokens || 81920;
-          console.log(`💻 Qwen3.6 coding mode: temp=0.6, top_p=0.95, max_tokens increased`);
-          break;
-          
-        default:
-          if (!options.temperature) qwenDefaults.temperature = 1.0;
-          if (!options.topP) qwenDefaults.topP = 0.95;
-          qwenDefaults.enableThinking = options.enableThinking !== false;
-          break;
-      }
-      
-      finalOptions = {
-        ...qwenDefaults,
-        ...options,
-        enableThinking: options.enableThinking !== undefined 
-          ? options.enableThinking 
-          : qwenDefaults.enableThinking,
-        preserveThinking: options.preserveThinking !== undefined
-          ? options.preserveThinking
-          : qwenDefaults.preserveThinking,
-        mode: mode
-      };
-      
-      console.log(`📤 Qwen3.6 request: mode=${mode}, enableThinking=${finalOptions.enableThinking}, preserveThinking=${finalOptions.preserveThinking}`);
+      finalOptions = applyQwenMode(finalOptions);
     } else if (isQwenModel(activeModel)) {
       finalOptions = {
         temperature: options.temperature || 0.7,
@@ -1197,29 +1088,15 @@ export async function smartChat(
     const modelFamily = activeModel ? getModelFamilyFromName(activeModel.name) : 'unknown';
     const isQwen36Flag = isQwen36Model(activeModel);
     
-    if (isQwen36Flag && options.mode) {
-      const qwenOptions = getQwen36Options(options.mode as 'thinking' | 'instruct' | 'coding');
-      return await chatAgent(prompt, { 
-        temperature: options.temperature ?? qwenOptions.temperature,
-        maxTokens: options.maxTokens ?? qwenOptions.maxTokens,
-        topP: options.topP ?? qwenOptions.topP,
-        topK: options.topK ?? qwenOptions.topK,
-        repeatPenalty: options.repetitionPenalty ?? qwenOptions.repeatPenalty,
-        enableThinking: options.enableThinking ?? qwenOptions.enableThinking,
+    if (isQwen36Flag) {
+      return await chatAgent(prompt, {
+        maxTokens: options.maxTokens,
+        temperature: options.temperature,
+        enableThinking: options.enableThinking,
         preserveThinking: options.preserveThinking,
         mode: options.mode,
         sessionId: options.sessionId,
         systemPrompt: options.systemPrompt
-      });
-    }
-    
-    if (isQwen36Flag && options.enableThinking !== false) {
-      return await chatAgent(prompt, { 
-        ...options, 
-        enableThinking: true,
-        temperature: options.temperature || 1.0,
-        topP: options.topP || 0.95,
-        repeatPenalty: options.repetitionPenalty || 1.0
       });
     }
     
@@ -1366,8 +1243,8 @@ export async function chatWithTools(
       body: JSON.stringify({
         messages,
         tools: options.tools ? filterToolsForRole(options.tools) : options.tools,
-        temperature: options.temperature || 0.7,
-        max_tokens: options.maxTokens || 8192,
+        temperature: options.temperature ?? DEFAULT_TEMPERATURE,
+        max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
         model: options.model || 'llama',
         tool_choice: options.tool_choice || 'auto',
         sessionId: options.sessionId || 'xlam-session',
@@ -2015,40 +1892,48 @@ export function isQwenThinkingModel(model: ModelInfo | null): boolean {
   return /qwen[\s._-]*3/.test(nameLower) || nameLower.includes('thinking');
 }
 
-export function getQwen36Options(mode: 'auto' | 'thinking' | 'instruct' | 'coding' = 'auto'): Partial<GenerationOptions> {
+type QwenMode = 'auto' | 'thinking' | 'instruct' | 'coding';
+
+/**
+ * Сэмплинг Qwen 3.6/3.8 задаёт сервер (STANDARD_CHAT_BACKEND §4.7):
+ * вне `auto` temperature из body игнорируется, top_p/top_k/penalty фиксированы.
+ */
+export function getQwen36Options(mode: QwenMode = 'auto'): Partial<GenerationOptions> {
   switch (mode) {
-    case 'auto':
-      return {};
     case 'thinking':
-      return {
-        temperature: 1.0,
-        topP: 0.95,
-        topK: 20,
-        repeatPenalty: 1.0,
-        maxTokens: 32768,
-        enableThinking: true
-      };
-    case 'instruct':
-      return {
-        temperature: 0.7,
-        topP: 0.80,
-        topK: 20,
-        repeatPenalty: 1.5,
-        maxTokens: 8192,
-        enableThinking: false
-      };
     case 'coding':
-      return {
-        temperature: 0.6,
-        topP: 0.95,
-        topK: 20,
-        repeatPenalty: 1.0,
-        maxTokens: 81920,
-        enableThinking: true
-      };
+      return { enableThinking: true };
+    case 'instruct':
+      return { enableThinking: false };
     default:
       return {};
   }
+}
+
+type QwenModeFields = {
+  mode?: QwenMode;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  repeatPenalty?: number;
+  repetitionPenalty?: number;
+  presencePenalty?: number;
+  enableThinking?: boolean;
+};
+
+function applyQwenMode<T extends QwenModeFields>(options: T): T {
+  const mode = options.mode || 'auto';
+  return {
+    ...options,
+    mode,
+    temperature: mode === 'auto' ? options.temperature : undefined,
+    topP: undefined,
+    topK: undefined,
+    repeatPenalty: undefined,
+    repetitionPenalty: undefined,
+    presencePenalty: undefined,
+    enableThinking: mode === 'auto' ? options.enableThinking : getQwen36Options(mode).enableThinking,
+  } as T;
 }
 
 export function convertToXLAMModel(model: ModelInfo): XLAMModel {

@@ -317,6 +317,7 @@ function messagesForSync(messages: ChatMessage[]): ChatMessage[] {
     const rest = { ...message };
     delete rest.images;
     delete rest.interrupted;
+    delete rest.hitMaxTokens;
     return {
       ...rest,
       content: persistableVisionContent(rest.content, imageCount),
@@ -324,19 +325,33 @@ function messagesForSync(messages: ChatMessage[]): ChatMessage[] {
   });
 }
 
-/** Сервер не хранит пометку «остановлено» — возвращаем её из локальной копии. */
+/** Рассуждения могут прийти отдельно в `think_blocks` / `thinkBlocks`; UI разбирает их из `<think>` в content. */
+function withThinkBlocks(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((m) => {
+    if (m.role !== 'assistant' || m.content.includes('<think>')) return m;
+    const raw = m as ChatMessage & { think_blocks?: unknown; thinkBlocks?: unknown };
+    const list = Array.isArray(raw.thinkBlocks) ? raw.thinkBlocks : Array.isArray(raw.think_blocks) ? raw.think_blocks : [];
+    const blocks = list.filter((block): block is string => typeof block === 'string' && block.trim() !== '');
+    if (blocks.length === 0) return m;
+    return { ...m, content: `<think>\n${blocks.join('\n\n')}\n</think>\n\n${m.content}` };
+  });
+}
+
+/** Сервер не хранит пометки «остановлено» и «лимит генерации» — возвращаем их из локальной копии. */
 function withLocalInterrupted(serverMessages: ChatMessage[], localMessages: ChatMessage[] | undefined): ChatMessage[] {
-  const stopped = new Set(
-    (localMessages ?? [])
-      .filter((m) => m.interrupted && m.role === 'assistant')
-      .map((m) => `${m.timestamp ?? ''}\u0000${m.content}`)
-  );
-  if (stopped.size === 0) return serverMessages;
-  return serverMessages.map((m) =>
-    m.role === 'assistant' && stopped.has(`${m.timestamp ?? ''}\u0000${m.content}`)
-      ? { ...m, interrupted: true }
-      : m
-  );
+  const marks = new Map<string, Pick<ChatMessage, 'interrupted' | 'hitMaxTokens'>>();
+  for (const m of localMessages ?? []) {
+    if (m.role !== 'assistant' || (!m.interrupted && !m.hitMaxTokens)) continue;
+    marks.set(`${m.timestamp ?? ''}\u0000${m.content}`, {
+      ...(m.interrupted ? { interrupted: true } : {}),
+      ...(m.hitMaxTokens ? { hitMaxTokens: m.hitMaxTokens } : {}),
+    });
+  }
+  if (marks.size === 0) return serverMessages;
+  return serverMessages.map((m) => {
+    const mark = m.role === 'assistant' ? marks.get(`${m.timestamp ?? ''}\u0000${m.content}`) : undefined;
+    return mark ? { ...m, ...mark } : m;
+  });
 }
 
 export function isDeletedChatId(chatId: string): boolean {
@@ -353,7 +368,7 @@ export async function getChatFromServer(chatId: string): Promise<ChatData | null
     const local = loadChatFromLocal(chat.id);
     const merged: ChatData = {
       ...chat,
-      messages: withLocalInterrupted(chat.messages ?? [], local?.messages),
+      messages: withLocalInterrupted(withThinkBlocks(chat.messages ?? []), local?.messages),
       contextLimit: chat.contextLimit ?? local?.contextLimit,
       contextUsage: chat.contextUsage ?? local?.contextUsage,
     };

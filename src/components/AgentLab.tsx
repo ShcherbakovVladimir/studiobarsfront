@@ -11,7 +11,7 @@ import agentService, {
   ChatMessage,
   GenerationOptions
 } from '../services/agentService';
-import type { ChatImageAttachment, XLAMModel } from '../types';
+import type { ChatImageAttachment, ChatMessage as StoredChatMessage, XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
 import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage, discardStreamingAssistant } from '../store/chatSlice';
 import { saveUserSettings } from '../store/authSlice';
@@ -69,6 +69,8 @@ import {
   isGrammarActive,
   type GrammarSelection,
 } from '../utils/grammarUtils';
+
+const EMPTY_MESSAGES: StoredChatMessage[] = [];
 
 interface AgentLabProps {
   selectedModel?: XLAMModel | null;
@@ -148,10 +150,7 @@ const getGenerationOptionsForModel = (model: XLAMModel | null | undefined): Part
   if (isQwenThinkingModel(model)) {
     return {
       temperature: 1.0,
-      maxTokens: 32768,
-      repeatPenalty: 1.0,
-      topP: 0.95,
-      topK: 20,
+      maxTokens: 16384,
       enableThinking: true
     };
   }
@@ -250,6 +249,13 @@ const InterruptedNote = () => (
   </div>
 );
 
+const MaxTokensNote = ({ limit }: { limit: number }) => (
+  <div className="mt-2 text-[11px] text-muted-foreground">
+    Ответ упёрся в лимит генерации ({limit.toLocaleString('ru-RU')} токенов вместе с рассуждениями).
+    Напишите «продолжи с места обрыва» или увеличьте лимит.
+  </div>
+);
+
 // Форматированное сообщение с профессиональным выводом
 const FormattedMessageBase: React.FC<{
   content: string;
@@ -257,6 +263,7 @@ const FormattedMessageBase: React.FC<{
   isUser?: boolean;
   isStreaming?: boolean;
   interrupted?: boolean;
+  hitMaxTokens?: number;
   images?: ChatImageAttachment[];
 }> = ({ 
   content, 
@@ -264,6 +271,7 @@ const FormattedMessageBase: React.FC<{
   isUser = false,
   isStreaming = false,
   interrupted = false,
+  hitMaxTokens,
   images,
 }) => {
   const imagePreviews = images?.filter((image) => image.previewUrl) ?? [];
@@ -336,6 +344,7 @@ const FormattedMessageBase: React.FC<{
       )}
       {answerStreaming && <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>}
       {interrupted && !isStreaming && <InterruptedNote />}
+      {!interrupted && !isStreaming && hitMaxTokens ? <MaxTokensNote limit={hitMaxTokens} /> : null}
     </div>
   );
 };
@@ -480,7 +489,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const dispatch = useDispatch<AppDispatch>();
   
   // Redux Selectors
-  const availableModels = useSelector((state: RootState) => state.models.models);
+  const availableModels: XLAMModel[] = useSelector((state: RootState) => state.models.models);
   const selectedModelId = useSelector((state: RootState) => state.models.selectedModelId);
   const activeModelId = useSelector((state: RootState) => state.models.activeModel);
   const serverStatus = useSelector((state: RootState) => state.app.serverStatus);
@@ -493,7 +502,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   // Helper functions
   const getModelById = useCallback((modelId: string) => {
-    return availableModels.find(model => model.id === modelId);
+    return availableModels.find((model: XLAMModel) => model.id === modelId);
   }, [availableModels]);
   
   const activeModel = getModelById(activeModelId || '');
@@ -501,8 +510,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const currentModel = activeModel || selectedModelInfo;
   const chatHistoryKey = currentModel?.id || selectedModelId || activeModelId || 'default';
   const currentModelId = chatHistoryKey;
-  const messages = useSelector((state: RootState) =>
-    state.chat.histories[chatHistoryKey] || []
+  const messages: StoredChatMessage[] = useSelector((state: RootState) =>
+    state.chat.histories[chatHistoryKey] || EMPTY_MESSAGES
   );
   
   const isSaigaModel = currentModel?.modelFamily === 'saiga' || 
@@ -536,7 +545,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   setActiveToolRef.current = setActiveTool;
   const selectTool = useCallback((tool: ActiveTool) => setActiveToolRef.current(tool), []);
   const enableThinking = getToggle('enableThinking', false);
-  const preserveThinking = getToggle('preserveThinking', false);
+  const preserveThinking = getToggle('preserveThinking', true);
   const showSettings = getToggle('showSettings', false);
   const showMobileMenu = getToggle('showMobileMenu', false);
   const showRuntime = getToggle('showRuntime', true);
@@ -1560,6 +1569,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     abortControllerRef.current = abortController;
     const isAborted = () => abortController.signal.aborted;
     const chatId = currentChat?.id ?? sessionId;
+    let sentMaxTokens: number | undefined;
 
     const settleAnswer = (
       fullResponse: string,
@@ -1613,9 +1623,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       if (limit && !processedContent.trim()) {
         dispatch(discardStreamingAssistant(currentModelId));
       } else {
+        const generated = usage?.tokensGenerated;
+        const hitMaxTokens =
+          !limit && sentMaxTokens && typeof generated === 'number' && generated >= sentMaxTokens
+            ? sentMaxTokens
+            : undefined;
         dispatch(finalizeLastMessage({
           modelId: currentModelId,
           content: processedContent,
+          hitMaxTokens,
         }));
       }
       if (limit) lockChatContext(chatId, limit, usage);
@@ -1681,8 +1697,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         return selectedToolNames.length === 0 || selectedToolNames.includes(name);
       });
       const options: GenerationOptions = {
-        temperature: modelOptions.temperature ?? advancedOptions.temperature,
-        maxTokens: modelOptions.maxTokens ?? advancedOptions.maxTokens,
+        temperature: isQwen36Model
+          ? advancedOptions.temperature
+          : modelOptions.temperature ?? advancedOptions.temperature,
+        maxTokens: isQwen36Model
+          ? advancedOptions.maxTokens
+          : modelOptions.maxTokens ?? advancedOptions.maxTokens,
         topP: modelOptions.topP ?? advancedOptions.topP,
         topK: modelOptions.topK ?? advancedOptions.topK,
         repeatPenalty: modelOptions.repeatPenalty ?? advancedOptions.repeatPenalty,
@@ -1706,6 +1726,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         preserveThinking: preserveThinking,
         mode: qwenMode,
       };
+      sentMaxTokens = options.maxTokens ?? 16384;
 
       if (filesToSend.length > 0) {
         await agentService.chatStreamVision(
@@ -1873,7 +1894,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
-                          title="Как в settings.chat: ваши temperature и thinking"
+                          title="Ваши temperature и рассуждения из настроек; top_p 0.95, top_k 20"
                         >
                           Auto
                         </button>
@@ -1887,7 +1908,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
-                          title="Режим рассуждений"
+                          title="Рассуждения включены; temperature 1.0, top_p 0.95 (задаёт сервер)"
                         >
                           Thinking
                         </button>
@@ -1901,7 +1922,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
-                          title="Быстрые ответы"
+                          title="Без рассуждений; temperature 0.7, top_p 0.80, presence_penalty 1.5 (задаёт сервер)"
                         >
                           Instruct
                         </button>
@@ -1915,7 +1936,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
-                          title="Режим программирования"
+                          title="Код, рассуждения включены; temperature 0.6, top_p 0.95 (задаёт сервер)"
                         >
                           Coding
                         </button>
@@ -2125,6 +2146,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                           isUser={msg.role === 'user'}
                                           isStreaming={msg.isStreaming}
                                           interrupted={msg.interrupted}
+                                          hitMaxTokens={msg.hitMaxTokens}
                                           images={msg.images}
                                         />
                                     </div>

@@ -170,8 +170,9 @@ const chatSlice = createSlice({
       modelId: string;
       content: string;
       interrupted?: boolean;
+      hitMaxTokens?: number;
     }>) => {
-      const { modelId, content, interrupted } = action.payload;
+      const { modelId, content, interrupted, hitMaxTokens } = action.payload;
       const history = state.histories[modelId];
       
       if (history && history.length > 0) {
@@ -183,6 +184,8 @@ const chatSlice = createSlice({
           if (lastMessage.isError) delete lastMessage.isError;
           if (interrupted) lastMessage.interrupted = true;
           else delete lastMessage.interrupted;
+          if (hitMaxTokens) lastMessage.hitMaxTokens = hitMaxTokens;
+          else delete lastMessage.hitMaxTokens;
           
           // Сохраняем финальную версию сообщения
           saveHistoriesToStorage(state.histories);

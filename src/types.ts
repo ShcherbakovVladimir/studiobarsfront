@@ -397,6 +397,8 @@ export interface ChatMessage {
   // ===========================================
   /** Остановлено кнопкой «стоп». Только локально: в sync и history не уходит. */
   interrupted?: boolean;
+  /** Генерация упёрлась в maxTokens (tokensGenerated === maxTokens). Только локально, как interrupted. */
+  hitMaxTokens?: number;
 }
 
 export interface ChatResponse {

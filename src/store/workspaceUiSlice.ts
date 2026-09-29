@@ -47,7 +47,7 @@ export const defaultWorkspaceUiState: WorkspaceUiState = {
       showChatList: true,
       useTools: false,
       enableThinking: false,
-      preserveThinking: false,
+      preserveThinking: true,
     }),
     [PANEL_IDS.INFERENCE_LAB]: createPanel('inference'),
     [PANEL_IDS.EMBEDDING_TOOLS]: createPanel('embedding'),

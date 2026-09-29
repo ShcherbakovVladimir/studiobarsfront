@@ -18,8 +18,8 @@ export function applyUserSettings(settings: UserSettings | null | undefined): vo
     applyChatDefaults({
       ...(chatDefaults ?? {
         systemPrompt: '',
-        temperature: 0.7,
-        maxTokens: 4096,
+        temperature: 1.0,
+        maxTokens: 16384,
       }),
       ...(chat as Partial<RuntimeConfig['chatDefaults']>),
       useTools:
@@ -32,7 +32,7 @@ export function applyUserSettings(settings: UserSettings | null | undefined): vo
   if (rag && typeof rag === 'object') {
     applyRagDefaults({
       ...(ragDefaults ?? {
-        temperature: 0.7,
+        temperature: 1.0,
         topP: 0.9,
         limit: 10,
         relevanceScore: 0.45,
