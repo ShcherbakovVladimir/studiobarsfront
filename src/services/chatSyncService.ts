@@ -301,7 +301,14 @@ export async function listChatSummaries(): Promise<ChatSummary[]> {
     return [];
   }
   const ownerId = myId ?? data.userId ?? null;
-  return (data.chats ?? []).filter((chat) => isOwnChat(chat, ownerId));
+  return (data.chats ?? []).filter(
+    (chat) => isOwnChat(chat, ownerId) && !isWorkspaceChatId(chat.id)
+  );
+}
+
+/** Чаты задач рабочей папки (`workspace:{sessionId}`) живут на своей странице, не в ленте помощника. */
+export function isWorkspaceChatId(chatId: string | undefined): boolean {
+  return typeof chatId === 'string' && chatId.startsWith('workspace:');
 }
 
 function messagesForSync(messages: ChatMessage[]): ChatMessage[] {

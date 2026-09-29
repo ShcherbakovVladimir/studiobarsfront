@@ -47,6 +47,7 @@ export function isFillAppPath(pathname: string): boolean {
     pathname === '/system' ||
     pathname === '/hardware' ||
     pathname === '/api-tester' ||
+    pathname === '/workspace' ||
     pathname === '/chat'
   ) {
     return true;

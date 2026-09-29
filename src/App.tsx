@@ -24,6 +24,7 @@ const ProfilePage = lazyWithRetry(() => import('./pages/ProfilePage'));
 const SystemInfoPage = lazyWithRetry(() => import('./pages/SystemInfoPage'));
 const HardwareinfoPage = lazyWithRetry(() => import('./pages/HardwareinfoPage'));
 const APITesterPage = lazyWithRetry(() => import('./pages/APITesterPage'));
+const WorkspacePage = lazyWithRetry(() => import('./pages/WorkspacePage'));
 const AdminLayout = lazyWithRetry(() => import('./pages/admin/AdminLayout'));
 const AdminDashboardPage = lazyWithRetry(() => import('./pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazyWithRetry(() => import('./pages/admin/AdminUsersPage'));
@@ -85,6 +86,7 @@ const App: React.FC = () => {
                 element={<MainApp />}
               />
             ))}
+            <Route path="workspace" element={<WorkspacePage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="account" element={<Navigate to="/profile" replace />} />
             <Route path="account/settings" element={<Navigate to="/profile" replace />} />

@@ -61,6 +61,7 @@ export function isEmployeeAppPath(pathname: string): boolean {
     pathname === '/' ||
     pathname.startsWith('/chat') ||
     pathname.startsWith('/rag') ||
+    pathname.startsWith('/workspace') ||
     pathname.startsWith('/account') ||
     pathname.startsWith('/profile')
   );

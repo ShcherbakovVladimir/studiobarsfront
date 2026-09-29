@@ -20,6 +20,7 @@ import {
   UserRound,
   LogOut,
   MessageSquare,
+  FolderOpen,
 } from 'lucide-react';
 import { type ApiHealthState, type ModelReadinessState, type XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
@@ -115,6 +116,7 @@ const NAV_GROUPS: Array<{
       { path: '/rag', label: 'RAG-аналитика', icon: BarChart3 },
       { path: '/benchmark', label: 'Производительность', icon: Gauge },
       { path: '/agent-lab', label: 'Лаборатория агентов', icon: Bot },
+      { path: '/workspace', label: 'Рабочая папка', icon: FolderOpen },
       { path: '/finetune', label: 'Дообучение', icon: GraduationCap },
       { path: '/inference', label: 'Лаборатория инференса', icon: Sparkles },
     ],
@@ -132,6 +134,7 @@ const NAV_GROUPS: Array<{
 const EMPLOYEE_NAV: Array<{ path: string; label: string; icon: LucideIcon }> = [
   { path: '/chat', label: 'Помощник AI', icon: MessageSquare },
   { path: '/rag', label: 'Аналитик', icon: BarChart3 },
+  { path: '/workspace', label: 'Рабочая папка', icon: FolderOpen },
 ];
 
 const toModelFamily = (family: string | undefined): XLAMModel['modelFamily'] => {
