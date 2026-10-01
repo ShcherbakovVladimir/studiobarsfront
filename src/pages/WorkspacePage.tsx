@@ -815,6 +815,7 @@ const WorkspacePage: React.FC = () => {
             <WorkspaceFilePanel
               key={selectedPath}
               path={selectedPath}
+              files={entries}
               entry={selectedEntry}
               file={file}
               loading={fileLoading}

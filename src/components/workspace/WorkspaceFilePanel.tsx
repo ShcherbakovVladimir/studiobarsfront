@@ -7,7 +7,7 @@ import { MenuPopover } from '../ui/menu-popover';
 import { ChatMarkdown } from '../markdown/ChatMarkdown';
 import workspaceService, {
   isRecognitionPending,
-  resolveWorkspaceAssetPath,
+  matchWorkspaceImage,
   workspaceFileExtension,
   type WorkspaceEntry,
   type WorkspaceFileContent,
@@ -16,6 +16,8 @@ import { formatBytes, isEditablePath, recognitionLabel } from './workspaceModel'
 
 interface WorkspaceFilePanelProps {
   path: string;
+  /** Файлы папки: по ним ищем снимок, если в Markdown указано короткое или неточное имя. */
+  files?: WorkspaceEntry[];
   entry?: WorkspaceEntry;
   file: WorkspaceFileContent | null;
   loading: boolean;
@@ -63,6 +65,7 @@ async function writeClipboard(plain: string, html?: string): Promise<void> {
 
 export function WorkspaceFilePanel({
   path,
+  files = [],
   entry,
   file,
   loading,
@@ -92,12 +95,12 @@ export function WorkspaceFilePanel({
   );
   const markdown = ['md', 'markdown'].includes(workspaceFileExtension(path)) || recognizedMarkdown;
   const sourceText = editing ? draft : (file?.content ?? '');
-  const loadImage = useCallback(async (src: string) => {
-    const assetPath = resolveWorkspaceAssetPath(path, src);
+  const loadImage = useCallback(async (src: string, alt?: string) => {
+    const assetPath = matchWorkspaceImage(files, path, src, alt);
     if (!assetPath) return null;
     const blob = await workspaceService.fetchFileBlob(assetPath);
     return URL.createObjectURL(blob);
-  }, [path]);
+  }, [files, path]);
   const canCopy = !loading && !error && sourceText.trim().length > 0;
   const dirty = editing && draft !== (file?.content ?? '');
   const meta = [

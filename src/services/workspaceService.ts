@@ -147,6 +147,86 @@ export function resolveWorkspaceAssetPath(markdownPath: string, src: string): st
   return parts.length > 0 ? parts.join('/') : null;
 }
 
+const WORKSPACE_IMAGE_EXTENSIONS = new Set(Object.keys(WORKSPACE_IMAGE_TYPES));
+
+function workspaceBaseName(path: string): string {
+  return path.split('/').pop() ?? path;
+}
+
+function workspaceDir(path: string): string {
+  const slash = path.lastIndexOf('/');
+  return slash >= 0 ? path.slice(0, slash) : '';
+}
+
+function workspaceStem(path: string): string {
+  const name = workspaceBaseName(path);
+  const dot = name.lastIndexOf('.');
+  return (dot > 0 ? name.slice(0, dot) : name).toLowerCase();
+}
+
+function captionSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Имя из Markdown часто не совпадает с путём в папке: `image` без файла,
+ * или `login-screen.png` лежит не в корне, а рядом в подкаталоге.
+ * Берём файл из списка, если имя однозначное.
+ */
+export function matchWorkspaceImage(
+  entries: WorkspaceEntry[],
+  markdownPath: string,
+  src: string,
+  alt?: string
+): string | null {
+  const images = entries.filter(
+    (entry) => entry.type === 'file' && WORKSPACE_IMAGE_EXTENSIONS.has(workspaceFileExtension(entry.path))
+  );
+  const exact = resolveWorkspaceAssetPath(markdownPath, src);
+  const markdownDirectory = workspaceDir(markdownPath);
+
+  const sameName = (filePath: string, name: string) => workspaceBaseName(filePath).toLowerCase() === name.toLowerCase();
+  const pick = (paths: string[]): string | null => {
+    if (paths.length === 1) return paths[0] ?? null;
+    const here = paths.filter((item) => workspaceDir(item) === markdownDirectory);
+    return here.length === 1 ? (here[0] ?? null) : null;
+  };
+
+  if (exact) {
+    const direct = images.find((entry) => entry.path.toLowerCase() === exact.toLowerCase());
+    if (direct) return direct.path;
+    const base = workspaceBaseName(exact);
+    if (workspaceFileExtension(exact)) {
+      const named = pick(images.filter((entry) => sameName(entry.path, base)).map((entry) => entry.path));
+      if (named) return named;
+    } else {
+      const stem = workspaceStem(exact);
+      const named = pick(
+        images
+          .filter((entry) => workspaceStem(entry.path) === stem && workspaceDir(entry.path) === markdownDirectory)
+          .map((entry) => entry.path)
+      );
+      if (named) return named;
+    }
+  }
+
+  const slug = alt ? captionSlug(alt) : '';
+  if (slug) {
+    const byCaption = pick(
+      images
+        .filter((entry) => captionSlug(workspaceStem(entry.path)) === slug)
+        .map((entry) => entry.path)
+    );
+    if (byCaption) return byCaption;
+  }
+
+  if (exact && workspaceFileExtension(exact) && images.length === 0) return exact;
+  return null;
+}
+
 export function isWorkspaceUploadable(file: File): boolean {
   return (WORKSPACE_UPLOAD_EXTENSIONS as readonly string[]).includes(workspaceFileExtension(file.name));
 }

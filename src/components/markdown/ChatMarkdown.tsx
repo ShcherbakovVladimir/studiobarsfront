@@ -30,7 +30,7 @@ const getCodeStyles = (isDarkMode: boolean): React.CSSProperties => ({
   fontSize: '0.875em',
 });
 
-type LoadImage = (src: string) => Promise<string | null>;
+type LoadImage = (src: string, alt?: string) => Promise<string | null>;
 
 function ResolvedMarkdownImage({
   src,
@@ -56,7 +56,7 @@ function ResolvedMarkdownImage({
     let cancelled = false;
     setUrl(null);
     setFailed(false);
-    void loadImage(src)
+    void loadImage(src, alt)
       .then((next) => {
         if (cancelled) {
           if (next?.startsWith('blob:')) URL.revokeObjectURL(next);
