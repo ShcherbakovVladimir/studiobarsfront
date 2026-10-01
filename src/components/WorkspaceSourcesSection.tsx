@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckSquare, ChevronDown, ChevronRight, FolderOpen, Loader2, RefreshCw, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { isRoleScopeDenial } from '../services/apiClient';
 import workspaceService, { isRecognitionPending, type WorkspaceEntry } from '../services/workspaceService';
-import type { RootState } from '../store/store';
-import { isEmployee } from '../utils/auth';
 import { recognitionLabel } from './workspace/workspaceModel';
 import type { RagDocument } from '../types';
 
@@ -64,7 +60,6 @@ export function WorkspaceSourcesSection({
   active,
   highlightSource,
 }: WorkspaceSourcesSectionProps) {
-  const employee = useSelector((state: RootState) => isEmployee(state.auth.user));
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +71,7 @@ export function WorkspaceSourcesSection({
       setEntries(listing.entries);
       setError(null);
     } catch (err) {
-      if (!silent && !isRoleScopeDenial(err)) {
+      if (!silent) {
         setError(err instanceof Error ? err.message : 'Не удалось получить рабочую папку');
       }
     } finally {
@@ -85,8 +80,8 @@ export function WorkspaceSourcesSection({
   }, []);
 
   useEffect(() => {
-    if (active && !employee) void load();
-  }, [active, employee, load]);
+    if (active) void load();
+  }, [active, load]);
 
   const searchable = useMemo(
     () => entries.filter((entry) => entry.type === 'file' && entry.recognition?.ragSource),
@@ -96,14 +91,12 @@ export function WorkspaceSourcesSection({
   const pending = searchable.some((entry) => isRecognitionPending(entry.recognition));
 
   useEffect(() => {
-    if (!active || employee || !pending) return;
+    if (!active || !pending) return;
     const timer = window.setInterval(() => {
       if (!document.hidden) void load(true);
     }, POLL_MS);
     return () => window.clearInterval(timer);
-  }, [active, employee, pending, load]);
-
-  if (employee) return null;
+  }, [active, pending, load]);
 
   const rows = searchable.map((entry) => {
     const source = entry.recognition!.ragSource!;

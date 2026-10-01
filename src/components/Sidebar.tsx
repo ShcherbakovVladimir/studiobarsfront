@@ -134,6 +134,7 @@ const NAV_GROUPS: Array<{
 const EMPLOYEE_NAV: Array<{ path: string; label: string; icon: LucideIcon }> = [
   { path: '/chat', label: 'Помощник AI', icon: MessageSquare },
   { path: '/rag', label: 'Аналитик', icon: BarChart3 },
+  { path: '/workspace', label: 'Рабочая папка', icon: FolderOpen },
 ];
 
 const toModelFamily = (family: string | undefined): XLAMModel['modelFamily'] => {

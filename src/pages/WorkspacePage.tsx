@@ -10,7 +10,7 @@ import { ContextUsageRing } from '../components/ContextUsageRing';
 import { registerActiveStream } from '../utils/activeStreams';
 import type { ContextLimitNotice } from '../utils/contextLimit';
 import type { ContextUsage } from '../utils/contextUsage';
-import { ApiError, isRoleScopeDenial } from '../services/apiClient';
+import { ApiError } from '../services/apiClient';
 import { confirmDialog, promptDialog } from '../services/dialogService';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../services/toastService';
 import workspaceService, {
@@ -130,7 +130,6 @@ const WorkspacePage: React.FC = () => {
    * применяется только самый свежий ответ. Разовый сбой не стирает дерево — один повтор через 1.5 с.
    */
   const refresh = useCallback(async (): Promise<WorkspaceEntry[] | null> => {
-    if (employee) return null;
     const seq = ++listSeqRef.current;
     setListLoading(true);
     try {
@@ -151,19 +150,18 @@ const WorkspacePage: React.FC = () => {
             if (seq !== listSeqRef.current) return null;
             continue;
           }
-          if (seq === listSeqRef.current && !isRoleScopeDenial(error)) setListError(message);
+          if (seq === listSeqRef.current) setListError(message);
           return null;
         }
       }
     } finally {
       if (seq === listSeqRef.current) setListLoading(false);
     }
-  }, [employee]);
+  }, []);
 
   useEffect(() => {
-    if (employee) return;
     void refresh();
-  }, [employee, refresh]);
+  }, [refresh]);
 
   const loadFile = useCallback(async (path: string, quiet = false) => {
     if (!quiet) {
@@ -205,7 +203,7 @@ const WorkspacePage: React.FC = () => {
   const pendingRecognition = entries.some((entry) => isRecognitionPending(entry.recognition));
 
   useEffect(() => {
-    if (employee || !pendingRecognition) return;
+    if (!pendingRecognition) return;
     const timer = window.setInterval(() => {
       if (document.hidden) return;
       void refresh().then((next) => {
@@ -216,16 +214,15 @@ const WorkspacePage: React.FC = () => {
       });
     }, RECOGNITION_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [employee, pendingRecognition, refresh, loadFile]);
+  }, [pendingRecognition, refresh, loadFile]);
 
   useEffect(() => {
-    if (employee) return;
     const onFocus = () => {
       if (!streaming) void refresh();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [employee, refresh, streaming]);
+  }, [refresh, streaming]);
 
   const applyChanges = useCallback(
     async (changes: WorkspaceChange[]) => {

@@ -86,7 +86,7 @@ const App: React.FC = () => {
                 element={<MainApp />}
               />
             ))}
-            {!employee && <Route path="workspace" element={<WorkspacePage />} />}
+            <Route path="workspace" element={<WorkspacePage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="account" element={<Navigate to="/profile" replace />} />
             <Route path="account/settings" element={<Navigate to="/profile" replace />} />

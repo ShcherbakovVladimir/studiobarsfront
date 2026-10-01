@@ -2,12 +2,17 @@ import type { User, UserRole } from '../types';
 
 export const USER_ROLES: UserRole[] = ['user', 'employee', 'admin'];
 
-/** RAG-набор tools для employee. Bitrix / tenders / admin-tools сюда не входят. */
+/** Чат, RAG и рабочая папка. Bitrix / tenders / admin-tools сюда не входят. */
 export const EMPLOYEE_TOOL_NAMES = new Set([
   'search_documents',
   'ask_rag',
   'calculate',
   'get_weather',
+  'workspace_list',
+  'workspace_read',
+  'workspace_write',
+  'workspace_edit',
+  'workspace_delete',
 ]);
 
 export const ADMIN_TOOL_NAMES = new Set(['get_server_status', 'list_models', 'load_model']);
@@ -55,12 +60,13 @@ export function homePath(user: User | null | undefined): string {
   return isEmployee(user) ? '/chat' : '/catalog';
 }
 
-/** Разрешённые SPA-пути employee: чат, RAG, аккаунт, справка. */
+/** Разрешённые SPA-пути employee: чат, RAG, рабочая папка, аккаунт. */
 export function isEmployeeAppPath(pathname: string): boolean {
   return (
     pathname === '/' ||
     pathname.startsWith('/chat') ||
     pathname.startsWith('/rag') ||
+    pathname.startsWith('/workspace') ||
     pathname.startsWith('/account') ||
     pathname.startsWith('/profile')
   );
