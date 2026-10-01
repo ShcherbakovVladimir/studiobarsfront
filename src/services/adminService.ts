@@ -1,4 +1,4 @@
-import { api, ApiError, getChatApiBase, getToken, buildUrlForDownload } from './apiClient';
+import { api, ApiError, getChatApiBase, getMailLinkApiBase, getToken, buildUrlForDownload } from './apiClient';
 import type {
   AdminAuditEvent,
   AdminBackupItem,
@@ -89,10 +89,15 @@ export const adminService = {
     emailVerified?: boolean;
     sendInvite?: boolean;
   }) =>
-    api<{ success: boolean; user: AdminUser }>(adminPath('/users'), {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+    api<{ success: boolean; user: AdminUser }>(
+      adminPath('/users'),
+      {
+        method: 'POST',
+        referrerPolicy: 'origin',
+        body: JSON.stringify(body),
+      },
+      getMailLinkApiBase()
+    ),
 
   updateUser: (
     userId: string,

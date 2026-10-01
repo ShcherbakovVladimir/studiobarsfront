@@ -1,4 +1,4 @@
-import { api, setToken, clearToken, getToken } from './apiClient';
+import { api, setToken, clearToken, getToken, getMailLinkApiBase } from './apiClient';
 import type { User, UserSettings } from '../types';
 import { parseUserRole, setActiveUserRole } from '../utils/auth';
 import { clearLocalChatStore, setChatSyncUserId } from './chatSyncService';
@@ -42,10 +42,15 @@ export async function register(
   password: string,
   displayName?: string
 ): Promise<RegisterResponse> {
-  return api<RegisterResponse>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, displayName }),
-  });
+  return api<RegisterResponse>(
+    '/auth/register',
+    {
+      method: 'POST',
+      referrerPolicy: 'origin',
+      body: JSON.stringify({ email, password, displayName }),
+    },
+    getMailLinkApiBase()
+  );
 }
 
 export async function getMe(): Promise<{ user: User; settings: UserSettings } | null> {
@@ -68,10 +73,15 @@ export async function verifyEmail(token: string): Promise<{ user: User; accessTo
 }
 
 export async function forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
-  return api('/auth/forgot-password', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
+  return api(
+    '/auth/forgot-password',
+    {
+      method: 'POST',
+      referrerPolicy: 'origin',
+      body: JSON.stringify({ email }),
+    },
+    getMailLinkApiBase()
+  );
 }
 
 export async function resetPassword(token: string, password: string): Promise<{ success: boolean; message: string }> {
@@ -82,10 +92,15 @@ export async function resetPassword(token: string, password: string): Promise<{ 
 }
 
 export async function resendVerification(email: string): Promise<{ success: boolean; message: string }> {
-  return api('/auth/resend-verification', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
+  return api(
+    '/auth/resend-verification',
+    {
+      method: 'POST',
+      referrerPolicy: 'origin',
+      body: JSON.stringify({ email }),
+    },
+    getMailLinkApiBase()
+  );
 }
 
 export async function updateProfile(displayName: string): Promise<User> {

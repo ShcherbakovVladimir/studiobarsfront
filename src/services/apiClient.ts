@@ -50,6 +50,20 @@ export function getChatApiBase(): string {
   return chatApiBase;
 }
 
+/**
+ * База для писем подтверждения и сброса пароля.
+ * Бэкенд берёт домен ссылки из `Origin` запроса, если он есть в `CORS_ORIGIN`.
+ * Запрос на тот же origin, что и открытая страница, даёт `Origin: https://studioxlam…`,
+ * а не запасной `FRONTEND_URL` (barsseek).
+ */
+export function getMailLinkApiBase(): string {
+  if (typeof window === 'undefined') return chatApiBase;
+  const { protocol, hostname, origin } = window.location;
+  if (protocol !== 'http:' && protocol !== 'https:') return chatApiBase;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return chatApiBase;
+  return `${origin}/api`;
+}
+
 export function getRagApiBase(): string {
   return ragApiBase;
 }
