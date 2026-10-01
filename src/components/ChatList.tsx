@@ -86,7 +86,7 @@ export const ChatList: React.FC<ChatListProps> = ({
         celestia.workspaceDrawer,
         'left-0',
         'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(72dvh,36rem)] max-md:!max-h-[72dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
-        'md:top-0 md:max-xl:left-64 md:h-full md:rounded-none',
+        'md:top-0 md:max-xl:left-[calc(var(--spacing)*55)] md:h-full md:rounded-none',
         'md:max-xl:bg-card md:max-xl:backdrop-blur-none',
         'xl:bg-transparent xl:backdrop-blur-none',
         open
@@ -101,7 +101,7 @@ export const ChatList: React.FC<ChatListProps> = ({
               'xl:opacity-100 xl:w-0 xl:min-w-0 xl:max-w-0 xl:translate-x-0 xl:translate-y-0',
               'border-transparent'
             ),
-        open && 'w-[min(20rem,calc(100vw-2.5rem))] max-w-[85vw] md:max-xl:w-80 md:max-xl:max-w-[min(20rem,calc(100vw-16rem))]',
+        open && 'w-[min(20rem,calc(100vw-2.5rem))] max-w-[85vw] md:max-xl:w-80 md:max-xl:max-w-[min(20rem,calc(100vw-var(--spacing)*55))]',
         className
       )}
     >
@@ -296,7 +296,7 @@ export const ChatList: React.FC<ChatListProps> = ({
           className={cn(
             'fixed inset-0 z-40 xl:hidden transition-opacity duration-300 ease-out motion-reduce:transition-none',
             'bg-black/20 dark:bg-black/35',
-            'md:left-64',
+            'md:left-[calc(var(--spacing)*55)]',
             open ? 'opacity-100' : 'opacity-0 pointer-events-none'
           )}
         />

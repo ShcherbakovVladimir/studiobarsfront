@@ -365,7 +365,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 flex h-screen w-64 flex-col',
+          'fixed top-0 left-0 z-50 flex h-screen w-[calc(var(--spacing)*55)] flex-col',
           celestia.sidebar,
           'text-foreground',
           '[&_a]:text-inherit [&_a:hover]:text-inherit',

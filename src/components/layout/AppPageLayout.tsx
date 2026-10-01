@@ -66,7 +66,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
 
       <div
         className={cn(
-          'min-w-0 md:pl-64 relative page-enter',
+          'min-w-0 md:pl-[calc(var(--spacing)*55)] relative page-enter',
           fill ? 'h-dvh overflow-hidden flex flex-col' : 'min-h-dvh'
         )}
       >
