@@ -3,7 +3,7 @@ import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-d
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store/store';
 import { logout, setMaintenance } from '../store/authSlice';
-import { setUnauthorizedHandler, resetUnauthorizedHandler, setMaintenanceHandler, setForbiddenHandler } from '../services/apiClient';
+import { isRoleScopeDenial, setUnauthorizedHandler, resetUnauthorizedHandler, setMaintenanceHandler, setForbiddenHandler } from '../services/apiClient';
 import { showForbiddenToast } from '../services/toastService';
 import { homePath, isAdmin, isEmployee, isEmployeeAppPath, setActiveUserRole } from '../utils/auth';
 import ResendVerificationBlock from './ResendVerificationBlock';
@@ -45,7 +45,7 @@ const AuthGuard: React.FC = () => {
       dispatch(setMaintenance({ enabled: true, message: maintenanceMessage(data) }));
     });
     setForbiddenHandler((message, code) => {
-      if (code === 'ROLE_FORBIDDEN') {
+      if (code === 'ROLE_FORBIDDEN' || isRoleScopeDenial(message)) {
         if (!isEmployeeAppPath(window.location.pathname)) {
           navigate('/chat', { replace: true });
         }

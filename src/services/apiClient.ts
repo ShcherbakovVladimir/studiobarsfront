@@ -19,6 +19,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Отказ allowlist сотрудника. Это не сбой входа и не повод показывать «Повторить». */
+export function isRoleScopeDenial(error: unknown): boolean {
+  if (error instanceof ApiError && error.code === 'ROLE_FORBIDDEN') return true;
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return message.includes('ROLE_FORBIDDEN') || message.includes('имеет доступ только к обычному чату');
+}
+
 function normalizeBase(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }

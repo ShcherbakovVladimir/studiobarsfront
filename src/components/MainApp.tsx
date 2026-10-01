@@ -17,7 +17,7 @@ import {
   setServerStatus as setModelsServerStatus
 } from '../store/modelsSlice';
 import agentService from '../services/agentService';
-import { fetchChatApi } from '../services/apiClient';
+import { fetchChatApi, isRoleScopeDenial } from '../services/apiClient';
 import { showSuccessToast } from '../services/toastService';
 import {
   appliedLaunchFlags,
@@ -408,6 +408,7 @@ const MainApp: React.FC = () => {
       return true;
     } catch (error) {
       console.error('❌ Ошибка загрузки данных:', error);
+      if (isRoleScopeDenial(error)) return false;
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       setConnectionError(`Не удалось загрузить данные с сервера: ${errorMessage}`);
       
@@ -539,7 +540,7 @@ const MainApp: React.FC = () => {
         />
       )}
 
-      {connectionError && !isLoading && (
+      {connectionError && !isLoading && !isRoleScopeDenial(connectionError) && (
         <TopBanner
           variant="error"
           message={connectionError}

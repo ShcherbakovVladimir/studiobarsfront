@@ -10,7 +10,7 @@ import { ContextUsageRing } from '../components/ContextUsageRing';
 import { registerActiveStream } from '../utils/activeStreams';
 import type { ContextLimitNotice } from '../utils/contextLimit';
 import type { ContextUsage } from '../utils/contextUsage';
-import { ApiError } from '../services/apiClient';
+import { ApiError, isRoleScopeDenial } from '../services/apiClient';
 import { confirmDialog, promptDialog } from '../services/dialogService';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../services/toastService';
 import workspaceService, {
@@ -150,7 +150,7 @@ const WorkspacePage: React.FC = () => {
             if (seq !== listSeqRef.current) return null;
             continue;
           }
-          if (seq === listSeqRef.current) setListError(message);
+          if (seq === listSeqRef.current && !isRoleScopeDenial(error)) setListError(message);
           return null;
         }
       }

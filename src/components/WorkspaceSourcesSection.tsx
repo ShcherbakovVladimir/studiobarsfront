@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, CheckSquare, ChevronDown, ChevronRight, FolderOpen, Loader2, RefreshCw, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { isRoleScopeDenial } from '../services/apiClient';
 import workspaceService, { isRecognitionPending, type WorkspaceEntry } from '../services/workspaceService';
 import { recognitionLabel } from './workspace/workspaceModel';
 import type { RagDocument } from '../types';
@@ -71,7 +72,9 @@ export function WorkspaceSourcesSection({
       setEntries(listing.entries);
       setError(null);
     } catch (err) {
-      if (!silent) setError(err instanceof Error ? err.message : 'Не удалось получить рабочую папку');
+      if (!silent && !isRoleScopeDenial(err)) {
+        setError(err instanceof Error ? err.message : 'Не удалось получить рабочую папку');
+      }
     } finally {
       if (!silent) setLoading(false);
     }

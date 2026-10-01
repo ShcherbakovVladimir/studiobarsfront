@@ -1835,7 +1835,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                 </div>
                 
                 <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
-                  {activeTool === 'chat' && (
+                  {activeTool === 'chat' && !productMode && (
                     <IconButton
                       label={showRuntime ? 'Скрыть мониторинг' : 'Показать мониторинг'}
                       onClick={toggleRuntime}
@@ -2008,7 +2008,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     matchTriggerWidth={false}
                     minWidth={220}
                   >
-                    {activeTool === 'chat' && (
+                    {activeTool === 'chat' && !productMode && (
                     <button
                       type="button"
                       className={celestia.headerMenuItem}
@@ -2373,7 +2373,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                 )}
             </div>
 
-        {activeTool === 'chat' && (
+        {activeTool === 'chat' && !productMode && (
             <LiveRuntimePanel
               open={showRuntime}
               onClose={() => setShowRuntime(false)}
