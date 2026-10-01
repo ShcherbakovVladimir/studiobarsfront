@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, Line, Legend, Area, AreaChart, ComposedChart,
@@ -20,7 +20,7 @@ function formatNumber(num: number | null | undefined, decimals = 1): string {
   return num.toFixed(decimals);
 }
 
-const BenchmarkingView: React.FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedded = false }) => {
+const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedded = false }) => {
   const {
     gpus,
     inference,
