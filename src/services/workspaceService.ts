@@ -17,6 +17,9 @@ export interface WorkspaceRecognition {
   progress: number | null;
   message?: string;
   ragSource?: string;
+  /** Запись `user_files`, если сервер её прислал. Картинки страниц: `GET /api/files/:fileId/pages/:page`. */
+  fileId?: string;
+  pageCount?: number;
 }
 
 export interface WorkspaceEntry {
@@ -172,9 +175,9 @@ function captionSlug(value: string): string {
 }
 
 /**
- * Имя из Markdown часто не совпадает с путём в папке: `image` без файла,
- * или `login-screen.png` лежит не в корне, а рядом в подкаталоге.
- * Берём файл из списка, если имя однозначное.
+ * Картинку из Markdown берём только если такой файл есть в списке рабочей папки.
+ * Имена вроде `login-screen.png` и `image` из текста PDF на диске не лежат:
+ * снимки страниц отдаёт `GET /api/files/:fileId/pages/:page`.
  */
 export function matchWorkspaceImage(
   entries: WorkspaceEntry[],
@@ -183,7 +186,7 @@ export function matchWorkspaceImage(
   alt?: string
 ): string | null {
   const images = entries.filter(
-    (entry) => entry.type === 'file' && WORKSPACE_IMAGE_EXTENSIONS.has(workspaceFileExtension(entry.path))
+    (entry) => entry.type !== 'dir' && WORKSPACE_IMAGE_EXTENSIONS.has(workspaceFileExtension(entry.path))
   );
   const exact = resolveWorkspaceAssetPath(markdownPath, src);
   const markdownDirectory = workspaceDir(markdownPath);
@@ -223,7 +226,6 @@ export function matchWorkspaceImage(
     if (byCaption) return byCaption;
   }
 
-  if (exact && workspaceFileExtension(exact) && images.length === 0) return exact;
   return null;
 }
 
@@ -239,11 +241,15 @@ export function isRecognitionPending(recognition?: WorkspaceRecognition): boolea
 function readRecognition(raw: unknown): WorkspaceRecognition | undefined {
   const row = asRecord(raw);
   if (!row) return undefined;
+  const fileIdRaw = row.fileId ?? row.file_id;
+  const fileId = asString(fileIdRaw) ?? (typeof fileIdRaw === 'number' && Number.isFinite(fileIdRaw) ? String(fileIdRaw) : undefined);
   return {
     status: asString(row.status) ?? 'queued',
     progress: asNumber(row.progress),
     message: asString(row.message),
     ragSource: asString(row.ragSource),
+    fileId,
+    pageCount: asNumber(row.pageCount) ?? asNumber(row.page_count) ?? undefined,
   };
 }
 

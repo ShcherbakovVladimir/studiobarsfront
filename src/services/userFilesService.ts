@@ -304,6 +304,17 @@ export const userFilesService = {
     return response.text();
   },
 
+  async fetchPageBlob(fileId: string, page: number): Promise<Blob> {
+    const response = await fetchFilesApi(`/${encodeURIComponent(fileId)}/pages/${page}`, {}, 120_000);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(data.error ?? `Страница ${page} не найдена`);
+    }
+    const blob = await response.blob();
+    if (blob.type.startsWith('image/')) return blob;
+    return new Blob([blob], { type: 'image/png' });
+  },
+
   async fetchOriginalBlob(fileId: string): Promise<Blob> {
     const response = await fetchFilesApi(`/${encodeURIComponent(fileId)}/download`, {}, 120_000);
     if (!response.ok) {

@@ -13,6 +13,7 @@ import workspaceService, {
   type WorkspaceFileContent,
 } from '../../services/workspaceService';
 import { formatBytes, isEditablePath, recognitionLabel } from './workspaceModel';
+import { WorkspacePdfPages } from './WorkspacePdfPages';
 
 interface WorkspaceFilePanelProps {
   path: string;
@@ -244,6 +245,7 @@ export function WorkspaceFilePanel({
       )}
 
       <div className="min-h-0 flex-1 overflow-auto bg-muted/25 p-3 sm:p-4">
+        {!loading && !error && !editing && <WorkspacePdfPages path={path} recognition={recognition} />}
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Открываю…
