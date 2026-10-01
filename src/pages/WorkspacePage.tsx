@@ -72,6 +72,26 @@ const StopIcon = () => (
   </svg>
 );
 
+const FILE_PANEL_WIDTH_KEY = 'workspace-file-panel-width';
+const FILE_PANEL_MIN = 320;
+const FILE_PANEL_MAX = 960;
+const FILE_PANEL_DEFAULT = 416;
+
+function clampFilePanelWidth(value: number): number {
+  const viewportCap = typeof window === 'undefined' ? FILE_PANEL_MAX : Math.max(FILE_PANEL_MIN, window.innerWidth - 280);
+  return Math.min(FILE_PANEL_MAX, viewportCap, Math.max(FILE_PANEL_MIN, Math.round(value)));
+}
+
+function readFilePanelWidth(): number {
+  try {
+    const stored = Number(localStorage.getItem(FILE_PANEL_WIDTH_KEY));
+    if (Number.isFinite(stored) && stored > 0) return clampFilePanelWidth(stored);
+  } catch {
+    /* ширина по умолчанию */
+  }
+  return FILE_PANEL_DEFAULT;
+}
+
 const SendIcon = () => (
   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
@@ -94,6 +114,10 @@ const WorkspacePage: React.FC = () => {
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const [recentChanges, setRecentChanges] = useState<Record<string, string>>({});
   const [filesOpen, setFilesOpen] = useState(false);
+  const [filePanelWidth, setFilePanelWidth] = useState(readFilePanelWidth);
+  const filePanelWidthRef = useRef(filePanelWidth);
+  filePanelWidthRef.current = filePanelWidth;
+  const filePanelDrag = useRef<{ x: number; width: number } | null>(null);
 
   // --- Открытый файл ---------------------------------------------------------
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -741,7 +765,53 @@ const WorkspacePage: React.FC = () => {
       {selectedPath && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40 xl:hidden" onClick={closeFile} />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-border/60 bg-background shadow-2xl sm:w-[28rem] xl:relative xl:z-auto xl:w-[26rem] xl:shrink-0 xl:bg-transparent xl:shadow-none">
+          <aside
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-full flex-col border-l border-border/60 bg-background shadow-2xl sm:w-[var(--workspace-file-panel)] xl:relative xl:z-auto xl:shrink-0 xl:bg-transparent xl:shadow-none"
+            style={{ ['--workspace-file-panel' as string]: `${filePanelWidth}px` }}
+          >
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Ширина панели файла"
+              aria-valuemin={FILE_PANEL_MIN}
+              aria-valuemax={FILE_PANEL_MAX}
+              aria-valuenow={filePanelWidth}
+              tabIndex={0}
+              className="absolute inset-y-0 -left-1 z-10 hidden w-2 cursor-col-resize touch-none hover:bg-primary/30 focus-visible:bg-primary/40 focus-visible:outline-none sm:block"
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.currentTarget.setPointerCapture(event.pointerId);
+                filePanelDrag.current = { x: event.clientX, width: filePanelWidthRef.current };
+              }}
+              onPointerMove={(event) => {
+                const drag = filePanelDrag.current;
+                if (!drag) return;
+                const next = clampFilePanelWidth(drag.width + (drag.x - event.clientX));
+                filePanelWidthRef.current = next;
+                setFilePanelWidth(next);
+              }}
+              onPointerUp={() => {
+                if (!filePanelDrag.current) return;
+                filePanelDrag.current = null;
+                try {
+                  localStorage.setItem(FILE_PANEL_WIDTH_KEY, String(filePanelWidthRef.current));
+                } catch {
+                  /* ширина останется до перезагрузки */
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                event.preventDefault();
+                const next = clampFilePanelWidth(filePanelWidthRef.current + (event.key === 'ArrowLeft' ? 24 : -24));
+                filePanelWidthRef.current = next;
+                setFilePanelWidth(next);
+                try {
+                  localStorage.setItem(FILE_PANEL_WIDTH_KEY, String(next));
+                } catch {
+                  /* ширина останется до перезагрузки */
+                }
+              }}
+            />
             <WorkspaceFilePanel
               key={selectedPath}
               path={selectedPath}

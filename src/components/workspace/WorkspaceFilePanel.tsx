@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { BarChart3, Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { marked } from 'marked';
+import { BarChart3, Check, Copy, Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { showErrorToast } from '../../services/toastService';
+import { MenuPopover } from '../ui/menu-popover';
 import { ChatMarkdown } from '../markdown/ChatMarkdown';
 import {
   isRecognitionPending,
@@ -30,6 +33,33 @@ interface WorkspaceFilePanelProps {
 const iconButton =
   'inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40';
 
+function markdownHtml(source: string): string {
+  const html = marked.parse(source, { async: false, gfm: true, breaks: true });
+  return typeof html === 'string' ? html : '';
+}
+
+/** Текст без символов Markdown: заголовки, списки и таблицы остаются строками. */
+function markdownPlain(source: string): string {
+  const withBreaks = markdownHtml(source)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|li|tr|blockquote|pre|table)>/gi, '\n');
+  const text = new DOMParser().parseFromString(withBreaks, 'text/html').body.textContent ?? source;
+  return text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function writeClipboard(plain: string, html?: string): Promise<void> {
+  if (html && typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
+      }),
+    ]);
+    return;
+  }
+  await navigator.clipboard.writeText(plain);
+}
+
 export function WorkspaceFilePanel({
   path,
   entry,
@@ -47,10 +77,21 @@ export function WorkspaceFilePanel({
 }: WorkspaceFilePanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTriggerRef = useRef<HTMLButtonElement>(null);
+  const copiedTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
 
   const recognition = file?.recognition ?? entry?.recognition;
   const editable = isEditablePath(path) && file?.content !== null && file !== null;
-  const markdown = ['md', 'markdown'].includes(workspaceFileExtension(path));
+  const recognizedMarkdown = Boolean(
+    recognition?.status === 'ready' && recognition.ragSource && /\.(md|markdown)$/i.test(recognition.ragSource)
+  );
+  const markdown = ['md', 'markdown'].includes(workspaceFileExtension(path)) || recognizedMarkdown;
+  const sourceText = editing ? draft : (file?.content ?? '');
+  const canCopy = !loading && !error && sourceText.trim().length > 0;
   const dirty = editing && draft !== (file?.content ?? '');
   const meta = [
     formatBytes(entry?.size),
@@ -60,6 +101,35 @@ export function WorkspaceFilePanel({
   const startEdit = () => {
     setDraft(file?.content ?? '');
     setEditing(true);
+  };
+
+  const markCopied = () => {
+    setCopied(true);
+    setCopyOpen(false);
+    window.clearTimeout(copiedTimer.current);
+    copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  const copyPlain = async () => {
+    try {
+      await navigator.clipboard.writeText(markdown ? markdownPlain(sourceText) : sourceText);
+      markCopied();
+    } catch {
+      showErrorToast('Не удалось скопировать текст');
+    }
+  };
+
+  const copyFormatted = async () => {
+    try {
+      if (markdown) {
+        await writeClipboard(sourceText, markdownHtml(sourceText));
+      } else {
+        await navigator.clipboard.writeText(sourceText);
+      }
+      markCopied();
+    } catch {
+      showErrorToast('Не удалось скопировать текст');
+    }
   };
 
   return (
@@ -73,6 +143,48 @@ export function WorkspaceFilePanel({
             {[path.includes('/') ? path : null, ...meta].filter(Boolean).join(' · ')}
           </p>
         </div>
+        {canCopy && (
+          <>
+            <button
+              ref={copyTriggerRef}
+              type="button"
+              className={iconButton}
+              onClick={() => {
+                if (!markdown) void copyPlain();
+                else setCopyOpen((open) => !open);
+              }}
+              title={copied ? 'Скопировано' : 'Копировать'}
+              aria-label={copied ? 'Скопировано' : 'Копировать'}
+              aria-expanded={copyOpen}
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </button>
+            <MenuPopover
+              open={copyOpen && markdown}
+              onClose={() => setCopyOpen(false)}
+              triggerRef={copyTriggerRef}
+              align="end"
+              matchTriggerWidth={false}
+              minWidth={220}
+              zIndex={80}
+            >
+              <button
+                type="button"
+                onClick={() => void copyPlain()}
+                className="flex w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                Без разметки
+              </button>
+              <button
+                type="button"
+                onClick={() => void copyFormatted()}
+                className="flex w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                С форматированием
+              </button>
+            </MenuPopover>
+          </>
+        )}
         <button type="button" className={iconButton} onClick={onMention} title="Упомянуть файл в задаче" aria-label="Упомянуть файл в задаче">
           <MessageSquarePlus className="h-4 w-4" />
         </button>
