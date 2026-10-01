@@ -130,6 +130,7 @@ const WorkspacePage: React.FC = () => {
    * применяется только самый свежий ответ. Разовый сбой не стирает дерево — один повтор через 1.5 с.
    */
   const refresh = useCallback(async (): Promise<WorkspaceEntry[] | null> => {
+    if (employee) return null;
     const seq = ++listSeqRef.current;
     setListLoading(true);
     try {
@@ -157,11 +158,12 @@ const WorkspacePage: React.FC = () => {
     } finally {
       if (seq === listSeqRef.current) setListLoading(false);
     }
-  }, []);
+  }, [employee]);
 
   useEffect(() => {
+    if (employee) return;
     void refresh();
-  }, [refresh]);
+  }, [employee, refresh]);
 
   const loadFile = useCallback(async (path: string, quiet = false) => {
     if (!quiet) {
@@ -203,7 +205,7 @@ const WorkspacePage: React.FC = () => {
   const pendingRecognition = entries.some((entry) => isRecognitionPending(entry.recognition));
 
   useEffect(() => {
-    if (!pendingRecognition) return;
+    if (employee || !pendingRecognition) return;
     const timer = window.setInterval(() => {
       if (document.hidden) return;
       void refresh().then((next) => {
@@ -214,15 +216,16 @@ const WorkspacePage: React.FC = () => {
       });
     }, RECOGNITION_POLL_MS);
     return () => window.clearInterval(timer);
-  }, [pendingRecognition, refresh, loadFile]);
+  }, [employee, pendingRecognition, refresh, loadFile]);
 
   useEffect(() => {
+    if (employee) return;
     const onFocus = () => {
       if (!streaming) void refresh();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [refresh, streaming]);
+  }, [employee, refresh, streaming]);
 
   const applyChanges = useCallback(
     async (changes: WorkspaceChange[]) => {

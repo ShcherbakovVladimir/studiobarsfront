@@ -8,11 +8,6 @@ export const EMPLOYEE_TOOL_NAMES = new Set([
   'ask_rag',
   'calculate',
   'get_weather',
-  'workspace_list',
-  'workspace_read',
-  'workspace_write',
-  'workspace_edit',
-  'workspace_delete',
 ]);
 
 export const ADMIN_TOOL_NAMES = new Set(['get_server_status', 'list_models', 'load_model']);
@@ -66,7 +61,6 @@ export function isEmployeeAppPath(pathname: string): boolean {
     pathname === '/' ||
     pathname.startsWith('/chat') ||
     pathname.startsWith('/rag') ||
-    pathname.startsWith('/workspace') ||
     pathname.startsWith('/account') ||
     pathname.startsWith('/profile')
   );
