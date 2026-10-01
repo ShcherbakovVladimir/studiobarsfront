@@ -1,12 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { BarChart3, Check, Copy, Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { showErrorToast } from '../../services/toastService';
 import { MenuPopover } from '../ui/menu-popover';
 import { ChatMarkdown } from '../markdown/ChatMarkdown';
-import {
+import workspaceService, {
   isRecognitionPending,
+  resolveWorkspaceAssetPath,
   workspaceFileExtension,
   type WorkspaceEntry,
   type WorkspaceFileContent,
@@ -91,6 +92,12 @@ export function WorkspaceFilePanel({
   );
   const markdown = ['md', 'markdown'].includes(workspaceFileExtension(path)) || recognizedMarkdown;
   const sourceText = editing ? draft : (file?.content ?? '');
+  const loadImage = useCallback(async (src: string) => {
+    const assetPath = resolveWorkspaceAssetPath(path, src);
+    if (!assetPath) return null;
+    const blob = await workspaceService.fetchFileBlob(assetPath);
+    return URL.createObjectURL(blob);
+  }, [path]);
   const canCopy = !loading && !error && sourceText.trim().length > 0;
   const dirty = editing && draft !== (file?.content ?? '');
   const meta = [
@@ -233,13 +240,13 @@ export function WorkspaceFilePanel({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto bg-muted/25 p-3 sm:p-4">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Открываю…
           </div>
         ) : error ? (
-          <p className="p-4 text-sm text-destructive">{error}</p>
+          <p className="workspace-file-sheet text-sm text-destructive">{error}</p>
         ) : editing ? (
           <textarea
             id="workspace-file-editor"
@@ -248,24 +255,24 @@ export function WorkspaceFilePanel({
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             spellCheck={false}
-            className="h-full w-full resize-none bg-transparent p-4 font-mono text-[13px] leading-relaxed focus:outline-none"
+            className="workspace-file-sheet h-full min-h-full w-full resize-none font-mono text-[13px] leading-relaxed focus:outline-none"
             autoFocus
           />
         ) : file?.content === null || !file ? (
-          <div className="p-4 text-sm leading-relaxed text-muted-foreground">
+          <div className="workspace-file-sheet text-sm leading-relaxed text-muted-foreground">
             {file?.message ??
               (isRecognitionPending(recognition)
                 ? 'Текст появится, когда закончится распознавание.'
                 : 'Предпросмотр для этого файла недоступен — скачайте его.')}
           </div>
         ) : file.content.trim() === '' ? (
-          <p className="p-4 text-sm text-muted-foreground">Файл пустой.</p>
+          <p className="workspace-file-sheet text-sm text-muted-foreground">Файл пустой.</p>
         ) : markdown ? (
-          <div className="chat-msg-ai px-4 py-3 text-sm">
-            <ChatMarkdown content={file.content} isDarkMode={isDarkMode} />
+          <div className="workspace-file-sheet chat-msg-ai text-sm">
+            <ChatMarkdown content={file.content} isDarkMode={isDarkMode} loadImage={loadImage} />
           </div>
         ) : (
-          <pre className="whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed">{file.content}</pre>
+          <pre className="workspace-file-sheet whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed">{file.content}</pre>
         )}
       </div>
 

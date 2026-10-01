@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -30,8 +30,76 @@ const getCodeStyles = (isDarkMode: boolean): React.CSSProperties => ({
   fontSize: '0.875em',
 });
 
+type LoadImage = (src: string) => Promise<string | null>;
+
+function ResolvedMarkdownImage({
+  src,
+  alt,
+  loadImage,
+}: {
+  src?: string;
+  alt?: string;
+  loadImage?: LoadImage;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+    const absolute = /^(https?:|data:|blob:)/i.test(src);
+    if (!loadImage || absolute) {
+      setUrl(src);
+      setFailed(false);
+      return;
+    }
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    setUrl(null);
+    setFailed(false);
+    void loadImage(src)
+      .then((next) => {
+        if (cancelled) {
+          if (next?.startsWith('blob:')) URL.revokeObjectURL(next);
+          return;
+        }
+        if (!next) {
+          setFailed(true);
+          return;
+        }
+        objectUrl = next.startsWith('blob:') ? next : null;
+        setUrl(next);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [src, loadImage]);
+
+  if (!src || failed) {
+    return alt ? <p className="my-2 text-center text-xs text-muted-foreground">{alt}</p> : null;
+  }
+  if (!url) {
+    return <p className="my-3 text-center text-xs text-muted-foreground">Загружаю изображение…</p>;
+  }
+  return (
+    <div className="my-3">
+      <img
+        src={url}
+        alt={alt || 'Изображение'}
+        className="max-w-full h-auto rounded-lg shadow-md mx-auto"
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+      {alt && <p className="text-center text-xs text-muted-foreground mt-1.5">{alt}</p>}
+    </div>
+  );
+}
+
 /** `draftCode`: блок кода ещё пишется — без Prism, любой язык выводится простым `<pre>`. */
-function buildComponents(isDarkMode: boolean, draftCode: boolean): Components {
+function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: LoadImage): Components {
   return {
     code({ className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || '');
@@ -170,14 +238,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean): Components {
     },
 
     img({ src, alt }) {
-      if (!src) return null;
-
-      return (
-        <div className="my-3">
-          <img src={src} alt={alt || 'Изображение'} className="max-w-full h-auto rounded-lg shadow-md mx-auto" loading="lazy" />
-          {alt && <p className="text-center text-xs text-muted-foreground mt-1.5">{alt}</p>}
-        </div>
-      );
+      return <ResolvedMarkdownImage src={src} alt={alt} loadImage={loadImage} />;
     },
 
     strong({ children }) {
@@ -224,8 +285,9 @@ const MarkdownBlock = React.memo(function MarkdownBlock({
   isDarkMode,
   draftCode = false,
   withMath = true,
-}: MarkdownBlockProps) {
-  const components = useMemo(() => buildComponents(isDarkMode, draftCode), [isDarkMode, draftCode]);
+  loadImage,
+}: MarkdownBlockProps & { loadImage?: LoadImage }) {
+  const components = useMemo(() => buildComponents(isDarkMode, draftCode, loadImage), [isDarkMode, draftCode, loadImage]);
   return (
     <ReactMarkdown
       remarkPlugins={withMath ? REMARK_FULL : REMARK_NO_MATH}
@@ -237,9 +299,14 @@ const MarkdownBlock = React.memo(function MarkdownBlock({
   );
 });
 
-export const ChatMarkdown: React.FC<{ content: string; isDarkMode: boolean }> = ({ content, isDarkMode }) => {
+export const ChatMarkdown: React.FC<{
+  content: string;
+  isDarkMode: boolean;
+  /** Относительные `src` из рабочей папки: вернуть blob-URL или null. */
+  loadImage?: LoadImage;
+}> = ({ content, isDarkMode, loadImage }) => {
   const text = useMemo(() => fenceTextTrees(content), [content]);
-  return <MarkdownBlock text={text} isDarkMode={isDarkMode} />;
+  return <MarkdownBlock text={text} isDarkMode={isDarkMode} loadImage={loadImage} />;
 };
 
 /**

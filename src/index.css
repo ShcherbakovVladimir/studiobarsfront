@@ -355,6 +355,33 @@ h1,
   min-width: 0;
 }
 
+.workspace-file-sheet {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  background: var(--background);
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 4%);
+  padding: 1.35rem 1.35rem 1.75rem;
+}
+
+.workspace-file-sheet.chat-msg-ai {
+  padding: 1.5rem 1.45rem 2rem;
+  line-height: 1.7;
+}
+
+.workspace-file-sheet.chat-msg-ai > :first-child {
+  margin-top: 0;
+}
+
+.workspace-file-sheet.chat-msg-ai h1,
+.workspace-file-sheet.chat-msg-ai h2 {
+  margin-top: 1.35rem;
+}
+
+.workspace-file-sheet img {
+  margin-inline: auto;
+  border-radius: 0.75rem;
+}
+
 .chat-composer {
   overflow: hidden;
   isolation: isolate;

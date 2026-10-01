@@ -111,6 +111,42 @@ export function workspaceFileExtension(path: string): string {
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
 }
 
+const WORKSPACE_IMAGE_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  bmp: 'image/bmp',
+};
+
+/** Путь картинки из Markdown относительно файла в рабочей папке. Внешние URL не трогает. */
+export function resolveWorkspaceAssetPath(markdownPath: string, src: string): string | null {
+  const trimmed = src.trim();
+  if (!trimmed || /^(https?:|data:|blob:|mailto:)/i.test(trimmed)) return null;
+  const withoutHash = trimmed.split('#')[0]?.split('?')[0] ?? trimmed;
+  let decoded = withoutHash;
+  try {
+    decoded = decodeURIComponent(withoutHash);
+  } catch {
+    decoded = withoutHash;
+  }
+  const fromRoot = decoded.startsWith('/');
+  const baseDir = markdownPath.includes('/') ? markdownPath.slice(0, markdownPath.lastIndexOf('/')) : '';
+  const parts = fromRoot ? [] : baseDir.split('/').filter(Boolean);
+  for (const segment of decoded.replace(/^\/+/, '').split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') {
+      if (parts.length === 0) return null;
+      parts.pop();
+      continue;
+    }
+    parts.push(segment);
+  }
+  return parts.length > 0 ? parts.join('/') : null;
+}
+
 export function isWorkspaceUploadable(file: File): boolean {
   return (WORKSPACE_UPLOAD_EXTENSIONS as readonly string[]).includes(workspaceFileExtension(file.name));
 }
@@ -446,13 +482,20 @@ export const workspaceService = {
     };
   },
 
-  async download(path: string): Promise<void> {
+  async fetchFileBlob(path: string): Promise<Blob> {
     const response = await fetchChatApi(`/workspace/file?${fileQuery(path)}&download=1`, {}, 120_000);
     if (!response.ok) {
       const data = await readJson(response);
-      throw errorFromBody(response.status, data, `Не удалось скачать: HTTP ${response.status}`);
+      throw errorFromBody(response.status, data, `Не удалось открыть файл: HTTP ${response.status}`);
     }
-    triggerDownload(await response.blob(), path.split('/').pop() || 'file');
+    const blob = await response.blob();
+    const mime = WORKSPACE_IMAGE_TYPES[workspaceFileExtension(path)];
+    if (mime && blob.type !== mime) return new Blob([blob], { type: mime });
+    return blob;
+  },
+
+  async download(path: string): Promise<void> {
+    triggerDownload(await this.fetchFileBlob(path), path.split('/').pop() || 'file');
   },
 
   /** Новый файл сохраняется сразу, существующий — только после подтверждения. */
