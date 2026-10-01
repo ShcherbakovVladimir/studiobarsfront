@@ -11,7 +11,9 @@
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
-    "types": [],
+    "typeRoots": ["../node_modules/@types"],
+    "types": ["react", "react-dom"],
+    "jsxImportSource": "react",
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",

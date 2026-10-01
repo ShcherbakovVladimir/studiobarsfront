@@ -107,7 +107,7 @@ const AdminLayout: React.FC = () => {
 
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 flex h-dvh w-64 flex-col',
+          'fixed top-0 left-0 z-50 flex h-dvh w-[calc(var(--spacing)*55)] flex-col',
           celestia.sidebar,
           'text-foreground',
           '[&_a]:text-inherit [&_a:hover]:text-inherit',
@@ -186,7 +186,7 @@ const AdminLayout: React.FC = () => {
         </div>
       </aside>
 
-      <div className="min-w-0 md:pl-64 h-dvh overflow-hidden flex flex-col relative page-enter">
+      <div className="min-w-0 md:pl-[calc(var(--spacing)*55)] h-dvh overflow-hidden flex flex-col relative page-enter">
         <header className={cn('md:hidden sticky top-0 z-30', celestia.mobileHeader, celestia.appHeaderBar)}>
           <div className="flex items-center gap-2 w-full min-w-0">
             <button
