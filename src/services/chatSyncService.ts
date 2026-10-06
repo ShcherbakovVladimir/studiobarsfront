@@ -39,6 +39,9 @@ const EMPTY_STORE: LocalChatStore = { chats: [], lastActiveId: null };
 
 let scopedUserId: string | null = null;
 let memoryStore: { userId: string; data: LocalChatStore } | null = null;
+/** Полный архив уже не влезает в localStorage — пишем укороченную копию. */
+let persistCompact = false;
+let quotaWarned = false;
 let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingSyncChat: ChatData | null = null;
 let lastServerSyncSnapshot = '';
@@ -197,6 +200,94 @@ function readLocalChatStore(): LocalChatStore {
   return data;
 }
 
+function isQuotaError(error: unknown): boolean {
+  if (!(error instanceof DOMException)) return false;
+  return error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22;
+}
+
+function messageForStorage(message: ChatMessage): ChatMessage {
+  const imageCount = message.images?.length ?? 0;
+  if (imageCount === 0) return message;
+  const next = { ...message, content: persistableVisionContent(message.content, imageCount) };
+  delete next.images;
+  return next;
+}
+
+function storeForDisk(data: LocalChatStore, messageLimit: number | null): LocalChatStore {
+  return {
+    lastActiveId: data.lastActiveId,
+    chats: data.chats.map((chat) => {
+      const stripped = chat.messages.map(messageForStorage);
+      const messages = messageLimit === null
+        ? stripped
+        : messageLimit <= 0
+          ? []
+          : stripped.slice(-messageLimit);
+      if (messages === chat.messages) return chat;
+      return {
+        ...chat,
+        messages,
+        messageCount: chat.messageCount ?? chat.messages.length,
+      };
+    }),
+  };
+}
+
+function storageSet(key: string, json: string): boolean {
+  try {
+    localStorage.setItem(key, json);
+    return true;
+  } catch (error) {
+    if (!isQuotaError(error)) {
+      console.warn('Не удалось записать чаты в localStorage', error);
+    }
+    return false;
+  }
+}
+
+function storageReplace(key: string, json: string): boolean {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* место освобождаем перед повторной записью */
+  }
+  return storageSet(key, json);
+}
+
+function warnQuota(): void {
+  if (quotaWarned) return;
+  quotaWarned = true;
+  console.warn('Локальное хранилище чатов переполнено. В браузере остаётся укороченная копия, полная история — на сервере.');
+}
+
+function fitStoreToQuota(key: string, data: LocalChatStore): void {
+  const attempt = (store: LocalChatStore) => storageReplace(key, JSON.stringify(store));
+  let compact = storeForDisk(data, null);
+  if (attempt(compact)) return;
+
+  warnQuota();
+  for (const limit of [80, 20, 0]) {
+    compact = storeForDisk(data, limit);
+    if (attempt(compact)) return;
+  }
+
+  const activeId = data.lastActiveId;
+  let chats = compact.chats;
+  while (chats.length > 0) {
+    let index = chats.length - 1;
+    for (let i = chats.length - 1; i >= 0; i--) {
+      if (chats[i]?.id !== activeId) {
+        index = i;
+        break;
+      }
+    }
+    chats = chats.filter((_, chatIndex) => chatIndex !== index);
+    if (attempt({ chats, lastActiveId: activeId })) return;
+  }
+
+  storageReplace(key, JSON.stringify({ chats: [], lastActiveId: activeId }));
+}
+
 function writeLocalChatStore(data: LocalChatStore): void {
   const userId = currentUserId();
   if (!userId) return;
@@ -209,7 +300,10 @@ function writeLocalChatStore(data: LocalChatStore): void {
         : owned[0]?.id ?? null,
   };
   memoryStore = { userId, data: next };
-  localStorage.setItem(chatsStorageKey(userId), JSON.stringify(next));
+  const key = chatsStorageKey(userId);
+  if (!persistCompact && storageSet(key, JSON.stringify(storeForDisk(next, null)))) return;
+  persistCompact = true;
+  fitStoreToQuota(key, next);
 }
 
 function isUnscopedLegacyChatKey(key: string): boolean {
