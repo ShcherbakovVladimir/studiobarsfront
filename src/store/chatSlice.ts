@@ -46,27 +46,58 @@ const loadSettingsFromStorage = () => {
   return null;
 };
 
-// Функция сохранения истории в localStorage
-const saveHistoriesToStorage = (histories: Record<string, ChatMessage[]>) => {
+function isQuotaError(error: unknown): boolean {
+  if (!(error instanceof DOMException)) return false;
+  return error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22;
+}
+
+function packHistories(histories: Record<string, ChatMessage[]>, limit: number): Record<string, ChatMessage[]> {
+  const toStore: Record<string, ChatMessage[]> = {};
+  for (const [modelId, messages] of Object.entries(histories)) {
+    const filteredMessages = messages.filter((msg) =>
+      !(msg.isStreaming && !msg.content) && !msg.isError
+    );
+    const slice = limit <= 0 ? [] : filteredMessages.slice(-limit);
+    toStore[modelId] = slice.map((msg) => {
+      if (!msg.images?.length) return msg;
+      const rest = { ...msg };
+      delete rest.images;
+      return rest;
+    });
+  }
+  return toStore;
+}
+
+let historyQuotaWarned = false;
+
+function storageSet(key: string, json: string): boolean {
   try {
-    // Ограничиваем размер хранимых данных (последние 100 сообщений на модель)
-    const toStore: Record<string, ChatMessage[]> = {};
-    for (const [modelId, messages] of Object.entries(histories)) {
-      // Фильтруем сообщения, убираем streaming-сообщения без контента
-      const filteredMessages = messages.filter(msg => 
-        !(msg.isStreaming && !msg.content) && // Убираем пустые streaming сообщения
-        !msg.isError // Можно сохранять ошибки, но лучше не сохранять
-      );
-      toStore[modelId] = filteredMessages.slice(-100).map((msg) => {
-        if (!msg.images?.length) return msg;
-        const rest = { ...msg };
-        delete rest.images;
-        return rest;
-      });
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore));
+    localStorage.setItem(key, json);
+    return true;
   } catch (error) {
-    console.error('Error saving chat history to localStorage:', getErrorMessage(error));
+    if (!isQuotaError(error)) {
+      console.error('Error saving chat history to localStorage:', getErrorMessage(error));
+    }
+    return false;
+  }
+}
+
+// Последние сообщения по модели. Если квота кончилась — пишем меньше, экран не ломаем.
+const saveHistoriesToStorage = (histories: Record<string, ChatMessage[]>) => {
+  for (const limit of [100, 40, 10, 0]) {
+    const json = JSON.stringify(packHistories(histories, limit));
+    if (storageSet(STORAGE_KEY, json)) return;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* освобождаем место перед повторной записью */
+    }
+    if (!storageSet(STORAGE_KEY, json)) continue;
+    if (limit < 100 && !historyQuotaWarned) {
+      historyQuotaWarned = true;
+      console.warn('Локальная история чата укорочена: хранилище браузера переполнено. Полная переписка остаётся на сервере.');
+    }
+    return;
   }
 };
 
@@ -115,8 +146,11 @@ const chatSlice = createSlice({
     
     updateSettings: (state, action: PayloadAction<Partial<ChatState['settings']>>) => {
       state.settings = { ...state.settings, ...action.payload };
-      // Сохраняем настройки в localStorage
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+      } catch (error) {
+        console.warn('Не удалось сохранить настройки чата:', getErrorMessage(error));
+      }
     },
     
     // Удалить историю для конкретной модели
