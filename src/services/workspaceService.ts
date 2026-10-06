@@ -559,7 +559,17 @@ export const workspaceService = {
   async read(path: string): Promise<WorkspaceFileContent> {
     const data = await api<UnknownRecord>(`/workspace/file?${fileQuery(path)}`);
     const file = asRecord(data.file) ?? data;
-    const content = [file.content, file.text, file.markdown].find((value) => typeof value === 'string');
+    const recognitionRow = asRecord(file.recognition ?? data.recognition);
+    const content = [
+      file.content,
+      file.text,
+      file.markdown,
+      file.preview,
+      file.body,
+      recognitionRow?.content,
+      recognitionRow?.text,
+      recognitionRow?.markdown,
+    ].find((value) => typeof value === 'string');
     return {
       path: asString(file.path) ?? path,
       content: typeof content === 'string' ? content : null,

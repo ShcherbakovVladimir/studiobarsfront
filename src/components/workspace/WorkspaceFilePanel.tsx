@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { showErrorToast } from '../../services/toastService';
 import { MenuPopover } from '../ui/menu-popover';
 import { ChatMarkdown } from '../markdown/ChatMarkdown';
+import ragService from '../../services/ragService';
 import workspaceService, {
   isRecognitionPending,
   matchWorkspaceImage,
@@ -82,6 +83,8 @@ export function WorkspaceFilePanel({
 }: WorkspaceFilePanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [indexedText, setIndexedText] = useState<string | null>(null);
+  const [indexedLoading, setIndexedLoading] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTriggerRef = useRef<HTMLButtonElement>(null);
@@ -90,12 +93,39 @@ export function WorkspaceFilePanel({
   useEffect(() => () => window.clearTimeout(copiedTimer.current), []);
 
   const recognition = file?.recognition ?? entry?.recognition;
+  const workspaceText = file?.content?.trim() ? file.content : '';
+  const previewText = workspaceText || indexedText || '';
+
+  useEffect(() => {
+    const source = recognition?.status === 'ready' ? recognition.ragSource : undefined;
+    if (loading || !source || workspaceText) {
+      setIndexedText(null);
+      setIndexedLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setIndexedLoading(true);
+    setIndexedText(null);
+    void ragService.fetchDocumentText(source)
+      .then((text) => {
+        if (!cancelled) setIndexedText(text);
+      })
+      .catch(() => {
+        if (!cancelled) setIndexedText(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIndexedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, workspaceText, recognition?.ragSource, recognition?.status]);
   const editable = isEditablePath(path) && file?.content !== null && file !== null;
   const recognizedMarkdown = Boolean(
     recognition?.status === 'ready' && recognition.ragSource && /\.(md|markdown)$/i.test(recognition.ragSource)
   );
   const markdown = ['md', 'markdown'].includes(workspaceFileExtension(path)) || recognizedMarkdown;
-  const sourceText = editing ? draft : (file?.content ?? '');
+  const sourceText = editing ? draft : previewText;
   const loadImage = useCallback(async (src: string, alt?: string) => {
     const assetPath = matchWorkspaceImage(files, path, src, alt);
     if (!assetPath) return null;
@@ -263,21 +293,35 @@ export function WorkspaceFilePanel({
             className="workspace-file-sheet h-full min-h-full w-full resize-none font-mono text-[13px] leading-relaxed focus:outline-none"
             autoFocus
           />
-        ) : file?.content === null || !file ? (
+        ) : indexedLoading && !previewText ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Беру текст из поиска…
+          </div>
+        ) : previewText ? (
+          markdown ? (
+            <div className="workspace-file-sheet chat-msg-ai text-sm">
+              {!workspaceText && (
+                <p className="mb-3 text-xs text-muted-foreground">Текст из поискового индекса.</p>
+              )}
+              <ChatMarkdown content={previewText} isDarkMode={isDarkMode} loadImage={loadImage} />
+            </div>
+          ) : (
+            <div className="workspace-file-sheet">
+              {!workspaceText && (
+                <p className="mb-3 text-xs text-muted-foreground">Текст из поискового индекса.</p>
+              )}
+              <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed">{previewText}</pre>
+            </div>
+          )
+        ) : file?.content === '' ? (
+          <p className="workspace-file-sheet text-sm text-muted-foreground">Файл пустой.</p>
+        ) : (
           <div className="workspace-file-sheet text-sm leading-relaxed text-muted-foreground">
             {file?.message ??
               (isRecognitionPending(recognition)
                 ? 'Текст появится, когда закончится распознавание.'
                 : 'Предпросмотр для этого файла недоступен — скачайте его.')}
           </div>
-        ) : file.content.trim() === '' ? (
-          <p className="workspace-file-sheet text-sm text-muted-foreground">Файл пустой.</p>
-        ) : markdown ? (
-          <div className="workspace-file-sheet chat-msg-ai text-sm">
-            <ChatMarkdown content={file.content} isDarkMode={isDarkMode} loadImage={loadImage} />
-          </div>
-        ) : (
-          <pre className="workspace-file-sheet whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed">{file.content}</pre>
         )}
       </div>
 

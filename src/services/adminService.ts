@@ -33,6 +33,196 @@ function queryString(params?: Record<string, string | number | boolean | undefin
   return qs ? `?${qs}` : '';
 }
 
+function asRecord(value: unknown): UnknownRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : null;
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
+}
+
+function countFrom(source: UnknownRecord, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const direct = asNumber(source[key]);
+    if (direct !== undefined) return direct;
+    const nested = asRecord(source[key]);
+    if (!nested) continue;
+    const inner = asNumber(nested.total ?? nested.count);
+    if (inner !== undefined) return inner;
+  }
+  return undefined;
+}
+
+const DASHBOARD_CONSUMED_KEYS = new Set([
+  'success', 'dashboard', 'stats', 'data', 'users', 'chats', 'rag', 'system',
+  'recentActivity', 'activity', 'events', 'extraMetrics',
+  'totalUsers', 'userCount', 'verifiedUsers', 'verified', 'admins', 'adminCount',
+  'totalChats', 'chatCount', 'ragSessions', 'sessions', 'sessionCount',
+  'ragDocuments', 'documents', 'documentCount',
+]);
+
+function readEvents(value: unknown): AdminAuditEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item, index) => {
+    const row = asRecord(item);
+    if (!row) return [];
+    const action = typeof row.action === 'string'
+      ? row.action
+      : typeof row.message === 'string'
+        ? row.message
+        : typeof row.type === 'string'
+          ? row.type
+          : '';
+    if (!action) return [];
+    return [{
+      id: typeof row.id === 'string' ? row.id : String(index),
+      action,
+      actorEmail: typeof row.actorEmail === 'string' ? row.actorEmail : undefined,
+      createdAt: typeof row.createdAt === 'string'
+        ? row.createdAt
+        : typeof row.created_at === 'string'
+          ? row.created_at
+          : '',
+    }];
+  });
+}
+
+function readAdminDashboard(raw: UnknownRecord): AdminDashboardData {
+  const dashboard = asRecord(raw.dashboard);
+  const stats = asRecord(raw.stats) ?? asRecord(raw.data);
+  const source: UnknownRecord = { ...raw, ...(stats ?? {}), ...(dashboard ?? {}) };
+  const usersBag = asRecord(source.users);
+  const chatsBag = asRecord(source.chats);
+  const ragBag = asRecord(source.rag);
+  const users = {
+    total: asNumber(usersBag?.total) ?? asNumber(source.users) ?? countFrom(source, ['totalUsers', 'userCount']),
+    verified: asNumber(usersBag?.verified) ?? countFrom(source, ['verifiedUsers', 'verified']),
+    admins: asNumber(usersBag?.admins) ?? countFrom(source, ['admins', 'adminCount']),
+  };
+  const chats = {
+    total: asNumber(chatsBag?.total) ?? asNumber(source.chats) ?? countFrom(source, ['totalChats', 'chatCount']),
+  };
+  const rag = {
+    sessions: asNumber(ragBag?.sessions) ?? countFrom(source, ['ragSessions', 'sessions', 'sessionCount']),
+    documents: asNumber(ragBag?.documents) ?? countFrom(source, ['ragDocuments', 'documents', 'documentCount']),
+  };
+  const extraSource = { ...(stats ?? {}), ...(dashboard ?? {}) };
+  const extraMetrics = Object.entries(extraSource)
+    .filter(([key, value]) => !DASHBOARD_CONSUMED_KEYS.has(key) && asNumber(value) !== undefined)
+    .map(([label, value]) => ({ label, value: asNumber(value) as number }));
+  const activity = readEvents(source.recentActivity ?? source.activity ?? source.events);
+  const system = asRecord(source.system) ?? undefined;
+  return {
+    users,
+    chats,
+    rag,
+    system,
+    recentActivity: activity,
+    extraMetrics,
+  };
+}
+
+function asBool(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function emptyRuntimeConfig(): RuntimeConfig {
+  return {
+    defaultModelId: '',
+    features: {
+      ragEnabled: false,
+      supportsTools: false,
+      bitrix24Enabled: false,
+      inferenceLabEnabled: false,
+      inferenceLabAdminOnly: false,
+    },
+    ragDefaults: {
+      temperature: 0,
+      topP: 0,
+      limit: 10,
+      relevanceScore: 0.45,
+      systemPrompt: '',
+      enableThinking: false,
+      preserveThinking: false,
+      qwenMode: 'auto',
+    },
+    chatDefaults: {
+      systemPrompt: '',
+      temperature: 0,
+      maxTokens: 0,
+    },
+    urls: {
+      chatApiUrl: '',
+      ragApiUrl: '',
+      llamaApiUrl: '',
+      wsUrl: '',
+      finetuneWsUrl: '',
+      errorReportUrl: '',
+    },
+  };
+}
+
+function readRuntimeConfig(raw: unknown): RuntimeConfig | null {
+  const row = asRecord(raw);
+  if (!row) return null;
+  const nested = asRecord(row.settings) ?? asRecord(row.config) ?? asRecord(row.data);
+  const looksLikeConfig = (value: UnknownRecord | null) => Boolean(
+    value && (
+      value.defaultModelId != null
+      || value.features
+      || value.urls
+      || value.ragDefaults
+      || value.chatDefaults
+    ),
+  );
+  const source = looksLikeConfig(nested) ? nested : looksLikeConfig(row) ? row : null;
+  if (!source) return null;
+  const base = emptyRuntimeConfig();
+  const features = asRecord(source.features) ?? {};
+  const rag = asRecord(source.ragDefaults) ?? {};
+  const chat = asRecord(source.chatDefaults) ?? {};
+  const urls = asRecord(source.urls) ?? {};
+  return {
+    defaultModelId: asString(source.defaultModelId, base.defaultModelId),
+    features: {
+      ragEnabled: asBool(features.ragEnabled, base.features.ragEnabled),
+      supportsTools: asBool(features.supportsTools, base.features.supportsTools),
+      bitrix24Enabled: asBool(features.bitrix24Enabled, base.features.bitrix24Enabled),
+      inferenceLabEnabled: asBool(features.inferenceLabEnabled, base.features.inferenceLabEnabled ?? false),
+      inferenceLabAdminOnly: asBool(features.inferenceLabAdminOnly, base.features.inferenceLabAdminOnly ?? false),
+    },
+    ragDefaults: {
+      temperature: asNumber(rag.temperature) ?? base.ragDefaults.temperature,
+      topP: asNumber(rag.topP) ?? base.ragDefaults.topP,
+      limit: asNumber(rag.limit) ?? base.ragDefaults.limit,
+      relevanceScore: asNumber(rag.relevanceScore) ?? base.ragDefaults.relevanceScore,
+      systemPrompt: asString(rag.systemPrompt, base.ragDefaults.systemPrompt),
+      enableThinking: asBool(rag.enableThinking, base.ragDefaults.enableThinking),
+      preserveThinking: asBool(rag.preserveThinking, base.ragDefaults.preserveThinking),
+      qwenMode: asString(rag.qwenMode, base.ragDefaults.qwenMode),
+    },
+    chatDefaults: {
+      systemPrompt: asString(chat.systemPrompt, base.chatDefaults.systemPrompt),
+      temperature: asNumber(chat.temperature) ?? base.chatDefaults.temperature,
+      maxTokens: asNumber(chat.maxTokens) ?? base.chatDefaults.maxTokens,
+    },
+    urls: {
+      chatApiUrl: asString(urls.chatApiUrl, base.urls.chatApiUrl),
+      ragApiUrl: asString(urls.ragApiUrl, base.urls.ragApiUrl),
+      llamaApiUrl: asString(urls.llamaApiUrl, base.urls.llamaApiUrl),
+      wsUrl: asString(urls.wsUrl, base.urls.wsUrl),
+      finetuneWsUrl: asString(urls.finetuneWsUrl, base.urls.finetuneWsUrl),
+      errorReportUrl: asString(urls.errorReportUrl, base.urls.errorReportUrl),
+    },
+  };
+}
+
 async function downloadAdminFile(path: string, filename: string): Promise<void> {
   const token = getToken();
   const headers = new Headers();
@@ -59,8 +249,10 @@ async function downloadAdminFile(path: string, filename: string): Promise<void> 
 }
 
 export const adminService = {
-  getDashboard: () =>
-    api<{ success: boolean; dashboard: AdminDashboardData }>(adminPath('/dashboard')),
+  getDashboard: async (): Promise<AdminDashboardData> => {
+    const data = await api<UnknownRecord>(adminPath('/dashboard'));
+    return readAdminDashboard(data);
+  },
 
   listUsers: async (params?: { limit?: number; offset?: number; search?: string; page?: number }) => {
     const limit = params?.limit ?? 50;
@@ -301,14 +493,20 @@ export const adminService = {
       body: JSON.stringify({ newUserId, overwrite }),
     }),
 
-  getSettings: () =>
-    api<{ success: boolean; settings: RuntimeConfig }>(adminPath('/settings')),
+  async getSettings(): Promise<RuntimeConfig> {
+    const data = await api<UnknownRecord>(adminPath('/settings'));
+    const settings = readRuntimeConfig(data);
+    if (!settings) throw new Error('Сервер не прислал настройки');
+    return settings;
+  },
 
-  updateSettings: (settings: Partial<RuntimeConfig>) =>
-    api<{ success: boolean; settings: RuntimeConfig }>(adminPath('/settings'), {
+  async updateSettings(settings: Partial<RuntimeConfig>): Promise<RuntimeConfig> {
+    const data = await api<UnknownRecord>(adminPath('/settings'), {
       method: 'PATCH',
       body: JSON.stringify(settings),
-    }),
+    });
+    return readRuntimeConfig(data) ?? { ...emptyRuntimeConfig(), ...settings };
+  },
 
   getMailSettings: () =>
     api<{ success: boolean; settings: AdminMailSettings }>(adminPath('/mail/settings')),

@@ -37,8 +37,7 @@ const AdminSettingsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await adminService.getSettings();
-      applySettings(res.settings);
+      applySettings(await adminService.getSettings());
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -56,8 +55,7 @@ const AdminSettingsPage: React.FC = () => {
     setError(null);
     setSuccess(null);
     try {
-      const res = await adminService.updateSettings(settings);
-      applySettings(res.settings);
+      applySettings(await adminService.updateSettings(settings));
       setSuccess('Настройки сохранены');
       showSuccessToast('Настройки сохранены');
     } catch (err) {

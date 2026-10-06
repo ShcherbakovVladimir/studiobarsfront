@@ -1370,6 +1370,15 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
   // ========== useEffect'ы ==========
   useEffect(() => {
+    if (!showRagSettings) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowRagSettings(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showRagSettings]);
+
+  useEffect(() => {
     dispatch(checkRAGDatabase());
     dispatch(loadRAGMetrics());
     dispatch(loadRAGEmbeddingHealth());
@@ -1820,11 +1829,17 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
       {showRagSettings && (
         <div className="fixed inset-0 modal-scrim flex items-center justify-center z-50 p-4" onClick={() => setShowRagSettings(false)}>
-          <div className="max-w-md w-full rounded-xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rag-settings-title"
+            className="max-w-md w-full rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="glass-modal rounded-3xl">
               <div className="flex justify-between items-center p-4 border-b border-border">
-                <h3 className="text-base font-semibold">Настройки RAG-запроса</h3>
-                <button type="button" onClick={() => setShowRagSettings(false)} className="p-1 hover:bg-accent/70 rounded-lg">
+                <h3 id="rag-settings-title" className="text-base font-semibold">Настройки RAG-запроса</h3>
+                <button type="button" aria-label="Закрыть" onClick={() => setShowRagSettings(false)} className="p-1 hover:bg-accent/70 rounded-lg">
                   <CloseIcon />
                 </button>
               </div>

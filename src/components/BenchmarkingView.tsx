@@ -49,6 +49,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
 
   const hasGpus = gpus.length > 0;
   const speedKnown = inference.available && (inference.genTps !== null || inference.promptTps !== null);
+  const speedHistory = history.filter((point) => point.genTps != null || point.promptTps != null);
   const statusLabel = isPolling
     ? lastUpdate ? `Авто · ${lastUpdate}` : 'Автообновление'
     : lastUpdate ? `Пауза · ${lastUpdate}` : 'Пауза';
@@ -104,7 +105,11 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         <InlineInfo message="Модель не загружена: скорости инференса нет, показан только снимок карт." />
       )}
       {!error && inference.available && !speedKnown && (
-        <InlineInfo message="Замера ещё не было. Скорости появятся после запроса к модели (чат или Inference Lab). Пока они null, а не 0." />
+        <InlineInfo message={
+          history.length > 0
+            ? 'Снимки карт уже есть. Скорость в токенах появится после запроса к модели (чат или Inference Lab). Пустое значение — это отсутствие замера, а не ноль.'
+            : 'Замера ещё не было. Скорости появятся после запроса к модели (чат или Inference Lab). Пока они null, а не 0.'
+        } />
       )}
     </div>
   );
@@ -153,11 +158,13 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         <div className="glass-panel border border-border rounded-2xl p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-foreground">Скорость инференса</h3>
-            <span className="text-sm text-muted-foreground">{history.length} замеров</span>
+            <span className="text-sm text-muted-foreground">
+              {speedHistory.length > 0 ? `${speedHistory.length} замеров скорости` : 'скорости ещё нет'}
+            </span>
           </div>
           <ChartContainer height={288}>
             <ResponsiveContainer width="100%" height={288} minWidth={0}>
-              <AreaChart data={history}>
+              <AreaChart data={speedHistory}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis dataKey="time" stroke={textColor} fontSize={11} interval="preserveStartEnd" />
                 <YAxis stroke={textColor} fontSize={11} />

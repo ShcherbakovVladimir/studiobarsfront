@@ -29,8 +29,7 @@ const AdminDashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await adminService.getDashboard();
-      setDashboard(res.dashboard);
+      setDashboard(await adminService.getDashboard());
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -53,6 +52,26 @@ const AdminDashboardPage: React.FC = () => {
   const systemEntries = dashboard?.system
     ? Object.entries(dashboard.system).filter(([, value]) => value != null && typeof value !== 'object')
     : [];
+  const metricCards: { label: string; value: number }[] = [];
+  if (dashboard) {
+    const known: [string, number | undefined][] = [
+      ['Пользователи', dashboard.users?.total],
+      ['Админы', dashboard.users?.admins],
+      ['Подтверждён email', dashboard.users?.verified],
+      ['Чаты', dashboard.chats?.total],
+      ['RAG-сессии', dashboard.rag?.sessions],
+      ['RAG-документы', dashboard.rag?.documents],
+    ];
+    for (const [label, value] of known) {
+      if (typeof value === 'number') metricCards.push({ label, value });
+    }
+    for (const item of dashboard.extraMetrics ?? []) metricCards.push(item);
+  }
+  const hasDashboardBody = Boolean(
+    metricCards.length
+    || (dashboard?.recentActivity && dashboard.recentActivity.length > 0)
+    || systemEntries.length > 0,
+  );
 
   return (
     <AdminWorkspace
@@ -74,16 +93,23 @@ const AdminDashboardPage: React.FC = () => {
       {error && <AdminError message={error} />}
       {loading && !dashboard && <AdminLoading />}
 
-      {dashboard && (
+      {dashboard && !hasDashboardBody && !loading && (
+        <AdminCard title="Сводка">
+          <p className="text-sm text-muted-foreground">
+            Сервер ответил, но чисел для карточек в сводке нет.
+          </p>
+        </AdminCard>
+      )}
+
+      {dashboard && hasDashboardBody && (
         <div className="space-y-4 min-w-0">
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-            <MetricCard label="Пользователи" value={dashboard.users?.total ?? '—'} />
-            <MetricCard label="Админы" value={dashboard.users?.admins ?? '—'} />
-            <MetricCard label="Подтверждён email" value={dashboard.users?.verified ?? '—'} />
-            <MetricCard label="Чаты" value={dashboard.chats?.total ?? '—'} />
-            <MetricCard label="RAG-сессии" value={dashboard.rag?.sessions ?? '—'} />
-            <MetricCard label="RAG-документы" value={dashboard.rag?.documents ?? '—'} />
-          </div>
+          {metricCards.length > 0 && (
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              {metricCards.map((card) => (
+                <MetricCard key={card.label} label={card.label} value={card.value} />
+              ))}
+            </div>
+          )}
 
           {dashboard.recentActivity && dashboard.recentActivity.length > 0 && (
             <AdminCard title="Последние события">

@@ -137,6 +137,8 @@ export interface AdminDashboardData {
   rag?: { sessions?: number; documents?: number };
   system?: UnknownRecord;
   recentActivity?: AdminAuditEvent[];
+  /** Числа из `stats`, которым нет отдельной карточки. */
+  extraMetrics?: { label: string; value: number }[];
   [key: string]: unknown;
 }
 

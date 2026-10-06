@@ -735,6 +735,38 @@ function buildStreamRequestBody(request: RAGStreamRequest): Record<string, unkno
   return body;
 }
 
+function ragRecord(value: unknown): UnknownRecord | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : null;
+}
+
+function textFromRagPayload(data: unknown): string | null {
+  if (typeof data === 'string' && data.trim()) return data;
+  const row = ragRecord(data);
+  if (!row) return null;
+  const direct = [row.text, row.content, row.markdown, row.preview, row.body].find(
+    (value) => typeof value === 'string' && value.trim(),
+  );
+  if (typeof direct === 'string') return direct;
+  const nested = ragRecord(row.document) ?? ragRecord(row.file);
+  const nestedText = nested
+    ? [nested.text, nested.content, nested.markdown].find((value) => typeof value === 'string' && value.trim())
+    : undefined;
+  if (typeof nestedText === 'string') return nestedText;
+  const chunks = Array.isArray(row.chunks)
+    ? row.chunks
+    : Array.isArray(row.chunks_preview)
+      ? row.chunks_preview
+      : [];
+  const parts = chunks.map((chunk) => {
+    if (typeof chunk === 'string') return chunk.trim();
+    const record = ragRecord(chunk);
+    if (!record) return '';
+    const text = record.text ?? record.content ?? record.pageContent ?? record.chunk;
+    return typeof text === 'string' ? text.trim() : '';
+  }).filter(Boolean);
+  return parts.length ? parts.join('\n\n') : null;
+}
+
 export const ragService = {
   async listSessions(): Promise<RagSession[]> {
     try {
@@ -870,6 +902,28 @@ export const ragService = {
     const response = await ragFetch(`/documents/${encodeURIComponent(sourceName)}`);
     if (!response.ok) return { success: false };
     return response.json() as Promise<{ success: boolean; document?: RagDocument; chunks?: UnknownRecord[] }>;
+  },
+
+  /** Текст документа из индекса: скачивание text/plain, иначе склейка чанков превью. */
+  async fetchDocumentText(sourceName: string): Promise<string | null> {
+    const path = `/documents/${encodeURIComponent(sourceName)}`;
+    const download = await ragFetch(`${path}/download`);
+    if (download.ok) {
+      const type = (download.headers.get('content-type') ?? '').toLowerCase();
+      const textual = type.includes('json') || type.startsWith('text/') || type.includes('markdown');
+      if (textual) {
+        if (type.includes('json')) {
+          const text = textFromRagPayload(await download.json().catch(() => null));
+          if (text) return text;
+        } else {
+          const text = (await download.text()).trim();
+          if (text) return text;
+        }
+      }
+    }
+    const preview = await ragFetch(path);
+    if (!preview.ok) return null;
+    return textFromRagPayload(await preview.json().catch(() => null));
   },
 
   async deleteDocument(sourceName: string): Promise<{ success: boolean; message?: string }> {
