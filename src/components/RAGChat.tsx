@@ -2409,6 +2409,13 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 <p className="text-xs text-muted-foreground mt-1.5">
                   Латиница, цифры и _. Полное имя вида upload_… выдаст сервер, его не нужно собирать здесь.
                 </p>
+                {tableName.trim() !== '' && !isSqlTableAlias(tableName.trim()) && (
+                  <p className="text-xs text-destructive mt-1.5">
+                    {tableName.trim().toLowerCase() === 'vector_store'
+                      ? 'vector_store — это поиск по документам. Для SQL укажите другое имя.'
+                      : 'Подойдут только латиница, цифры и _. Кириллица, пробелы и дефис не принимаются.'}
+                  </p>
+                )}
               </div>
             )}
             {uploadType === 'sql' && batchMode && (
@@ -2461,14 +2468,22 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               </div>
             )}
 
+            {uploadError && (
+              <InlineError message={uploadError} onDismiss={() => setUploadError(null)} />
+            )}
+            {uploadSuccess && !isUploading && (
+              <InlineSuccess message={uploadSuccess} onDismiss={() => setUploadSuccess(null)} />
+            )}
+
             <Button
               type="button"
               className="w-full"
               onClick={handleUpload}
-              disabled={
-                isUploading ||
-                (batchMode ? selectedFiles.length === 0 : !selectedFile) ||
-                (uploadType === 'sql' && !batchMode && !isSqlTableAlias(tableName.trim()))
+              disabled={isUploading || (batchMode ? selectedFiles.length === 0 : !selectedFile)}
+              title={
+                batchMode
+                  ? selectedFiles.length === 0 ? 'Сначала выберите файлы' : undefined
+                  : !selectedFile ? 'Сначала выберите файл' : undefined
               }
             >
               {isUploading ? 'Обработка…' : 'Загрузить в базу данных'}
@@ -2587,12 +2602,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               )}
             </div>
 
-            {uploadError && (
-              <InlineError message={uploadError} onDismiss={() => setUploadError(null)} />
-            )}
-            {uploadSuccess && (
-              <InlineSuccess message={uploadSuccess} onDismiss={() => setUploadSuccess(null)} />
-            )}
           </div>
         </DialogContent>
       </Dialog>
