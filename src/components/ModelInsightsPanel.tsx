@@ -23,7 +23,7 @@ interface ModelInsightsPanelProps {
   isDarkMode: boolean;
 }
 
-const ModelInsightsPanel: React.FC<ModelInsightsPanelProps> = ({ modelId, isDarkMode }) => {
+const ModelInsightsPanel: React.FC<ModelInsightsPanelProps> = ({ modelId }) => {
   const [insights, setInsights] = useState<ModelInsights | null>(null);
   const [resourceEstimation, setResourceEstimation] = useState<ResourceEstimation | null>(null);
   const [autoConfiguration, setAutoConfiguration] = useState<AutoConfiguration | null>(null);

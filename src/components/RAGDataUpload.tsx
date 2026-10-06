@@ -16,7 +16,7 @@ interface TableInfo {
   rowCount: number;
 }
 
-const RAGDataUpload: React.FC<RAGDataUploadProps> = ({ onUploadComplete, isDarkMode }) => {
+const RAGDataUpload: React.FC<RAGDataUploadProps> = ({ onUploadComplete }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

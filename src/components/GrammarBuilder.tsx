@@ -24,11 +24,9 @@ interface GrammarBuilderProps {
 const FALLBACK_TEMPLATES = ['json', 'list', 'json_arr'];
 
 const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
-  isDarkMode,
   onGrammarChange,
   currentSelection = createEmptyGrammarSelection(),
 }) => {
-  const [grammarType, setGrammarType] = useState<string>('json');
   const [grammar, setGrammar] = useState<GrammarResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [jsonSchema, setJsonSchema] = useState<string>(
@@ -55,7 +53,6 @@ const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
         throw new Error('Сервер не вернул GBNF');
       }
       setGrammar(response);
-      setGrammarType(type);
     } catch (err) {
       console.error('Error loading grammar:', err);
       setError(`Не удалось загрузить грамматику «${type}»: ${getErrorMessage(err)}`);
@@ -85,7 +82,6 @@ const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
         throw new Error('Сервер не вернул грамматику по схеме');
       }
       setGrammar(response);
-      setGrammarType('json_schema');
     } catch (err) {
       console.error('Error creating JSON schema grammar:', err);
       setError(`Ошибка JSON Schema: ${getErrorMessage(err)}`);
@@ -120,7 +116,6 @@ const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
 
   const clearGrammar = () => {
     setGrammar(null);
-    setGrammarType('json');
     setError(null);
     onGrammarChange?.(createEmptyGrammarSelection());
     void previewGrammar('json');
@@ -145,7 +140,6 @@ const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
             const response = await llamaApi.createJsonSchemaGrammar(currentSelection.jsonSchema);
             if (response.success && response.grammar) {
               setGrammar(response);
-              setGrammarType('json_schema');
             }
           } catch (err) {
             setError(getErrorMessage(err));
@@ -161,7 +155,6 @@ const GrammarBuilder: React.FC<GrammarBuilderProps> = ({
             grammar: currentSelection.grammar,
             rootRuleName: 'root',
           });
-          setGrammarType('gbnf');
           return;
         }
       }

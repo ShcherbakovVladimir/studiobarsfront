@@ -41,21 +41,14 @@ function ResolvedMarkdownImage({
   alt?: string;
   loadImage?: LoadImage;
 }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const absolute = Boolean(src && /^(https?:|data:|blob:)/i.test(src));
+  const directUrl = src && (!loadImage || absolute) ? src : null;
+  const [loaded, setLoaded] = useState<{ src: string; url: string | null; failed: boolean } | null>(null);
 
   useEffect(() => {
-    if (!src) return;
-    const absolute = /^(https?:|data:|blob:)/i.test(src);
-    if (!loadImage || absolute) {
-      setUrl(src);
-      setFailed(false);
-      return;
-    }
+    if (!src || !loadImage || absolute) return;
     let objectUrl: string | null = null;
     let cancelled = false;
-    setUrl(null);
-    setFailed(false);
     void loadImage(src, alt)
       .then((next) => {
         if (cancelled) {
@@ -63,20 +56,24 @@ function ResolvedMarkdownImage({
           return;
         }
         if (!next) {
-          setFailed(true);
+          setLoaded({ src, url: null, failed: true });
           return;
         }
         objectUrl = next.startsWith('blob:') ? next : null;
-        setUrl(next);
+        setLoaded({ src, url: next, failed: false });
       })
       .catch(() => {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setLoaded({ src, url: null, failed: true });
       });
     return () => {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [src, loadImage]);
+  }, [src, alt, loadImage, absolute]);
+
+  const loadedForSrc = loaded?.src === src ? loaded : null;
+  const url = directUrl ?? loadedForSrc?.url ?? null;
+  const failed = loadedForSrc?.failed ?? false;
 
   if (!src || failed) {
     return alt ? <p className="my-2 text-center text-xs text-muted-foreground">{alt}</p> : null;
@@ -91,7 +88,9 @@ function ResolvedMarkdownImage({
         alt={alt || 'Изображение'}
         className="max-w-full h-auto rounded-lg shadow-md mx-auto"
         loading="lazy"
-        onError={() => setFailed(true)}
+        onError={() => {
+          if (src) setLoaded({ src, url: null, failed: true });
+        }}
       />
       {alt && <p className="text-center text-xs text-muted-foreground mt-1.5">{alt}</p>}
     </div>

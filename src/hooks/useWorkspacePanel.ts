@@ -69,18 +69,19 @@ export function usePanelScroll(
   const savedScrollTop = useSelector(
     (state: RootState) => state.workspaceUi.scrollPositions[scrollKey] ?? 0
   );
-  const savedScrollTopRef = useRef(savedScrollTop);
-  savedScrollTopRef.current = savedScrollTop;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const restoredKeyRef = useRef<string | null>(null);
 
   // Restore once per panel/tab. Re-applying on every persisted scrollTop
   // fights live auto-scroll (chat open, streaming) and jumps to a stale offset.
   useLayoutEffect(() => {
     if (!restore) return;
+    if (restoredKeyRef.current === scrollKey) return;
     const element = scrollRef.current;
     if (!element) return;
-    element.scrollTop = savedScrollTopRef.current;
-  }, [restore, scrollKey]);
+    restoredKeyRef.current = scrollKey;
+    element.scrollTop = savedScrollTop;
+  }, [restore, savedScrollTop, scrollKey]);
 
   useEffect(() => {
     if (!restore) return;

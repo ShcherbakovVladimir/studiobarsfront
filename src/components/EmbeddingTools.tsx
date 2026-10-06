@@ -13,7 +13,7 @@ interface EmbeddingToolsProps {
   isDarkMode: boolean;
 }
 
-const EmbeddingTools: React.FC<EmbeddingToolsProps> = ({ isDarkMode }) => {
+const EmbeddingTools: React.FC<EmbeddingToolsProps> = () => {
   const [text1, setText1] = useState<string>('Пример текста для embedding');
   const [text2, setText2] = useState<string>('Другой пример текста для сравнения');
   const [embeddingResult1, setEmbeddingResult1] = useState<EmbeddingResponse | null>(null);

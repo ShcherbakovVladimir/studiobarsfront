@@ -59,7 +59,7 @@ const AdminHelpPage: React.FC = () => {
     if (!rawSlug) {
       navigate(helpPath(DEFAULT_HELP_SLUG, '', HELP_BASE), { replace: true });
     }
-  }, [rawSlug, navigate, HELP_BASE]);
+  }, [rawSlug, navigate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +100,7 @@ const AdminHelpPage: React.FC = () => {
         scrollToHelpHash(hash, articleRef.current);
       }
     },
-    [navigate, slug, HELP_BASE]
+    [navigate, slug]
   );
 
   const activeSectionId = useMemo(() => {

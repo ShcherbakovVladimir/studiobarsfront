@@ -622,9 +622,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   const [highlightFileSource, setHighlightFileSource] = useState<string | null>(linkedSource);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const headerMenuRef = useRef<HTMLButtonElement>(null);
-  const closeSessionSidebarIfMobile = () => {
-    if (isWorkspaceOverlay()) setShowSessionSidebar(false);
-  };
+  const closeSessionSidebarIfMobile = useCallback(() => {
+    if (isWorkspaceOverlay()) setToggle('sessionListOpen', false);
+  }, [setToggle]);
   const showUploadModal = getToggle('showUploadModal', false);
   const setShowUploadModal = (value: boolean) => setToggle('showUploadModal', value);
   const batchMode = getToggle('batchMode', false);
@@ -793,7 +793,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       return;
     }
     messagesEndRef.current?.scrollIntoView({ behavior });
-  }, []);
+  }, [scrollRef]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = useCallback(() => {
@@ -1269,7 +1269,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       syncSessionUrl(id);
       closeSessionSidebarIfMobile();
     },
-    [dispatch, sessionId, syncSessionUrl]
+    [dispatch, sessionId, syncSessionUrl, closeSessionSidebarIfMobile]
   );
 
   const handleNewSession = useCallback(async () => {
@@ -1281,7 +1281,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     } catch (error) {
       showToast(typeof error === 'string' ? error : error instanceof Error ? error.message : 'Не удалось создать сессию', 'error');
     }
-  }, [dispatch, syncSessionUrl, showToast]);
+  }, [dispatch, syncSessionUrl, showToast, closeSessionSidebarIfMobile]);
 
   const handleDeleteSession = useCallback(
     async (id: string) => {
@@ -1352,11 +1352,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       coding: 'Режим программирования - для генерации SQL и кода'
     };
     return descriptions[mode] || '';
-  };
-
-  const formatTimestamp = (timestamp: string | Date) => {
-    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
-    return date.toLocaleTimeString();
   };
 
   const isConnected = databaseStatus?.connected || false;

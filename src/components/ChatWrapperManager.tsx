@@ -60,10 +60,9 @@ const STATIC_WRAPPERS: ChatWrapperInfo[] = [
   }
 ];
 
-const ChatWrapperManager: React.FC<ChatWrapperManagerProps> = ({ 
-  isDarkMode, 
+const ChatWrapperManager: React.FC<ChatWrapperManagerProps> = ({
   onWrapperSelect,
-  currentModel 
+  currentModel,
 }) => {
   const [wrappers, setWrappers] = useState<ChatWrapperInfo[]>([]);
   const [loading, setLoading] = useState(true);

@@ -53,7 +53,13 @@ export function MenuPopover({
 
   useLayoutEffect(() => {
     if (!open) return;
-    updatePosition();
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) updatePosition();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, updatePosition]);
 
   useEffect(() => {

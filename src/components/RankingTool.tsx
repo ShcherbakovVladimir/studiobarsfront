@@ -12,7 +12,7 @@ interface RankingToolProps {
   isDarkMode: boolean;
 }
 
-const RankingTool: React.FC<RankingToolProps> = ({ isDarkMode }) => {
+const RankingTool: React.FC<RankingToolProps> = () => {
   const [query, setQuery] = useState<string>('Что такое искусственный интеллект?');
   const [documents, setDocuments] = useState<string[]>([
     'Искусственный интеллект — это область компьютерных наук, занимающаяся созданием интеллектуальных машин.',

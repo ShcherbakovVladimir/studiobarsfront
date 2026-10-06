@@ -64,9 +64,7 @@ import {
 } from '../utils/chatVision';
 import {
   createEmptyGrammarSelection,
-  grammarSelectionLabel,
   grammarSelectionToApiFields,
-  isGrammarActive,
   type GrammarSelection,
 } from '../utils/grammarUtils';
 
@@ -396,13 +394,6 @@ const MoreIcon = () => (
   </Icon>
 );
 
-const ThinkingIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9a2 2 0 100 4 2 2 0 000-4z" />
-  </svg>
-);
-
 const StopStreamingIcon = () => (
   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
     <rect x="5" y="5" width="14" height="14" rx="2.5" />
@@ -514,12 +505,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     state.chat.histories[chatHistoryKey] || EMPTY_MESSAGES
   );
   
-  const isSaigaModel = currentModel?.modelFamily === 'saiga' || 
-                       currentModel?.name?.toLowerCase().includes('saiga');
-  const isXLAMModel = currentModel?.supportsTools || 
-                      currentModel?.modelFamily === 'xlam' ||
-                      currentModel?.name?.toLowerCase().includes('xlam');
-  
   const isQwen36Model = isQwenThinkingModel(currentModel);
   
   // State for Qwen3.6
@@ -550,12 +535,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const showMobileMenu = getToggle('showMobileMenu', false);
   const showRuntime = getToggle('showRuntime', true);
   const useTools = getToggle('useTools', false);
-  const setEnableThinking = (value: boolean) => setToggle('enableThinking', value);
+  const setEnableThinking = useCallback((value: boolean) => setToggle('enableThinking', value), [setToggle]);
   const setPreserveThinking = (value: boolean) => setToggle('preserveThinking', value);
-  const setShowSettings = (value: boolean) => setToggle('showSettings', value);
-  const setShowMobileMenu = (value: boolean) => setToggle('showMobileMenu', value);
+  const setShowSettings = useCallback((value: boolean) => setToggle('showSettings', value), [setToggle]);
+  const setShowMobileMenu = useCallback((value: boolean) => setToggle('showMobileMenu', value), [setToggle]);
   const setShowRuntime = (value: boolean) => setToggle('showRuntime', value);
-  const setUseTools = (value: boolean) => setToggle('useTools', value);
+  const setUseTools = useCallback((value: boolean) => setToggle('useTools', value), [setToggle]);
 
   useEffect(() => {
     if (productMode && activeTool !== 'chat') {
@@ -699,9 +684,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const setShowChatList = (value: boolean) => setToggle('showChatList', value);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const headerMenuRef = useRef<HTMLButtonElement>(null);
-  const closeChatListIfMobile = () => {
-    if (isWorkspaceOverlay()) setShowChatList(false);
-  };
+  const closeChatListIfMobile = useCallback(() => {
+    if (isWorkspaceOverlay()) setToggle('showChatList', false);
+  }, [setToggle]);
   const toggleChatList = () => {
     const next = !showChatList;
     setShowChatList(next);
@@ -737,7 +722,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const isMountedRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const sessionCreationInProgressRef = useRef(false);
   
   // Connection status
   const connectionStatus: ConnectionStatus =
@@ -800,16 +784,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
-
-  const checkServerAvailability = useCallback(async (): Promise<boolean> => {
-    try {
-      const status = await agentService.getServerStatus();
-      return status?.serverReady === true;
-    } catch (error) {
-      console.debug('Сервер недоступен:', error);
-      return false;
-    }
-  }, []);
 
   // Загрузка чатов при старте
   const loadChats = useCallback(async () => {
@@ -985,7 +959,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     
     chatSyncService.setLastActiveChat(newChat.id);
     closeChatListIfMobile();
-  }, [currentModelId, systemPrompt, selectedWrapper, dispatch]);
+  }, [currentModelId, systemPrompt, selectedWrapper, dispatch, closeChatListIfMobile]);
 
   const switchToChat = useCallback(async (chat: ChatData) => {
     const outgoing = currentChatRef.current;
@@ -1025,7 +999,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     
     chatSyncService.setLastActiveChat(nextChat.id);
     closeChatListIfMobile();
-  }, [currentModelId, dispatch]);
+  }, [currentModelId, dispatch, closeChatListIfMobile]);
 
   const deleteChat = useCallback(async (chatId: string) => {
     const chatToDelete = availableChats.find(c => c.id === chatId);
@@ -1218,7 +1192,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     } finally {
       initInProgressRef.current = false;
     }
-  }, [isServerReady, currentModelId, sessionId, selectedWrapper, currentModel?.id, isInitialized, systemPrompt, productMode]);
+  }, [isServerReady, currentModelId, sessionId, selectedWrapper, currentModel, isInitialized, systemPrompt, productMode]);
 
   useEffect(() => {
     if (currentModel) {
@@ -1319,7 +1293,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [showMobileMenu, showSettings]);
+  }, [showMobileMenu, showSettings, setShowMobileMenu, setShowSettings]);
   
   // Stop streaming function
   const stopStreaming = useCallback(() => {

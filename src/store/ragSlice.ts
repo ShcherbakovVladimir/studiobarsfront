@@ -156,7 +156,6 @@ export const sendRAGQueryStream = createAsyncThunk(
       documentSources,
       compareDocuments,
       tableNames,
-      attachedFiles,
     }: {
       query: string;
       sessionId: string;

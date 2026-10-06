@@ -526,7 +526,7 @@ const MainApp: React.FC = () => {
           />
         );
     }
-  }, [employee, viewMode, isDarkMode, selectedModel, models.length, isLoading, handleRefreshModels, handleModelSelect, handleStartModel]);
+  }, [employee, viewMode, isDarkMode, selectedModel, handleModelSelect, handleStartModel]);
 
   const fill = isFillAppPath(location.pathname);
 

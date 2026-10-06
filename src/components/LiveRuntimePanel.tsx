@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, useEffect, useState, type ReactNode } from 'react';
 import { Activity, Cpu, Gauge, Thermometer, X, Zap } from 'lucide-react';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
@@ -92,6 +92,43 @@ export function LiveRuntimePanel(props: LiveRuntimePanelProps) {
   );
 }
 
+interface RateMemory {
+  streaming: boolean;
+  rate: LiveTokenRate | null;
+  wasStreaming: boolean;
+}
+
+interface StreamGate {
+  sawStream: boolean;
+  cutoff: number | null;
+}
+
+function nextStreamGate(prev: StreamGate, streaming: boolean, startedSeq: number): StreamGate {
+  if (streaming) {
+    if (prev.sawStream && prev.cutoff === null) return prev;
+    return { sawStream: true, cutoff: null };
+  }
+  if (!prev.sawStream || prev.cutoff !== null) return prev;
+  return { sawStream: true, cutoff: startedSeq };
+}
+
+function rememberRate(prev: RateMemory, streaming: boolean, streamRate: LiveTokenRate | null): RateMemory {
+  if (streaming && (!streamRate || streamRate.tokens === 0)) {
+    if (prev.streaming && prev.wasStreaming && prev.rate === null) return prev;
+    return { streaming: true, rate: null, wasStreaming: true };
+  }
+  if (streaming && streamRate && streamRate.tokens > 0) {
+    if (prev.streaming && prev.wasStreaming && prev.rate === streamRate) return prev;
+    return { streaming: true, rate: streamRate, wasStreaming: true };
+  }
+  if (!streaming && prev.wasStreaming) {
+    const rate = streamRate && streamRate.tokens > 0 ? streamRate : prev.rate;
+    return { streaming: false, rate, wasStreaming: false };
+  }
+  if (prev.streaming === streaming) return prev;
+  return { ...prev, streaming };
+}
+
 function LiveRuntimePanelView({ open, onClose, streaming = false, streamRate = null }: LiveRuntimePanelProps) {
   const overlay = useWorkspaceOverlay();
   const drawerRef = useDrawerRootRef(open);
@@ -100,50 +137,37 @@ function LiveRuntimePanelView({ open, onClose, streaming = false, streamRate = n
     autoPoll: true,
     pollingInterval: streaming ? 1000 : 4000,
   });
-  const rememberedRate = useRef<LiveTokenRate | null>(null);
-  const wasStreaming = useRef(false);
-  const sawStream = useRef(false);
-  const cutoffSeq = useRef<number | null>(null);
-  const [serverReady, setServerReady] = useState(false);
+  const [rateMemory, setRateMemory] = useState<RateMemory>({
+    streaming: false,
+    rate: null,
+    wasStreaming: false,
+  });
+  const [streamGate, setStreamGate] = useState<StreamGate>({ sawStream: false, cutoff: null });
+  const nextGate = nextStreamGate(streamGate, streaming, startedSeq);
+  if (nextGate !== streamGate) setStreamGate(nextGate);
+  const serverReady = nextGate.cutoff !== null && completedSeq > nextGate.cutoff;
 
   useEffect(() => {
     if (open && streaming) void refresh();
   }, [open, streaming, refresh]);
 
   useEffect(() => {
-    if (streaming) {
-      sawStream.current = true;
-      cutoffSeq.current = null;
-      setServerReady(false);
-      return;
-    }
-    if (!sawStream.current) return;
-    if (cutoffSeq.current === null) {
-      cutoffSeq.current = startedSeq;
-      void refresh();
-    }
-    if (completedSeq > cutoffSeq.current) setServerReady(true);
-  }, [streaming, startedSeq, completedSeq, refresh]);
+    if (streaming || nextGate.cutoff === null) return;
+    void refresh();
+  }, [streaming, nextGate.cutoff, refresh]);
 
-  if (streaming && (!streamRate || streamRate.tokens === 0)) {
-    rememberedRate.current = null;
-    wasStreaming.current = true;
-  } else if (streaming && streamRate && streamRate.tokens > 0) {
-    rememberedRate.current = streamRate;
-    wasStreaming.current = true;
-  } else if (!streaming && wasStreaming.current) {
-    if (streamRate && streamRate.tokens > 0) rememberedRate.current = streamRate;
-    wasStreaming.current = false;
-  }
+  const nextRateMemory = rememberRate(rateMemory, streaming, streamRate);
+  if (nextRateMemory !== rateMemory) setRateMemory(nextRateMemory);
 
   const inference = readInference(data?.inference);
+  const rememberedRate = nextRateMemory.rate;
   const holding =
     !streaming &&
-    rememberedRate.current != null &&
-    rememberedRate.current.tokens > 0 &&
+    rememberedRate != null &&
+    rememberedRate.tokens > 0 &&
     (!serverReady || inference.genTps === null);
   const showLive = streaming || holding;
-  const liveRate = streaming ? streamRate : rememberedRate.current;
+  const liveRate = streaming ? streamRate : rememberedRate;
   const genTps = showLive ? liveRate?.tps ?? null : inference.genTps;
   const gpus = listGpus(data?.gpu);
   const system = data?.system;

@@ -59,7 +59,8 @@ const saveHistoriesToStorage = (histories: Record<string, ChatMessage[]>) => {
       );
       toStore[modelId] = filteredMessages.slice(-100).map((msg) => {
         if (!msg.images?.length) return msg;
-        const { images: _images, ...rest } = msg;
+        const rest = { ...msg };
+        delete rest.images;
         return rest;
       });
     }

@@ -16,7 +16,7 @@ interface AdvancedSettingsProps {
   onSettingsChange: (settings: AdvancedSettingsState) => void;
 }
 
-const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ isDarkMode, onSettingsChange }) => {
+const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange }) => {
   const [settings, setSettings] = useState({
     temperature: 0.7,
     maxTokens: 2048,

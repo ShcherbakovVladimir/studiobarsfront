@@ -7,12 +7,9 @@ import { celestia } from '../../lib/celestia';
 export const adminBtn =
   'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0 transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
-export const adminBtnPrimary = cn(adminBtn, 'btn-gradient text-white');
-export const adminBtnGhost = cn(adminBtn, 'bg-accent hover:bg-border text-foreground');
-export const adminBtnDanger = cn(
-  adminBtn,
-  'text-destructive hover:bg-destructive/10 border border-destructive/20'
-);
+export const adminBtnPrimary = `${adminBtn} btn-gradient text-white`;
+export const adminBtnGhost = `${adminBtn} bg-accent hover:bg-border text-foreground`;
+export const adminBtnDanger = `${adminBtn} text-destructive hover:bg-destructive/10 border border-destructive/20`;
 export const adminInput =
   'h-8 w-full min-w-0 px-2.5 rounded-xl text-xs glass-input disabled:opacity-70';
 export const adminTextarea =

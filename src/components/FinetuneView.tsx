@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/components/FinetuneView.tsx
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../store/store';
 import { store } from '../store/store';
@@ -69,7 +69,7 @@ const FinetuneView: React.FC = () => {
   const showAdvanced = getToggle('showAdvanced', false);
   const setShowAdvanced = (value: boolean) => setToggle('showAdvanced', value);
   const isSidebarOpen = getToggle('isSidebarOpen', false);
-  const setIsSidebarOpen = (value: boolean) => setToggle('isSidebarOpen', value);
+  const setIsSidebarOpen = useCallback((value: boolean) => setToggle('isSidebarOpen', value), [setToggle]);
 
   // Локальные состояния
   const [windowSize, setWindowSize] = useState({
@@ -93,7 +93,7 @@ const FinetuneView: React.FC = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, setIsSidebarOpen]);
 
   // ============ УПРАВЛЕНИЕ WEBSOCKET ============
   // ✅ ИСПРАВЛЕНО: Защита от множественных подключений

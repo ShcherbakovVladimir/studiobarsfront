@@ -39,7 +39,6 @@ const FORMAT_LABELS: Record<DocumentationFormat, string> = {
 };
 
 const FunctionDocumentationTool: React.FC<FunctionDocumentationToolProps> = ({
-  isDarkMode,
   tools,
 }) => {
   const [functionsJson, setFunctionsJson] = useState<string>('[]');

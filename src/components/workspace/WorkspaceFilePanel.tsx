@@ -83,8 +83,7 @@ export function WorkspaceFilePanel({
 }: WorkspaceFilePanelProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  const [indexedText, setIndexedText] = useState<string | null>(null);
-  const [indexedLoading, setIndexedLoading] = useState(false);
+  const [indexed, setIndexed] = useState<{ source: string; text: string | null } | null>(null);
   const [copyOpen, setCopyOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTriggerRef = useRef<HTMLButtonElement>(null);
@@ -94,32 +93,27 @@ export function WorkspaceFilePanel({
 
   const recognition = file?.recognition ?? entry?.recognition;
   const workspaceText = file?.content?.trim() ? file.content : '';
+  const indexedSource = !loading && !workspaceText && recognition?.status === 'ready'
+    ? recognition.ragSource
+    : undefined;
+  const indexedText = indexedSource && indexed?.source === indexedSource ? indexed.text : null;
+  const indexedLoading = Boolean(indexedSource) && indexed?.source !== indexedSource;
   const previewText = workspaceText || indexedText || '';
 
   useEffect(() => {
-    const source = recognition?.status === 'ready' ? recognition.ragSource : undefined;
-    if (loading || !source || workspaceText) {
-      setIndexedText(null);
-      setIndexedLoading(false);
-      return;
-    }
+    if (!indexedSource) return;
     let cancelled = false;
-    setIndexedLoading(true);
-    setIndexedText(null);
-    void ragService.fetchDocumentText(source)
+    void ragService.fetchDocumentText(indexedSource)
       .then((text) => {
-        if (!cancelled) setIndexedText(text);
+        if (!cancelled) setIndexed({ source: indexedSource, text });
       })
       .catch(() => {
-        if (!cancelled) setIndexedText(null);
-      })
-      .finally(() => {
-        if (!cancelled) setIndexedLoading(false);
+        if (!cancelled) setIndexed({ source: indexedSource, text: null });
       });
     return () => {
       cancelled = true;
     };
-  }, [loading, workspaceText, recognition?.ragSource, recognition?.status]);
+  }, [indexedSource]);
   const editable = isEditablePath(path) && file?.content !== null && file !== null;
   const recognizedMarkdown = Boolean(
     recognition?.status === 'ready' && recognition.ragSource && /\.(md|markdown)$/i.test(recognition.ragSource)
