@@ -1066,7 +1066,10 @@ export const ragService = {
         if (options.ifExists) formData.append('ifExists', options.ifExists);
         if (options.chunking_mode) formData.append('chunking_mode', options.chunking_mode);
         if (options.content_format) formData.append('content_format', options.content_format);
-        formData.append('original_source', options.original_source ?? file.name);
+        const excelBook = /\.xlsx?$/i.test(file.name);
+        if (!excelBook && (options.original_source || file.name)) {
+          formData.append('original_source', options.original_source ?? file.name);
+        }
 
         const result = await uploadWithProgress<DocumentUploadResponse>(
           buildRagUrl('/upload/document'),

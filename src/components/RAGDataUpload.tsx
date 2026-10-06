@@ -61,8 +61,13 @@ const RAGDataUpload: React.FC<RAGDataUploadProps> = ({ onUploadComplete }) => {
       setError('Please select a file');
       return;
     }
-    if (!tableName.trim()) {
-      setError('Please enter a table name');
+    const alias = tableName.trim();
+    if (!/^[A-Za-z0-9_]+$/.test(alias) || alias.toLowerCase() === 'vector_store') {
+      setError(
+        alias.toLowerCase() === 'vector_store'
+          ? 'vector_store — это поиск по документам. Для SQL укажите другое короткое имя.'
+          : 'Имя таблицы: латиница, цифры и _.'
+      );
       return;
     }
 

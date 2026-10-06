@@ -121,8 +121,16 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
 
   const toggleSource = (source: string) => {
     const doc = documents.find((d) => d.source === source);
-    if (doc && !doc.is_fully_indexed && (doc.completion_percentage ?? 0) < 100) {
-      setError(`«${source}» ещё индексируется. Поиск заработает после 100%.`);
+    const indexed = Boolean(
+      doc && (
+        doc.embedding_status === 'complete'
+        || doc.is_fully_indexed
+        || ((doc.completion_percentage ?? 0) >= 100 && !doc.indexing_in_progress)
+      )
+    );
+    if (doc && !indexed) {
+      setError(`«${source}» ещё индексируется. Поиск по нему пока недоступен.`);
+      return;
     }
     if (selectedSources.includes(source)) {
       onSelectionChange(selectedSources.filter((s) => s !== source));

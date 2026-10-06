@@ -227,12 +227,45 @@ const ChartDisplay = ({ chartData }: { chartData: ChartData }) => {
 };
 
 const VECTOR_DOC_EXTENSIONS = new Set([
-  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'html', 'htm', 'xml',
+  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'md', 'rtf', 'html', 'htm', 'xml', 'xlsx', 'xls',
 ]);
 
+function fileExtension(file: File): string {
+  return file.name.split('.').pop()?.toLowerCase() ?? '';
+}
+
+function isExcelWorkbook(file: File): boolean {
+  const ext = fileExtension(file);
+  return ext === 'xlsx' || ext === 'xls';
+}
+
 function isVectorDocumentFile(file: File): boolean {
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  return VECTOR_DOC_EXTENSIONS.has(ext);
+  return VECTOR_DOC_EXTENSIONS.has(fileExtension(file));
+}
+
+function isSqlTableAlias(name: string): boolean {
+  return /^[A-Za-z0-9_]+$/.test(name) && name.toLowerCase() !== 'vector_store';
+}
+
+function documentReadyForSearch(doc: { embedding_status?: string; is_fully_indexed?: boolean; indexing_in_progress?: boolean }): boolean {
+  if (doc.indexing_in_progress) return false;
+  if (doc.embedding_status === 'error' || doc.embedding_status === 'failed') return false;
+  return doc.embedding_status === 'complete' || doc.is_fully_indexed === true;
+}
+
+async function waitForDocumentIndex(source: string, onWait: () => void): Promise<boolean> {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    onWait();
+    const { documents } = await ragService.getDocuments();
+    const doc = documents.find((item) => item.source === source);
+    if (doc?.embedding_status === 'error' || doc?.embedding_status === 'failed') {
+      throw new Error('Не удалось проиндексировать документ');
+    }
+    if (doc && documentReadyForSearch(doc)) return true;
+    await new Promise((resolve) => window.setTimeout(resolve, 2000));
+  }
+  return false;
 }
 
 async function ingestPdfFile(
@@ -680,9 +713,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   
   // Состояния для векторного поиска
   const [uploadType, setUploadType] = useState<'vector' | 'sql'>('vector');
-  const [useAutoTableName, setUseAutoTableName] = useState(true);
-  const [excelToText, setExcelToText] = useState(true);
-  const [summaryMode, setSummaryMode] = useState<'detailed' | 'summary'>('summary');
   
   // Qwen3.6 состояния
   const [qwenInfo, setQwenInfo] = useState<QwenInfo | null>(null);
@@ -761,13 +791,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       }
       setIsPreviewLoading(true);
       try {
-        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-        const preview = await ragService.previewDocument(file, {
-          ifExists,
-          chunking_mode: summaryMode,
-          content_format: isExcel && excelToText ? 'text' : undefined,
-          original_source: file.name,
-        });
+        const preview = await ragService.previewDocument(file, isExcelWorkbook(file)
+          ? { ifExists }
+          : { ifExists, original_source: file.name });
         setDocumentPreview(preview);
       } catch (error) {
         setDocumentPreview({
@@ -778,7 +804,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         setIsPreviewLoading(false);
       }
     },
-    [uploadType, batchMode, ifExists, summaryMode, excelToText]
+    [uploadType, batchMode, ifExists]
   );
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -818,7 +844,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           const invalid = selectedFiles.filter((file) => !isVectorDocumentFile(file));
           if (invalid.length > 0) {
             setUploadError(
-              `Недопустимые файлы для документов: ${invalid.map((f) => f.name).join(', ')}. Excel/CSV загружайте через SQL.`
+              `Для поиска не подходят: ${invalid.map((f) => f.name).join(', ')}. CSV и JSON загружайте как таблицу.`
             );
             setIsUploading(false);
             return;
@@ -846,17 +872,25 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           if (others.length > 0) {
             const result = await ragService.uploadDocumentsBatch(
               others,
-              {
-                ifExists,
-                chunking_mode: summaryMode,
-                content_format: excelToText ? 'text' : undefined,
-              },
+              { ifExists },
               (progress) => setUploadProgress(progress)
             );
             notifyRagLibraryChanged();
+            const indexed: string[] = [];
+            for (const uploaded of result.results) {
+              const source = uploaded.source;
+              if (!source) continue;
+              setUploadSuccess('Индексация…');
+              const ready = await waitForDocumentIndex(source, () => setUploadSuccess('Индексация…'));
+              if (ready) indexed.push(source);
+            }
+            if (indexed.length > 0) {
+              setSelectedDocumentSources((prev) => [...new Set([...prev, ...indexed])]);
+            }
             setUploadSuccess(
-              `✅ PDF: ${pdfDone}, документы: ${result.results.length}` +
-                (result.failed.length ? `, ошибок: ${result.failed.length}` : '')
+              `PDF: ${pdfDone}, документы: ${result.results.length}` +
+                (indexed.length < result.results.length ? '. Часть ещё индексируется — поиск по ним пока недоступен.' : '') +
+                (result.failed.length ? ` Ошибок: ${result.failed.length}.` : '')
             );
           } else {
             setUploadSuccess(`✅ Обработано PDF: ${pdfDone}`);
@@ -864,11 +898,18 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         } else {
           const result = await ragService.uploadBatchWithProgress(
             selectedFiles,
-            { tableNamePrefix: tableName.trim() || 'upload_', ifExists },
+            { ifExists: ifExists === 'skip' ? 'replace' : ifExists },
             (progress) => setUploadProgress(progress)
           );
+          const created = result.results
+            .map((row) => row.tableName)
+            .filter((name): name is string => Boolean(name));
+          if (created.length > 0) {
+            setSelectedTableNames((prev) => [...new Set([...prev, ...created])]);
+          }
           setUploadSuccess(
-            `✅ Пакет: ${result.success_count}/${result.total} успешно`
+            `Пакет: ${result.success_count}/${result.total} успешно` +
+              (created.length ? `. Таблицы: ${created.join(', ')}` : '')
           );
         }
         setSelectedFiles([]);
@@ -896,20 +937,22 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     }
 
     if (uploadType === 'vector' && !isVectorDocumentFile(selectedFile)) {
-      setUploadError('Для векторного поиска используйте PDF, DOC, DOCX, TXT, MD и другие документы. Excel/CSV — через SQL-загрузку.');
+      setUploadError('Для поиска нужен документ, PDF или книга .xlsx/.xls. CSV и JSON загружайте как таблицу.');
       return;
     }
 
-    const finalTableName = uploadType === 'vector'
-      ? 'vector_store'
-      : tableName.trim();
-
-    if (uploadType === 'vector' && useAutoTableName) {
-      setTableName('vector_store');
-    }
+    const finalTableName = tableName.trim();
 
     if (uploadType === 'sql' && !finalTableName) {
-      setUploadError('Пожалуйста, введите название таблицы');
+      setUploadError('Введите короткое имя таблицы: латиница, цифры и _.');
+      return;
+    }
+    if (uploadType === 'sql' && !isSqlTableAlias(finalTableName)) {
+      setUploadError(
+        finalTableName.toLowerCase() === 'vector_store'
+          ? 'vector_store — это поиск по документам. Для SQL укажите другое имя или выберите «В поиск».'
+          : 'Имя таблицы: латиница, цифры и _. Сервер сам добавит префикс.'
+      );
       return;
     }
 
@@ -949,28 +992,32 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           return;
         }
 
-        const isExcel =
-          selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls');
-
         const response = await ragService.uploadDocumentWithProgress(
           selectedFile,
-          {
-            ifExists,
-            chunking_mode: summaryMode,
-            content_format: isExcel && excelToText ? 'text' : undefined,
-            original_source: selectedFile.name,
-          },
+          isExcelWorkbook(selectedFile)
+            ? { ifExists }
+            : { ifExists, original_source: selectedFile.name },
           (progress) => setUploadProgress(progress)
         );
 
-        const chunkInfo = response.chunks != null ? `${response.chunks} чанков` : 'индексация';
-        setUploadSuccess(
-          `✅ Документ «${response.source ?? selectedFile.name}» загружен (${chunkInfo})`
-        );
-        if (response.source) {
+        const source = response.source ?? selectedFile.name;
+        const chunkInfo = response.chunks != null ? `${response.chunks} чанков` : 'документ принят';
+        let ready = documentReadyForSearch({
+          embedding_status: response.embedding_status,
+          is_fully_indexed: response.is_fully_indexed,
+          indexing_in_progress: response.indexing_in_progress,
+        });
+        if (response.source && !ready) {
+          setUploadSuccess('Индексация…');
+          ready = await waitForDocumentIndex(response.source, () => setUploadSuccess('Индексация…'));
+        }
+        if (ready && response.source) {
           setSelectedDocumentSources((prev) =>
             prev.includes(response.source!) ? prev : [...prev, response.source!]
           );
+          setUploadSuccess(`Документ «${source}» проиндексирован (${chunkInfo})`);
+        } else {
+          setUploadSuccess(`Документ «${source}» принят (${chunkInfo}). Индексация ещё идёт — поиск по нему пока недоступен.`);
         }
         notifyRagLibraryChanged();
         setSelectedFile(null);
@@ -985,12 +1032,18 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       } else {
         const response = await ragService.uploadTableWithProgress(
           selectedFile,
-          { tableName: finalTableName, ifExists },
+          { tableName: finalTableName, ifExists: ifExists === 'skip' ? 'replace' : ifExists },
           (progress) => setUploadProgress(progress)
         );
 
+        if (response.tableName) {
+          setSelectedTableNames((prev) =>
+            prev.includes(response.tableName) ? prev : [...prev, response.tableName]
+          );
+        }
         setUploadSuccess(
-          `✅ ${response.message} (${response.rowsInserted ?? response.rowCount} строк)`
+          response.message ||
+            `Загружено ${response.rowsInserted ?? response.rowCount} строк в таблицу «${response.tableName}»`
         );
         setSelectedFile(null);
         setTableName('');
@@ -1085,7 +1138,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
     const file = files[0];
     if (!file) return;
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const ext = fileExtension(file);
     const sqlExts = ['csv', 'json', 'xlsx', 'xls'];
     const allowed = uploadType === 'vector' ? VECTOR_DOC_EXTENSIONS.has(ext) : sqlExts.includes(ext);
 
@@ -1322,14 +1375,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
   const handleUploadTypeChange = (type: 'vector' | 'sql') => {
     setUploadType(type);
-    if (type === 'vector') {
-      setUseAutoTableName(true);
-      setTableName('vector_store');
-      setExcelToText(true);
-    } else {
-      setUseAutoTableName(false);
-      setTableName('');
-      setExcelToText(false);
+    if (type === 'sql') {
+      if (tableName.toLowerCase() === 'vector_store') setTableName('');
+      if (ifExists === 'skip') setIfExists('replace');
     }
   };
 
@@ -1453,7 +1501,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     } else {
       setDocumentPreview(null);
     }
-  }, [selectedFile, uploadType, batchMode, ifExists, summaryMode, excelToText, loadDocumentPreview]);
+  }, [selectedFile, uploadType, batchMode, ifExists, loadDocumentPreview]);
 
   return (
     <div className="flex h-full w-full overflow-hidden glass-panel text-foreground">
@@ -2203,7 +2251,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               Загрузка данных в БД
             </DialogTitle>
             <DialogDescription>
-              Документы в векторный индекс или файлы в SQL-таблицы.
+              Один Excel — либо в поиск по тексту, либо в SQL-таблицу. Это два разных запроса.
             </DialogDescription>
           </DialogHeader>
 
@@ -2256,7 +2304,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 }}
                 accept={
                   uploadType === 'vector'
-                    ? '.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.rtf,.html,.htm,.xml'
+                    ? '.pdf,.doc,.docx,.ppt,.pptx,.txt,.md,.rtf,.html,.htm,.xml,.xlsx,.xls'
                     : '.csv,.json,.xlsx,.xls'
                 }
                 className="hidden"
@@ -2276,8 +2324,8 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {uploadType === 'vector'
-                    ? 'PDF (OCR), DOC, DOCX, PPTX, TXT, MD, HTML, XML. Сканы внутри Word не распознаются — их загружайте в PDF'
-                    : 'CSV, JSON, Excel (SQL-таблицы)'}
+                    ? 'PDF, DOC, DOCX, PPTX, TXT, MD и Excel .xlsx/.xls — текст для поиска. Сканы внутри Word загружайте как PDF.'
+                    : 'CSV, JSON и Excel .xlsx/.xls — строки станут SQL-таблицей.'}
                 </p>
               </label>
             </div>
@@ -2323,8 +2371,8 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 >
                   <VectorIcon />
                   <span>
-                    <span className="block text-sm font-medium">Векторный поиск</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">Запросы «из файлов»</span>
+                    <span className="block text-sm font-medium">В поиск</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Текст листов и документов</span>
                   </span>
                 </button>
                 <button
@@ -2339,94 +2387,60 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 >
                   <TableIcon />
                   <span>
-                    <span className="block text-sm font-medium">SQL-аналитика</span>
-                    <span className="block text-xs text-muted-foreground mt-0.5">Прямые SQL-запросы</span>
+                    <span className="block text-sm font-medium">Как таблицу</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Считать и фильтровать строки</span>
                   </span>
                 </button>
               </div>
             </div>
 
-            <div>
-              <FormLabel htmlFor="rag-upload-table-name">
-                Название таблицы
-                {uploadType === 'vector' && (
-                  <span className="text-xs text-muted-foreground font-normal ml-2">vector_store</span>
-                )}
-              </FormLabel>
-              <FormInput
-                id="rag-upload-table-name"
-                name="tableName"
-                type="text"
-                value={tableName}
-                onChange={(e) => {
-                  setTableName(e.target.value);
-                  if (uploadType === 'vector') {
-                    setUseAutoTableName(false);
-                  }
-                }}
-                placeholder={uploadType === 'vector' ? 'vector_store' : 'например: customers, orders'}
-                disabled={uploadType === 'vector' && useAutoTableName}
-                className={cn(
-                  'rounded-2xl',
-                  uploadType === 'vector' && useAutoTableName && 'opacity-70'
-                )}
-              />
-              {uploadType === 'vector' && (
+            {uploadType === 'sql' && !batchMode && (
+              <div>
+                <FormLabel htmlFor="rag-upload-table-name">Короткое имя таблицы</FormLabel>
+                <FormInput
+                  id="rag-upload-table-name"
+                  name="tableName"
+                  type="text"
+                  value={tableName}
+                  onChange={(e) => setTableName(e.target.value)}
+                  placeholder="plan_2026"
+                  className="rounded-2xl"
+                />
                 <p className="text-xs text-muted-foreground mt-1.5">
-                  PDF-сканы идут в POST /api/files/upload/pdf (не /api/rag/upload/document). После ready в запросе: ragSource (.md).
+                  Латиница, цифры и _. Полное имя вида upload_… выдаст сервер, его не нужно собирать здесь.
                 </p>
-              )}
-            </div>
-
-            {uploadType === 'vector' && selectedFile &&
-              (selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) && (
-              <div className="space-y-3">
-                <label htmlFor="rag-upload-excel-to-text" className="flex items-center justify-between gap-3 cursor-pointer">
-                  <span className="text-sm font-medium">Конвертировать Excel в текст</span>
-                  <input
-                    id="rag-upload-excel-to-text"
-                    name="excelToText"
-                    type="checkbox"
-                    checked={excelToText}
-                    onChange={(e) => setExcelToText(e.target.checked)}
-                    className="h-4 w-4 rounded-md border-border accent-foreground"
-                  />
-                </label>
-
-                {excelToText && (
-                  <div>
-                    <FormLabel>Режим индексации</FormLabel>
-                    <SelectMenu
-                      aria-label="Режим индексации Excel"
-                      value={summaryMode}
-                      onChange={(value) => setSummaryMode(value as 'summary' | 'detailed')}
-                      options={[
-                        { value: 'summary', label: 'Краткий (итоги по листам)' },
-                        { value: 'detailed', label: 'Детальный (построчно)' },
-                      ]}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      {summaryMode === 'summary'
-                        ? 'Общее описание каждого листа — меньше записей, быстрее поиск.'
-                        : 'Отдельная запись на каждую строку — точнее поиск, больше данных.'}
-                    </p>
-                  </div>
-                )}
               </div>
+            )}
+            {uploadType === 'sql' && batchMode && (
+              <p className="text-xs text-muted-foreground">
+                Каждый файл пакета станет отдельной таблицей. Имя пришлёт сервер.
+              </p>
+            )}
+            {uploadType === 'vector' && (
+              <p className="text-xs text-muted-foreground">
+                Книга попадёт в библиотеку документов, не в список SQL-таблиц. PDF-сканы по-прежнему идут отдельно через распознавание.
+              </p>
             )}
 
             <div>
-              <FormLabel htmlFor="rag-upload-if-exists">Если таблица существует</FormLabel>
+              <FormLabel htmlFor="rag-upload-if-exists">
+                {uploadType === 'sql' ? 'Если таблица уже есть' : 'Если документ уже есть'}
+              </FormLabel>
               <SelectMenu
                 id="rag-upload-if-exists"
-                aria-label="Если таблица существует"
-                value={ifExists}
+                aria-label={uploadType === 'sql' ? 'Если таблица уже есть' : 'Если документ уже есть'}
+                value={uploadType === 'sql' && ifExists === 'skip' ? 'replace' : ifExists}
                 onChange={(value) => setIfExists(value as 'replace' | 'append' | 'skip')}
-                options={[
-                  { value: 'replace', label: 'Заменить (удалить и создать заново)' },
-                  { value: 'append', label: 'Добавить к существующей' },
-                  { value: 'skip', label: 'Пропустить, если уже есть' },
-                ]}
+                options={uploadType === 'sql'
+                  ? [
+                    { value: 'replace', label: 'Заменить' },
+                    { value: 'append', label: 'Добавить строки' },
+                  ]
+                  : [
+                    { value: 'replace', label: 'Заменить' },
+                    { value: 'append', label: 'Добавить' },
+                    { value: 'skip', label: 'Пропустить, если уже есть' },
+                  ]}
               />
             </div>
 
@@ -2454,7 +2468,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               disabled={
                 isUploading ||
                 (batchMode ? selectedFiles.length === 0 : !selectedFile) ||
-                (uploadType === 'sql' && !tableName.trim())
+                (uploadType === 'sql' && !batchMode && !isSqlTableAlias(tableName.trim()))
               }
             >
               {isUploading ? 'Обработка…' : 'Загрузить в базу данных'}
@@ -2472,7 +2486,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 <span className="font-medium flex items-center gap-2 text-sm">
                   <TableIcon />
                   Таблицы в БД
-                  <span className="text-xs text-muted-foreground font-normal">({tables.length})</span>
+                  <span className="text-xs text-muted-foreground font-normal">({tables.filter((table) => table.name !== 'vector_store').length})</span>
                 </span>
                 <svg
                   className={`w-4 h-4 text-muted-foreground transition-transform ${showTableList ? 'rotate-180' : ''}`}
@@ -2489,12 +2503,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   </p>
                   {isLoadingTables ? (
                     <div className="text-center py-4 text-muted-foreground text-sm">Загрузка...</div>
-                  ) : tables.length === 0 ? (
+                  ) : tables.filter((table) => table.name !== 'vector_store').length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       Нет таблиц. Загрузите данные, чтобы создать таблицы.
                     </p>
                   ) : (
-                    tables.map((table) => (
+                    tables.filter((table) => table.name !== 'vector_store').map((table) => (
                       <div
                         key={table.name}
                         className="rounded-xl bg-muted/40"
@@ -2527,9 +2541,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                             <div className="min-w-0">
                               <div className="font-mono text-xs sm:text-sm font-medium break-words">
                                 {table.name}
-                                {table.name === 'vector_store' && (
-                                  <span className="ml-2 text-xs text-muted-foreground">(векторный)</span>
-                                )}
                               </div>
                               <div className="text-xs text-muted-foreground">{table.columnCount} колонок, {table.rowCount} строк</div>
                             </div>
