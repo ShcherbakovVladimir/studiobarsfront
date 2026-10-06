@@ -1,8 +1,8 @@
 // /home/user/projects/studioxlam/src/store/appSlice.ts
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { ViewMode, ServerStatus } from '../types';
-import type { AppState, HardwareStats, ServiceHealth } from '../types';
+import { ViewMode } from '../types';
+import type { AppState, HardwareStats, ServiceHealth, ServerStatus } from '../types';
 import { resolveInitialTheme, saveTheme } from '../lib/theme';
 
 const initialState: AppState = {

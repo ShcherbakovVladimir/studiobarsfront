@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/hooks/useHardwareMonitoring.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { realBenchmarkService, MonitoringData } from '../services/benchmarkService';
+import { realBenchmarkService, type MonitoringData } from '../services/benchmarkService';
 
 interface UseHardwareMonitoringOptions {
   autoPoll?: boolean;

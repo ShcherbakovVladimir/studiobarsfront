@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { ChatListState, ChatSummary, PersistedChat } from '../types';
 import * as chatSyncService from '../services/chatSyncService';
 import { bootstrapAuth, login, logout } from './authSlice';

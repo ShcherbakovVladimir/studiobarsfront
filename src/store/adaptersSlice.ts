@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/store/adaptersSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { AdapterInfo, ModelsState } from '../types';
 import { getErrorMessage } from '../utils/errorUtils';
 import { adapterService, type AdapterInfo as ServiceAdapterInfo } from '../services/adapterService';

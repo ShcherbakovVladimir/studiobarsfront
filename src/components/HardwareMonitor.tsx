@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/components/HardwareMonitor.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';

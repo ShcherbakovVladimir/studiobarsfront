@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/components/EmbeddingTools.tsx
 import React, { useState } from 'react';
-import { llamaApi, EmbeddingResponse, EmbeddingCompareResponse } from '../services/llamaService';
+import { llamaApi, type EmbeddingResponse, type EmbeddingCompareResponse } from '../services/llamaService';
 import { showErrorToast } from '../services/toastService';
 import { useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';

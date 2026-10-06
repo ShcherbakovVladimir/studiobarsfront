@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/constants.ts
-import { XLAMModel } from './types';
+import type { XLAMModel } from './types';
 
 export const XLAM_MODELS: XLAMModel[] = [
   {

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { cn } from '../lib/utils';
 import { MenuPopover } from './ui/menu-popover';
 import { formatTokens, usageRatio, type ContextUsage } from '../utils/contextUsage';

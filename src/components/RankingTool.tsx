@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/components/RankingTool.tsx
 import React, { useState } from 'react';
-import { llamaApi, RankingResponse } from '../services/llamaService';
+import { llamaApi, type RankingResponse } from '../services/llamaService';
 import { showErrorToast } from '../services/toastService';
 import { ResultPanel } from './ui/result-panel';
 import { StatusPill } from './ui/status-pill';

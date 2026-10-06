@@ -2,14 +2,14 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ChatMarkdown, StreamingChatMarkdown } from './markdown/ChatMarkdown';
-import { chatSyncService, ChatData, toChatMessages } from '../services/chatSyncService';
-import agentService, { 
-  ModelControlResponse,
-  ChatWrapperInfo,
-  XlamToolDefinition,
+import { chatSyncService, toChatMessages, type ChatData } from '../services/chatSyncService';
+import agentService, {
+  type ModelControlResponse,
+  type ChatWrapperInfo,
+  type XlamToolDefinition,
   DEFAULT_TOOLS,
-  ChatMessage,
-  GenerationOptions
+  type ChatMessage,
+  type GenerationOptions,
 } from '../services/agentService';
 import type { ChatImageAttachment, ChatMessage as StoredChatMessage, XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';

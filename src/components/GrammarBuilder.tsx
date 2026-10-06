@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/components/GrammarBuilder.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { llamaApi, GrammarResponse } from '../services/llamaService';
+import { llamaApi, type GrammarResponse } from '../services/llamaService';
 import { listGrammarTemplates } from '../services/agentService';
 import { showSuccessToast } from '../services/toastService';
 import { getErrorMessage } from '../utils/errorUtils';

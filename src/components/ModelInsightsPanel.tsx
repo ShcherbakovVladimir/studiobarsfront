@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   llamaApi,
-  ModelInsights,
-  ResourceEstimation,
-  AutoConfiguration,
+  type ModelInsights,
+  type ResourceEstimation,
+  type AutoConfiguration,
   hasModelInsightsData,
   isResourceEstimationComplete,
 } from '../services/llamaService';

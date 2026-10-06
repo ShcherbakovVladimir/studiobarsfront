@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { marked } from 'marked';
 import { BarChart3, Check, Copy, Download, Loader2, MessageSquarePlus, Pencil, Save, Trash2, X } from 'lucide-react';
 import { cn } from '../../lib/utils';

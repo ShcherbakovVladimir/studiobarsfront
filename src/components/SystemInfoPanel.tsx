@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { llamaApi, SystemInfo } from '../services/llamaService';
+import { llamaApi, type SystemInfo } from '../services/llamaService';
 import { InlineError } from './ui/alert-banner';
 import { PanelCard } from './ui/panel-card';
 import { IconButton } from './ui/icon-button';

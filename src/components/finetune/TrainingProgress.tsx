@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/components/finetune/TrainingProgress.tsx
 import React from 'react';
-import { FinetuneSession, TrainingMetrics } from '../../types';
+import type { FinetuneSession, TrainingMetrics } from '../../types';
 
 interface TrainingProgressProps {
   progress: number;

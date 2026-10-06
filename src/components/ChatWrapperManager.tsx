@@ -1,6 +1,6 @@
 // /home/user/projects/studioxlam/src/components/ChatWrapperManager.tsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { llamaApi, ChatWrapperInfo } from '../services/llamaService';
+import { llamaApi, type ChatWrapperInfo } from '../services/llamaService';
 import type { UnknownRecord } from '../types';
 import { ResultPanel } from './ui/result-panel';
 import { StatusPill } from './ui/status-pill';

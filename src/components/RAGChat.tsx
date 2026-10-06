@@ -12,7 +12,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
-import { RootState, AppDispatch } from '../store/store';
+import type { RootState, AppDispatch } from '../store/store';
 import { 
   sendRAGQueryStream, 
   loadRAGHistory, 
@@ -64,8 +64,7 @@ import {
 } from '../utils/ragQueryPrefs';
 import { getRagDefaults } from '../config/runtimeConfig';
 import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
-import type { RagDocumentPreview, RAGSource, RAGGeneratedFile } from '../types';
-import { RAGMessage } from '../types';
+import type { RagDocumentPreview, RAGSource, RAGGeneratedFile, RAGMessage } from '../types';
 import 'katex/dist/katex.min.css';
 import { confirmDialog } from '../services/dialogService';
 import { cn } from '../lib/utils';

@@ -1,14 +1,14 @@
 // /home/user/projects/studioxlam/src/components/FunctionDocumentationTool.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FunctionDocumentation } from '../services/llamaService';
+import type { FunctionDocumentation } from '../services/llamaService';
 import {
   generateFunctionDocumentation,
   getAvailableTools,
-  XlamToolDefinition,
+  type XlamToolDefinition,
 } from '../services/agentService';
 import { showErrorToast, showSuccessToast } from '../services/toastService';
 import {
-  DocumentationFormat,
+  type DocumentationFormat,
   fromApiDocumentationFormat,
   normalizeFunctionsPayload,
 } from '../utils/functionDocumentationFormatter';

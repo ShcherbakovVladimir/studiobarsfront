@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/store/hardwareSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import monitoringService, { type MonitoringFullData } from '../services/monitoringService';
 import { listGpus } from '../utils/gpuUtils';
 

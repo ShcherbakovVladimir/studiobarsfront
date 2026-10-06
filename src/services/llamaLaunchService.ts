@@ -117,9 +117,12 @@ export function validateLaunch(launch: LlamaLaunch): string[] {
 }
 
 export class ModelLoadError extends Error {
-  constructor(message: string, readonly status: number) {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
     super(message);
     this.name = 'ModelLoadError';
+    this.status = status;
   }
 }
 

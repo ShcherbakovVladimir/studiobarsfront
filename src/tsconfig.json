@@ -12,7 +12,7 @@
     ],
     "skipLibCheck": true,
     "typeRoots": ["../node_modules/@types"],
-    "types": ["react", "react-dom"],
+    "types": ["react"],
     "jsxImportSource": "react",
     "moduleResolution": "bundler",
     "isolatedModules": true,

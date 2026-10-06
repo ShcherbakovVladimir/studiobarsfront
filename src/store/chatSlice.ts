@@ -1,5 +1,5 @@
 // /home/user/projects/studioxlam/src/store/chatSlice.ts
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { ChatState, ChatMessage } from '../types';
 import { getErrorMessage } from '../utils/errorUtils';
 import { logout } from './authSlice';
