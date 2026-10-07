@@ -602,7 +602,9 @@ function uploadWithProgress<T>(
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(data);
         } else {
-          reject(new Error(data.error ?? `Upload failed: HTTP ${xhr.status}`));
+          const row = data as { error?: unknown; message?: unknown };
+          const detail = [row.error, row.message].find((item) => typeof item === 'string' && item.trim()) as string | undefined;
+          reject(new Error(detail || (xhr.status === 409 ? 'Таблица недоступна' : `Upload failed: HTTP ${xhr.status}`)));
         }
       } catch {
         reject(new Error(`Upload failed: HTTP ${xhr.status}`));
@@ -1293,10 +1295,20 @@ export const ragService = {
   async refreshSchema(): Promise<{ success: boolean; message: string }> {
     try {
       const response = await ragFetch('/schema/refresh', {
-        method: 'POST'
+        method: 'POST',
+        body: '{}',
       });
-      
-      return await response.json();
+      const data = await response.json().catch(() => ({})) as { success?: boolean; message?: string; error?: string };
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.error || data.message || `Не удалось обновить схему: HTTP ${response.status}`,
+        };
+      }
+      return {
+        success: data.success !== false,
+        message: data.message || 'Схема обновлена',
+      };
     } catch (error) {
       console.error('Refresh RAG schema error:', error);
       return {
@@ -1489,7 +1501,8 @@ export const ragService = {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const err = await response.json().catch(() => ({})) as { error?: string; message?: string };
+        throw new Error(err.error || err.message || (response.status === 409 ? 'Таблица недоступна' : `HTTP ${response.status}`));
       }
       
       return await response.json();
@@ -1507,7 +1520,8 @@ export const ragService = {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const err = await response.json().catch(() => ({})) as { error?: string; message?: string };
+        throw new Error(err.error || err.message || (response.status === 409 ? 'Таблица недоступна' : `HTTP ${response.status}`));
       }
       
       return await response.json();

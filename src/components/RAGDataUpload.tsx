@@ -62,7 +62,7 @@ const RAGDataUpload: React.FC<RAGDataUploadProps> = ({ onUploadComplete }) => {
       return;
     }
     const alias = tableName.trim();
-    if (!/^[A-Za-z0-9_]+$/.test(alias) || alias.toLowerCase() === 'vector_store') {
+    if (!/^[A-Za-z0-9_]+$/.test(alias) || alias.toLowerCase() === 'vector_store' || alias.toLowerCase() === 'seo_positions') {
       setError(
         alias.toLowerCase() === 'vector_store'
           ? 'vector_store — это поиск по документам. Для SQL укажите другое короткое имя.'

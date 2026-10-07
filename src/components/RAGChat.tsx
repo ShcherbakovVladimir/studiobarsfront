@@ -243,8 +243,21 @@ function isVectorDocumentFile(file: File): boolean {
   return VECTOR_DOC_EXTENSIONS.has(fileExtension(file));
 }
 
+const SHARED_SQL_TABLES = new Set(['seo_positions', 'vector_store', 'users', 'user_chats']);
+
 function isSqlTableAlias(name: string): boolean {
-  return /^[A-Za-z0-9_]+$/.test(name) && name.toLowerCase() !== 'vector_store';
+  return /^[A-Za-z0-9_]+$/.test(name) && !SHARED_SQL_TABLES.has(name.toLowerCase());
+}
+
+function isOwnUploadTable(name: string): boolean {
+  return /^upload_[0-9a-f]{8}_/i.test(name);
+}
+
+function explainUploadError(message: string): string {
+  if (/недоступн/i.test(message) || /\b409\b/.test(message)) {
+    return 'Таблица недоступна. Общую таблицу seo_positions нельзя заменить или удалить. Для своего Excel выберите «Как таблицу» и новое имя, например plan_2026.';
+  }
+  return message;
 }
 
 function documentReadyForSearch(doc: { embedding_status?: string; is_fully_indexed?: boolean; indexing_in_progress?: boolean }): boolean {
@@ -915,7 +928,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         setSelectedFiles([]);
         setSelectedFile(null);
         void loadTables();
-        dispatch(refreshRAGSchema());
         dispatch(checkRAGDatabase());
         setTimeout(() => {
           setShowUploadModal(false);
@@ -924,7 +936,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         }, 2000);
       } catch (err) {
         if (err instanceof FileUploadCancelledError) return;
-        setUploadError(err instanceof Error ? err.message : 'Ошибка пакетной загрузки');
+        setUploadError(explainUploadError(err instanceof Error ? err.message : 'Ошибка пакетной загрузки'));
       } finally {
         setIsUploading(false);
       }
@@ -951,7 +963,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       setUploadError(
         finalTableName.toLowerCase() === 'vector_store'
           ? 'vector_store — это поиск по документам. Для SQL укажите другое имя или выберите «В поиск».'
-          : 'Имя таблицы: латиница, цифры и _. Сервер сам добавит префикс.'
+          : SHARED_SQL_TABLES.has(finalTableName.toLowerCase())
+            ? `«${finalTableName}» — общая таблица, её нельзя заменить. Укажите новое имя, например plan_2026.`
+            : 'Имя таблицы: латиница, цифры и _. Сервер сам добавит префикс.'
       );
       return;
     }
@@ -1021,8 +1035,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         }
         notifyRagLibraryChanged();
         setSelectedFile(null);
-        loadTables();
-        dispatch(refreshRAGSchema());
         dispatch(checkRAGDatabase());
         setTimeout(() => {
           setShowUploadModal(false);
@@ -1048,7 +1060,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         setSelectedFile(null);
         setTableName('');
         loadTables();
-        dispatch(refreshRAGSchema());
         dispatch(checkRAGDatabase());
         setTimeout(() => {
           setShowUploadModal(false);
@@ -1058,7 +1069,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       }
     } catch (err) {
       if (err instanceof FileUploadCancelledError) return;
-      setUploadError(err instanceof Error ? err.message : 'Ошибка загрузки');
+      setUploadError(explainUploadError(err instanceof Error ? err.message : 'Ошибка загрузки'));
     } finally {
       setIsUploading(false);
     }
@@ -1078,7 +1089,6 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       if (data.success) {
         setUploadSuccess(`✅ Таблица "${tableName}" удалена`);
         void loadTables();
-        dispatch(refreshRAGSchema());
         dispatch(checkRAGDatabase());
         setTimeout(() => setUploadSuccess(null), 3000);
       } else {
@@ -1367,10 +1377,14 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   }, [dispatch, userId, isRefreshingSessions, isStreaming, isLoading]);
 
   const handleRefreshSchema = async () => {
-    await dispatch(refreshRAGSchema()).unwrap();
-    await dispatch(checkRAGDatabase()).unwrap();
-    await loadTables();
-    showToast('Схема базы данных обновлена', 'success');
+    try {
+      await dispatch(refreshRAGSchema()).unwrap();
+      await dispatch(checkRAGDatabase()).unwrap();
+      await loadTables();
+      showToast('Схема базы данных обновлена', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Не удалось обновить схему', 'error');
+    }
   };
 
   const handleUploadTypeChange = (type: 'vector' | 'sql') => {
@@ -2413,7 +2427,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   <p className="text-xs text-destructive mt-1.5">
                     {tableName.trim().toLowerCase() === 'vector_store'
                       ? 'vector_store — это поиск по документам. Для SQL укажите другое имя.'
-                      : 'Подойдут только латиница, цифры и _. Кириллица, пробелы и дефис не принимаются.'}
+                      : SHARED_SQL_TABLES.has(tableName.trim().toLowerCase())
+                        ? 'Это общая таблица, её нельзя заменить. Нужно новое имя, например plan_2026.'
+                        : 'Подойдут только латиница, цифры и _. Кириллица, пробелы и дефис не принимаются.'}
                   </p>
                 )}
               </div>
@@ -2514,7 +2530,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               {showTableList && (
                 <div className="border-t border-border/60 p-3 space-y-2 max-h-64 overflow-y-auto">
                   <p className="text-[11px] text-muted-foreground">
-                    SQL-таблицы могут быть общими для инстанса.
+                    Свои таблицы начинаются с upload_. Общую seo_positions можно смотреть в запросе, но не заменять загрузкой.
                   </p>
                   {isLoadingTables ? (
                     <div className="text-center py-4 text-muted-foreground text-sm">Загрузка...</div>
@@ -2556,10 +2572,14 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                             <div className="min-w-0">
                               <div className="font-mono text-xs sm:text-sm font-medium break-words">
                                 {table.name}
+                                {!isOwnUploadTable(table.name) && (
+                                  <span className="ml-2 text-xs text-muted-foreground">общая</span>
+                                )}
                               </div>
                               <div className="text-xs text-muted-foreground">{table.columnCount} колонок, {table.rowCount} строк</div>
                             </div>
                           </button>
+                          {isOwnUploadTable(table.name) && (
                           <div className="flex gap-1 shrink-0">
                             <button
                               type="button"
@@ -2579,6 +2599,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                               <TrashIcon />
                             </IconButton>
                           </div>
+                          )}
                         </div>
                         {expandedTables.has(table.name) && table.columns && (
                           <div className="border-t border-border/50 px-3 py-2">

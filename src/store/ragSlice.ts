@@ -467,7 +467,10 @@ export const loadRAGSchema = createAsyncThunk(
 export const refreshRAGSchema = createAsyncThunk(
   'rag/refreshSchema',
   async () => {
-    await ragService.refreshSchema();
+    const refreshed = await ragService.refreshSchema();
+    if (!refreshed.success) {
+      throw new Error(refreshed.message);
+    }
     const schema = await ragService.getSchema();
     return schema.schema;
   }
