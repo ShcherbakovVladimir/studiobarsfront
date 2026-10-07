@@ -64,6 +64,7 @@ import {
 } from '../utils/ragQueryPrefs';
 import { getRagDefaults } from '../config/runtimeConfig';
 import { notifyRagLibraryChanged } from '../services/ragLibrarySync';
+import { rememberExcelLink } from '../services/excelLinks';
 import type { RagDocumentPreview, RAGSource, RAGGeneratedFile, RAGMessage } from '../types';
 import 'katex/dist/katex.min.css';
 import { confirmDialog } from '../services/dialogService';
@@ -917,9 +918,15 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           const created = result.results
             .map((row) => row.tableName)
             .filter((name): name is string => Boolean(name));
+          for (const row of result.results) {
+            if (row.tableName && row.file) {
+              rememberExcelLink(userId, { fileName: row.file, tableName: row.tableName });
+            }
+          }
           if (created.length > 0) {
             setSelectedTableNames((prev) => [...new Set([...prev, ...created])]);
           }
+          notifyRagLibraryChanged();
           setUploadSuccess(
             `Пакет: ${result.success_count}/${result.total} успешно` +
               (created.length ? `. Таблицы: ${created.join(', ')}` : '')
@@ -1033,6 +1040,9 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         } else {
           setUploadSuccess(`Документ «${source}» принят (${chunkInfo}). Индексация ещё идёт — поиск по нему пока недоступен.`);
         }
+        if (isExcelWorkbook(selectedFile)) {
+          rememberExcelLink(userId, { fileName: selectedFile.name, source });
+        }
         notifyRagLibraryChanged();
         setSelectedFile(null);
         dispatch(checkRAGDatabase());
@@ -1049,10 +1059,12 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         );
 
         if (response.tableName) {
+          rememberExcelLink(userId, { fileName: selectedFile.name, tableName: response.tableName });
           setSelectedTableNames((prev) =>
             prev.includes(response.tableName) ? prev : [...prev, response.tableName]
           );
         }
+        notifyRagLibraryChanged();
         setUploadSuccess(
           response.message ||
             `Загружено ${response.rowsInserted ?? response.rowCount} строк в таблицу «${response.tableName}»`
@@ -2640,8 +2652,15 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
 
       <RAGFilesSidebar
         isDarkMode={isDarkMode}
+        userId={userId}
         selectedSources={compareMode ? compareDocumentSources : selectedDocumentSources}
         onSelectionChange={compareMode ? setCompareDocumentSources : setSelectedDocumentSources}
+        selectedTables={selectedTableNames}
+        onToggleTable={(tableName) => {
+          setSelectedTableNames((prev) =>
+            prev.includes(tableName) ? prev.filter((name) => name !== tableName) : [...prev, tableName]
+          );
+        }}
         onDocumentsChange={() => {
           void loadTables();
           void dispatch(loadRAGEmbeddingHealth());

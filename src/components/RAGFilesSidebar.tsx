@@ -1,14 +1,18 @@
 import React from 'react';
 import { FolderOpen, Upload, X } from 'lucide-react';
 import RAGDocumentsPanel from './RAGDocumentsPanel';
+import RAGExcelPanel from './RAGExcelPanel';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
 import { useDrawerRootRef } from '../utils/workspaceLayout';
 
 interface RAGFilesSidebarProps {
   isDarkMode: boolean;
+  userId?: string;
   selectedSources: string[];
   onSelectionChange: (sources: string[]) => void;
+  selectedTables: string[];
+  onToggleTable: (tableName: string) => void;
   onDocumentsChange?: () => void;
   onUpload?: () => void;
   highlightSource?: string | null;
@@ -19,8 +23,11 @@ interface RAGFilesSidebarProps {
 
 const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
   isDarkMode,
+  userId,
   selectedSources,
   onSelectionChange,
+  selectedTables,
+  onToggleTable,
   onDocumentsChange,
   onUpload,
   highlightSource,
@@ -76,6 +83,20 @@ const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-2">
+        <RAGExcelPanel
+          userId={userId}
+          active={open}
+          selectedSources={selectedSources}
+          onToggleSource={(source) => {
+            if (selectedSources.includes(source)) {
+              onSelectionChange(selectedSources.filter((item) => item !== source));
+            } else {
+              onSelectionChange([...selectedSources, source]);
+            }
+          }}
+          selectedTables={selectedTables}
+          onToggleTable={onToggleTable}
+        />
         <RAGDocumentsPanel
           isDarkMode={isDarkMode}
           selectedSources={selectedSources}

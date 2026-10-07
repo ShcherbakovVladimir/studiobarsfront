@@ -433,6 +433,13 @@ export interface TableUploadOptions {
   ifExists?: 'replace' | 'append' | 'skip';
 }
 
+export interface SqlTableSnapshot {
+  name: string;
+  columns: string[];
+  rows: string[][];
+  total: number;
+}
+
 function asPayloadRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
 }
@@ -440,6 +447,62 @@ function asPayloadRecord(value: unknown): Record<string, unknown> {
 function asStringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+}
+
+function cellText(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function parseSqlTableSnapshot(data: unknown, fallbackName: string): SqlTableSnapshot {
+  const root = asPayloadRecord(data);
+  const nested = asPayloadRecord(root.table ?? root.data);
+  const name = String(root.tableName ?? root.name ?? nested.name ?? fallbackName);
+  const columnObjects = [root.columns, nested.columns].find(Array.isArray) as unknown[] | undefined;
+  const namedColumns = (columnObjects ?? [])
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      const row = asPayloadRecord(item);
+      return typeof row.name === 'string' ? row.name : '';
+    })
+    .filter(Boolean);
+  const rawRows = [root.rows, root.records, root.data, nested.rows, nested.records, nested.data, Array.isArray(data) ? data : null]
+    .find((item) => Array.isArray(item) && (item !== columnObjects)) as unknown[] | undefined;
+  const records = rawRows ?? [];
+  const objectRows = records.filter((item) => item && typeof item === 'object' && !Array.isArray(item));
+  const columns = namedColumns.length > 0
+    ? namedColumns
+    : [...new Set(objectRows.flatMap((item) => Object.keys(asPayloadRecord(item))))];
+  const rows = records.slice(0, 200).map((item) => {
+    if (Array.isArray(item)) return item.map(cellText);
+    const record = asPayloadRecord(item);
+    const keys = columns.length > 0 ? columns : Object.keys(record);
+    return keys.map((key) => cellText(record[key]));
+  });
+  const header = columns.length > 0 ? columns : rows[0]?.map((_, index) => `col_${index + 1}`) ?? [];
+  return {
+    name,
+    columns: header,
+    rows,
+    total: records.length,
+  };
+}
+
+function parseDelimitedTable(text: string, tableName: string): SqlTableSnapshot {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  const headerLine = lines[0];
+  if (!headerLine) return { name: tableName, columns: [], rows: [], total: 0 };
+  const delimiter = (headerLine.match(/;/g)?.length ?? 0) > (headerLine.match(/,/g)?.length ?? 0) ? ';' : ',';
+  const split = (line: string) => line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ''));
+  const columns = split(headerLine);
+  const body = lines.slice(1);
+  return {
+    name: tableName,
+    columns,
+    rows: body.slice(0, 200).map(split),
+    total: body.length,
+  };
 }
 
 function normalizeStreamEvent(raw: RAGStreamEvent & Record<string, unknown>): RAGStreamEvent {
@@ -1289,6 +1352,34 @@ export const ragService = {
         count: 0
       };
     }
+  },
+
+  /** Строки SQL-таблицы для просмотра. Имя только из GET /tables. */
+  async previewSqlTable(tableName: string): Promise<SqlTableSnapshot> {
+    const encoded = encodeURIComponent(tableName);
+    const exported = await ragFetch(`/table/${encoded}/export`);
+    if (exported.ok) {
+      const type = (exported.headers.get('content-type') ?? '').toLowerCase();
+      if (type.includes('json')) {
+        return parseSqlTableSnapshot(await exported.json().catch(() => null), tableName);
+      }
+      const text = await exported.text();
+      const trimmed = text.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          return parseSqlTableSnapshot(JSON.parse(trimmed) as unknown, tableName);
+        } catch {
+          /* ниже как текст с разделителями */
+        }
+      }
+      return parseDelimitedTable(text, tableName);
+    }
+    const details = await ragFetch(`/tables/${encoded}`);
+    if (!details.ok) {
+      const err = await details.json().catch(() => ({})) as { error?: string; message?: string };
+      throw new Error(err.error || err.message || 'Не удалось прочитать таблицу');
+    }
+    return parseSqlTableSnapshot(await details.json().catch(() => null), tableName);
   },
 
   // Обновить схему БД
