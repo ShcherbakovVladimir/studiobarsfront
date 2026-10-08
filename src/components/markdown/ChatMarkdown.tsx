@@ -10,7 +10,7 @@ import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import 'katex/dist/katex.min.css';
 import { PlainCodeBlock } from './PlainCodeBlock';
 import { CodeCopyButton } from './CodeCopyButton';
-import { fenceTextTrees, plainCodeFromPre, splitStreamingMarkdown } from './markdownText';
+import { fenceTextTrees, plainCodeFromPre, promoteDisplayMath, splitStreamingMarkdown } from './markdownText';
 import { useThrottledValue } from '../../hooks/useThrottledValue';
 
 const STREAM_RENDER_INTERVAL_MS = 100;
@@ -304,7 +304,7 @@ export const ChatMarkdown: React.FC<{
   /** Относительные `src` из рабочей папки: вернуть blob-URL или null. */
   loadImage?: LoadImage;
 }> = ({ content, isDarkMode, loadImage }) => {
-  const text = useMemo(() => fenceTextTrees(content), [content]);
+  const text = useMemo(() => fenceTextTrees(promoteDisplayMath(content)), [content]);
   return <MarkdownBlock text={text} isDarkMode={isDarkMode} loadImage={loadImage} />;
 };
 
@@ -315,7 +315,7 @@ export const ChatMarkdown: React.FC<{
 export const StreamingChatMarkdown: React.FC<{ content: string; isDarkMode: boolean }> = ({ content, isDarkMode }) => {
   const throttled = useThrottledValue(content, STREAM_RENDER_INTERVAL_MS);
   const { done, tail, openFence, openMath } = useMemo(
-    () => splitStreamingMarkdown(fenceTextTrees(throttled)),
+    () => splitStreamingMarkdown(fenceTextTrees(promoteDisplayMath(throttled))),
     [throttled],
   );
 

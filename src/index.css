@@ -349,6 +349,17 @@ h1,
   max-width: 100%;
 }
 
+.chat-msg-ai .katex,
+.chat-msg-ai .katex-display {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.chat-msg-ai .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .chat-msg-ai pre,
 .chat-msg-ai .overflow-x-auto,
 .chat-msg-user .overflow-x-auto {

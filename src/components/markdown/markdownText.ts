@@ -120,3 +120,53 @@ export function fenceTextTrees(markdown: string): string {
   }
   return out.join('\n');
 }
+
+const FENCE_EDGE = /^\s*(```|~~~)/;
+const BRACKET_DISPLAY_MATH = /(^|\n)([ \t]*)\\?\[[ \t]*\n([\s\S]*?)\n[ \t]*\\?\][ \t]*(?=\n|$)/g;
+
+function looksLikeDisplayMath(body: string): boolean {
+  const text = body.trim();
+  if (!text || text.length > 4000 || /\]\(/.test(text)) return false;
+  return /\\[a-zA-Z]/.test(text) || /[_^=+\-*/]/.test(text);
+}
+
+function promoteChunkMath(chunk: string): string {
+  const blocked = chunk.replace(BRACKET_DISPLAY_MATH, (full, lead: string, indent: string, body: string) => {
+    if (!looksLikeDisplayMath(body)) return full;
+    return `${lead}${indent}$$\n${body.trim()}\n${indent}$$`;
+  });
+  return blocked
+    .replace(/\\\[([^\n]+?)\\\]/g, (full, body: string) => (
+      looksLikeDisplayMath(body) ? `$$${body.trim()}$$` : full
+    ))
+    .replace(/\\\(([^\n]+?)\\\)/g, (_full, body: string) => `$${body.trim()}$`);
+}
+
+/**
+ * Модель часто пишет формулу отдельным блоком `[ ... ]` или `\[ ... \]`.
+ * KaTeX в чате понимает только `$$`, поэтому такие блоки переводятся в display math.
+ * Участки внутри ``` не трогаются.
+ */
+export function promoteDisplayMath(markdown: string): string {
+  const lines = markdown.split('\n');
+  const out: string[] = [];
+  let inFence = false;
+  let chunk: string[] = [];
+  const flush = () => {
+    if (chunk.length === 0) return;
+    out.push(promoteChunkMath(chunk.join('\n')));
+    chunk = [];
+  };
+  for (const line of lines) {
+    if (FENCE_EDGE.test(line)) {
+      flush();
+      inFence = !inFence;
+      out.push(line);
+      continue;
+    }
+    if (inFence) out.push(line);
+    else chunk.push(line);
+  }
+  flush();
+  return out.join('\n');
+}
