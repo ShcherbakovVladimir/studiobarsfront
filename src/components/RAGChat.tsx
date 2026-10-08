@@ -7,6 +7,8 @@ import remarkBreaks from 'remark-breaks';
 import { PlainCodeBlock } from './markdown/PlainCodeBlock';
 import { CodeCopyButton } from './markdown/CodeCopyButton';
 import { fenceTextTrees, plainCodeFromPre } from './markdown/markdownText';
+import { StreamingChatMarkdown } from './markdown/ChatMarkdown';
+import { useRagStreamDraft } from '../hooks/useStreamDraft';
 import rehypeKatex from 'rehype-katex';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -419,14 +421,31 @@ const ThinkBlockDisplay = ({ thinkBlocks }: { thinkBlocks: string[] }) => {
 };
 
 // Основной компонент форматированного сообщения с поддержкой формул и кода
-const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?: boolean; isStreaming?: boolean; thinkBlocks?: string[]; searchMode?: string }> = ({ 
+const FormattedMessageBase: React.FC<{
+  content: string;
+  isDarkMode: boolean;
+  isUser?: boolean;
+  isStreaming?: boolean;
+  thinkBlocks?: string[];
+  searchMode?: string;
+  onStreamGrow?: () => void;
+}> = ({ 
   content, 
   isDarkMode, 
   isUser = false,
   isStreaming = false,
   thinkBlocks,
-  searchMode
+  searchMode,
+  onStreamGrow,
 }) => {
+  const followStream = !isUser && Boolean(isStreaming);
+  const liveDraft = useRagStreamDraft(followStream);
+  const shown = followStream ? (liveDraft || content) : content;
+
+  useLayoutEffect(() => {
+    if (!followStream) return;
+    onStreamGrow?.();
+  }, [shown, followStream, onStreamGrow]);
 
   if (isUser) {
     return (
@@ -436,12 +455,30 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
     );
   }
 
-  if (!content || content.trim() === '') {
+  if (!shown.trim()) {
     return (
-      <div className="text-muted-foreground italic">
-        {isStreaming ? 'Ожидание первого токена...' : 'Пустой ответ от модели'}
-        {isStreaming && <span className="inline-block ml-1 animate-pulse">▊</span>}
-      </div>
+      <>
+        {thinkBlocks && thinkBlocks.length > 0 && <ThinkBlockDisplay thinkBlocks={thinkBlocks} />}
+        <div className="text-muted-foreground italic">
+          {isStreaming ? 'Ожидание первого токена...' : 'Пустой ответ от модели'}
+          {isStreaming && <span className="inline-block ml-1 animate-pulse">▊</span>}
+        </div>
+      </>
+    );
+  }
+
+  if (followStream) {
+    return (
+      <>
+        {thinkBlocks && thinkBlocks.length > 0 && <ThinkBlockDisplay thinkBlocks={thinkBlocks} />}
+        {searchMode && (
+          <div className="mb-2 text-[10px] text-muted-foreground flex items-center gap-1">
+            {searchMode === 'direct' ? '💾 Прямой поиск по БД' : '🤖 Поиск через LLM'}
+          </div>
+        )}
+        <StreamingChatMarkdown content={shown} isDarkMode={isDarkMode} />
+        <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>
+      </>
     );
   }
 
@@ -629,11 +666,13 @@ const FormattedMessage: React.FC<{ content: string; isDarkMode: boolean; isUser?
           }
         }}
       >
-        {fenceTextTrees(content)}
+        {fenceTextTrees(shown)}
       </ReactMarkdown>
     </>
   );
 };
+
+const FormattedMessage = React.memo(FormattedMessageBase);
 
 const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -2048,6 +2087,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 isStreaming={msg.isStreaming}
                 thinkBlocks={msg.think_blocks}
                 searchMode={msg.search_mode}
+                onStreamGrow={scrollToBottom}
               />
 
               {msg.role === 'assistant' && msg.isAborted && !msg.isStreaming && msg.content !== ABORTED_PLACEHOLDER && (

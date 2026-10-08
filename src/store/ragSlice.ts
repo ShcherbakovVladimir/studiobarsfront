@@ -20,6 +20,7 @@ import ragService, {
 } from '../services/ragService';
 import { getRagDefaults } from '../config/runtimeConfig';
 import { resolveRagQuerySettings } from '../utils/ragQueryPrefs';
+import { publishRagStreamDraft, resetRagStreamDraft } from '../utils/streamDraft';
 
 function defaultQuerySettings(): RAGState['querySettings'] {
   return resolveRagQuerySettings(getRagDefaults());
@@ -177,6 +178,7 @@ export const sendRAGQueryStream = createAsyncThunk(
     const assistantId = `assistant_${Date.now()}`;
     const mode = searchMode ?? 'llm';
 
+    resetRagStreamDraft();
     dispatch(setError(null));
     dispatch(setLoading(true));
     dispatch(setStreaming(true));
@@ -254,7 +256,7 @@ export const sendRAGQueryStream = createAsyncThunk(
             if (event.type === 'chunk') {
               if (event.content) {
                 streamedContent += event.content;
-                dispatch(updateStreamingMessage({ id: assistantId, content: streamedContent }));
+                publishRagStreamDraft(streamedContent);
               }
               if (Array.isArray(event.thinkBlocks)) {
                 for (const block of event.thinkBlocks) {
