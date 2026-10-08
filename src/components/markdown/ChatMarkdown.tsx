@@ -11,9 +11,6 @@ import 'katex/dist/katex.min.css';
 import { PlainCodeBlock } from './PlainCodeBlock';
 import { CodeCopyButton } from './CodeCopyButton';
 import { fenceTextTrees, plainCodeFromPre, promoteDisplayMath, splitStreamingMarkdown } from './markdownText';
-import { useThrottledValue } from '../../hooks/useThrottledValue';
-
-const STREAM_RENDER_INTERVAL_MS = 100;
 
 const REMARK_FULL = [remarkGfm, remarkMath, remarkBreaks];
 const REHYPE_FULL = [rehypeKatex, rehypeRaw];
@@ -308,23 +305,45 @@ export const ChatMarkdown: React.FC<{
   return <MarkdownBlock text={text} isDarkMode={isDarkMode} loadImage={loadImage} />;
 };
 
+const FENCE_LINE = /^\s*(```|~~~)/;
+
+/** Хвост без разметки: обычный абзац можно дописывать текстовым узлом, без разбора Markdown на каждый токен. */
+function tailNeedsMarkdown(text: string): boolean {
+  return /[`*_#$>|\\[\]]/.test(text) || /(^|\n)\s*([-+*]|\d+\.)\s/.test(text);
+}
+
+function openFenceBody(tail: string): string {
+  const lines = tail.split('\n');
+  if (lines.length > 0 && FENCE_LINE.test(lines[0] ?? '')) lines.shift();
+  while (lines.length > 0 && FENCE_LINE.test((lines[lines.length - 1] ?? '').trim())) lines.pop();
+  return lines.join('\n');
+}
+
 /**
- * Markdown во время генерации: разбор не чаще раза в 100 мс, готовые блоки не перерисовываются,
- * дописываемый блок кода — без подсветки, незакрытая формула `$$` — текстом.
+ * Пока ответ пишется, готовые абзацы уже разобраны и больше не трогаются.
+ * Текущая строка обычного текста обновляется сразу. Код и незакрытая формула идут текстом,
+ * без KaTeX и подсветки на каждый токен.
  */
 export const StreamingChatMarkdown: React.FC<{ content: string; isDarkMode: boolean }> = ({ content, isDarkMode }) => {
-  const throttled = useThrottledValue(content, STREAM_RENDER_INTERVAL_MS);
+  const prepared = useMemo(() => fenceTextTrees(promoteDisplayMath(content)), [content]);
   const { done, tail, openFence, openMath } = useMemo(
-    () => splitStreamingMarkdown(fenceTextTrees(promoteDisplayMath(throttled))),
-    [throttled],
+    () => splitStreamingMarkdown(prepared),
+    [prepared],
   );
+  const plainTail = !openFence && !openMath && !tailNeedsMarkdown(tail);
 
   return (
     <>
       {done.map((block, index) => (
         <MarkdownBlock key={index} text={block} isDarkMode={isDarkMode} />
       ))}
-      {tail.trim() && <MarkdownBlock text={tail} isDarkMode={isDarkMode} draftCode={openFence} withMath={!openMath} />}
+      {openFence ? (
+        <PlainCodeBlock code={openFenceBody(tail)} isDarkMode={isDarkMode} />
+      ) : openMath || plainTail ? (
+        tail ? <p className="whitespace-pre-wrap break-words">{tail}</p> : null
+      ) : (
+        tail.trim() && <MarkdownBlock text={tail} isDarkMode={isDarkMode} />
+      )}
     </>
   );
 };

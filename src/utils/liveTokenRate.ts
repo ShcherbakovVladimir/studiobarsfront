@@ -33,3 +33,27 @@ function rateFrom(tokens: number, firstAt: number, now: number): number | null {
   if (elapsed < 200) return null;
   return tokens / (elapsed / 1000);
 }
+
+let shownRate: LiveTokenRate | null = null;
+let rateScheduled = false;
+const rateListeners = new Set<() => void>();
+
+/** Скорость стрима. Слушают только подпись и панель мониторинга, не весь чат. */
+export function publishLiveRate(next: LiveTokenRate | null): void {
+  shownRate = next;
+  if (rateScheduled) return;
+  rateScheduled = true;
+  requestAnimationFrame(() => {
+    rateScheduled = false;
+    rateListeners.forEach((listener) => listener());
+  });
+}
+
+export function subscribeLiveRate(listener: () => void): () => void {
+  rateListeners.add(listener);
+  return () => rateListeners.delete(listener);
+}
+
+export function getLiveRate(): LiveTokenRate | null {
+  return shownRate;
+}

@@ -14,6 +14,7 @@ import {
 } from '../utils/gpuDetails';
 import { inferenceSourceLabel, readInference } from '../utils/inferenceSnapshot';
 import type { LiveTokenRate } from '../utils/liveTokenRate';
+import { useLiveRate } from '../hooks/useStreamDraft';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 
@@ -21,8 +22,6 @@ interface LiveRuntimePanelProps {
   open: boolean;
   onClose: () => void;
   streaming?: boolean;
-  /** Скорость по приходящим токенам, пока идёт стрим. */
-  streamRate?: LiveTokenRate | null;
 }
 
 function asNum(value: unknown): number | null {
@@ -129,7 +128,8 @@ function rememberRate(prev: RateMemory, streaming: boolean, streamRate: LiveToke
   return { ...prev, streaming };
 }
 
-function LiveRuntimePanelView({ open, onClose, streaming = false, streamRate = null }: LiveRuntimePanelProps) {
+function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimePanelProps) {
+  const streamRate = useLiveRate();
   const overlay = useWorkspaceOverlay();
   const drawerRef = useDrawerRootRef(open);
   const { data, error, lastUpdated, isLoading, refresh, startedSeq, completedSeq } = useHardwareMonitoring({

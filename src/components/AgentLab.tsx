@@ -28,7 +28,9 @@ import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDispl
 import { contextLimitUsageLabel, isContextLimitError, type ContextLimitNotice } from '../utils/contextLimit';
 import { usageFromContextLimit, type ContextUsage } from '../utils/contextUsage';
 import { ContextUsageRing } from './ContextUsageRing';
-import { nextLiveTokenRate, type LiveTokenRate } from '../utils/liveTokenRate';
+import { nextLiveTokenRate, publishLiveRate } from '../utils/liveTokenRate';
+import { publishStreamDraft, resetStreamDraft } from '../utils/streamDraft';
+import { useLiveRate, useStreamDraft } from '../hooks/useStreamDraft';
 
 // Импорт компонентов инструментов
 import AdvancedSettings from './AdvancedSettings';
@@ -263,6 +265,7 @@ const FormattedMessageBase: React.FC<{
   interrupted?: boolean;
   hitMaxTokens?: number;
   images?: ChatImageAttachment[];
+  onStreamGrow?: () => void;
 }> = ({ 
   content, 
   isDarkMode, 
@@ -271,7 +274,16 @@ const FormattedMessageBase: React.FC<{
   interrupted = false,
   hitMaxTokens,
   images,
+  onStreamGrow,
 }) => {
+  const followStream = !isUser && isStreaming;
+  const liveDraft = useStreamDraft(followStream);
+  const shown = followStream ? (liveDraft || content) : content;
+
+  useLayoutEffect(() => {
+    if (!followStream) return;
+    onStreamGrow?.();
+  }, [shown, followStream, onStreamGrow]);
   const imagePreviews = images?.filter((image) => image.previewUrl) ?? [];
   const imageBlock = imagePreviews.length > 0 ? (
     <div className="mb-2 flex flex-wrap gap-2">
@@ -295,7 +307,7 @@ const FormattedMessageBase: React.FC<{
     );
   }
 
-  if (!content || content.trim() === '') {
+  if (!shown.trim()) {
     return (
       <div className="text-muted-foreground italic">
         {isStreaming ? 'Ожидание первого токена...' : 'Пустой ответ от модели'}
@@ -305,9 +317,9 @@ const FormattedMessageBase: React.FC<{
   }
 
   const { thinking: thinkingContent, answer: answerContent, hasThinkingBlock, isThinkingComplete } =
-    splitThinkingContent(content);
+    splitThinkingContent(shown);
   const hasThinking = hasThinkingBlock && Boolean(thinkingContent);
-  const markdownText = hasThinkingBlock ? answerContent : content;
+  const markdownText = hasThinkingBlock ? answerContent : shown;
   const answerStreaming = isStreaming && (!hasThinking || isThinkingComplete);
 
   return (
@@ -349,6 +361,27 @@ const FormattedMessageBase: React.FC<{
 
 // Без memo каждый чанк перерисовывает всю историю через ReactMarkdown.
 const FormattedMessage = React.memo(FormattedMessageBase);
+
+function ComposerStatus({
+  isStreaming,
+  contextLimited,
+  serverReady,
+  visionEnabled,
+}: {
+  isStreaming: boolean;
+  contextLimited: boolean;
+  serverReady: boolean;
+  visionEnabled: boolean;
+}) {
+  const liveRate = useLiveRate();
+  let text = 'Enter — отправить, Shift+Enter — новая строка';
+  if (contextLimited) text = 'Продолжение в новом чате';
+  else if (isStreaming) {
+    text = liveRate?.tps != null ? `Генерация · ${liveRate.tps.toFixed(1)} ток/с` : 'Генерация ответа...';
+  } else if (!serverReady) text = 'Модель не загружена';
+  else if (visionEnabled) text = 'Enter — отправить · можно вставить или перетащить фото';
+  return <div className="text-[11px] text-center mt-1.5 text-muted-foreground">{text}</div>;
+}
 
 // Иконки с улучшенными SVG
 const Icon = ({ children, className = "w-5 h-5" }: { children: React.ReactNode, className?: string }) => (
@@ -653,21 +686,20 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   // Streaming state
   const [isStreaming, setIsStreaming] = useState(false);
   const liveRateRef = useRef({ tokens: 0, firstAt: 0, tps: null as number | null, paintedAt: 0 });
-  const [liveRate, setLiveRate] = useState<LiveTokenRate | null>(null);
   const noteStreamChunk = (chunk: string) => {
     const now = performance.now();
     const next = nextLiveTokenRate(liveRateRef.current, chunk, now);
     const paint = now - liveRateRef.current.paintedAt >= 100;
     liveRateRef.current = { ...next, paintedAt: paint ? now : liveRateRef.current.paintedAt };
-    if (paint) setLiveRate({ tps: next.tps, tokens: next.tokens });
+    if (paint) publishLiveRate({ tps: next.tps, tokens: next.tokens });
   };
   const resetLiveRate = () => {
     liveRateRef.current = { tokens: 0, firstAt: 0, tps: null, paintedAt: 0 };
-    setLiveRate(null);
+    publishLiveRate(null);
   };
   const flushLiveRate = () => {
     const rate = liveRateRef.current;
-    setLiveRate({ tps: rate.tps, tokens: rate.tokens });
+    publishLiveRate({ tps: rate.tps, tokens: rate.tokens });
   };
   const abortControllerRef = useRef<AbortController | null>(null);
   const currentChatRef = useRef<ChatData | null>(null);
@@ -719,6 +751,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   const scrollRef = usePanelScroll(PANEL_IDS.AGENT_LAB, 'chat');
   const stickToBottomRef = useRef(true);
+  const followStreamBottom = useCallback(() => {
+    const element = scrollRef.current;
+    if (!element || !stickToBottomRef.current) return;
+    element.scrollTop = element.scrollHeight;
+  }, [scrollRef]);
   const isMountedRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -1654,6 +1691,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       } 
     }));
     
+    resetStreamDraft();
     setIsStreaming(true);
     resetLiveRate();
     dispatch(setLoading(true));
@@ -1710,11 +1748,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           (chunk, fullResponse) => {
             if (isAborted()) return;
             noteStreamChunk(chunk);
-            dispatch(updateLastMessage({
-              modelId: currentModelId,
-              content: fullResponse,
-              isStreaming: true,
-            }));
+            publishStreamDraft(fullResponse);
           },
           (fullResponse, limit, usage, meta) => settleAnswer(fullResponse, promptText, limit, usage, meta?.timedOut),
           failAnswer
@@ -1726,11 +1760,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           (chunk, fullResponse) => {
             if (isAborted()) return;
             noteStreamChunk(chunk);
-            dispatch(updateLastMessage({
-              modelId: currentModelId,
-              content: fullResponse,
-              isStreaming: true,
-            }));
+            publishStreamDraft(fullResponse);
           },
           (fullResponse, limit, usage, meta) => settleAnswer(fullResponse, userMessageContent, limit, usage, meta?.timedOut),
           failAnswer
@@ -2122,6 +2152,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                           interrupted={msg.interrupted}
                                           hitMaxTokens={msg.hitMaxTokens}
                                           images={msg.images}
+                                          onStreamGrow={followStreamBottom}
                                         />
                                     </div>
                                 </div>
@@ -2263,19 +2294,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                   </button>
                                 )}
                             </div>
-                            <div className="text-[11px] text-center mt-1.5 text-muted-foreground">
-                                {currentChat?.contextLimit
-                                  ? 'Продолжение в новом чате'
-                                  : isStreaming
-                                  ? liveRate?.tps != null
-                                    ? `Генерация · ${liveRate.tps.toFixed(1)} ток/с`
-                                    : 'Генерация ответа...'
-                                  : !isServerReady
-                                    ? 'Модель не загружена'
-                                    : visionEnabled
-                                      ? 'Enter — отправить · можно вставить или перетащить фото'
-                                      : 'Enter — отправить, Shift+Enter — новая строка'}
-                            </div>
+                            <ComposerStatus
+                              isStreaming={isStreaming}
+                              contextLimited={Boolean(currentChat?.contextLimit)}
+                              serverReady={isServerReady}
+                              visionEnabled={visionEnabled}
+                            />
                             </div>
                         </div>
                     </div>
@@ -2352,7 +2376,6 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               open={showRuntime}
               onClose={() => setShowRuntime(false)}
               streaming={isStreaming}
-              streamRate={liveRate}
             />
         )}
         </div>
