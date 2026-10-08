@@ -231,9 +231,9 @@ export const sendRAGQueryStream = createAsyncThunk(
           ? 'document'
           : tableNames && tableNames.length > 0
             ? 'sql'
-            : documentSources?.length
+            : documentSources && documentSources.length > 0
               ? 'document'
-              : 'chat');
+              : undefined);
 
       await ragService.queryStream(
         {

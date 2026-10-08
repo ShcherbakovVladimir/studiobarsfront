@@ -1290,6 +1290,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         (m) =>
           (m.role === 'user' || m.role === 'assistant') &&
           m.content.trim() &&
+          !m.content.startsWith('❌') &&
           !(m.isAborted && m.content === ABORTED_PLACEHOLDER)
       )
       .slice(-20)
@@ -1308,9 +1309,16 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         ? 'document' as const
         : selectedTableNames.length > 0
           ? 'sql' as const
-          : selectedDocumentSources.length > 0 && searchMode === 'llm'
+          : selectedDocumentSources.length > 0
             ? 'document' as const
             : undefined;
+    const documentSources = compareDocs
+      ? undefined
+      : selectedDocumentSources.length > 0
+        ? selectedDocumentSources
+        : selectedTableNames.length > 0
+          ? undefined
+          : [];
 
     const queryAction = dispatch(
       sendRAGQueryStream({
@@ -1324,8 +1332,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
         searchMode,
         history,
         intent: queryIntent,
-        documentSources:
-          compareDocs ? undefined : selectedDocumentSources.length > 0 ? selectedDocumentSources : undefined,
+        documentSources,
         compareDocuments: compareDocs,
         tableNames: selectedTableNames.length > 0 ? selectedTableNames : undefined,
         attachedFiles,
@@ -1336,8 +1343,13 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
     try {
       await queryAction.unwrap();
     } catch (error) {
+      const message = typeof error === 'string'
+        ? error
+        : error instanceof Error
+          ? error.message
+          : 'Не удалось выполнить запрос';
       console.error('RAG stream error:', error);
-      dispatch(setError(error instanceof Error ? error.message : 'Unknown error'));
+      dispatch(setError(message));
     } finally {
       dispatch(setLoading(false));
       streamAbortRef.current = null;

@@ -251,7 +251,7 @@ export async function fetchRagApi(
 
   try {
     const headers = buildAuthHeaders(options.headers);
-    if (options.body instanceof FormData) {
+    if (options.body instanceof FormData || options.body == null) {
       headers.delete('Content-Type');
     }
     const ragPath = path.startsWith('/api/rag')

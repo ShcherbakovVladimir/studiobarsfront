@@ -752,13 +752,28 @@ async function parseRagErrorResponse(response: Response, fallback: string): Prom
   if (response.status === 404) {
     return 'Ресурс не найден у текущего пользователя';
   }
+  if (!text.trim()) {
+    return `HTTP ${response.status}: пустой ответ, запрос не дошёл до API`;
+  }
   try {
-    const parsed = JSON.parse(text) as { error?: string };
-    if (parsed.error) return parsed.error;
+    const parsed = JSON.parse(text) as { error?: unknown; message?: unknown };
+    if (typeof parsed.error === 'string' && parsed.error.trim()) return parsed.error.trim();
+    if (typeof parsed.message === 'string' && parsed.message.trim()) return parsed.message.trim();
   } catch {
-    if (text.trim()) return text.slice(0, 500);
+    return text.trim().slice(0, 500);
   }
   return fallback;
+}
+
+function streamHistory(history: RAGStreamRequest['history']): Array<{ role: string; content: string }> {
+  return (history ?? [])
+    .filter((item) => item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string')
+    .slice(-20)
+    .map((item) => ({
+      role: item.role,
+      content: item.content.trim().slice(0, 8000),
+    }))
+    .filter((item) => item.content.length > 0 && !item.content.startsWith('❌'));
 }
 
 function buildStreamRequestBody(request: RAGStreamRequest): Record<string, unknown> {
@@ -766,35 +781,35 @@ function buildStreamRequestBody(request: RAGStreamRequest): Record<string, unkno
     request.compareDocuments && request.compareDocuments.length >= 2
       ? request.compareDocuments
       : [];
-  const documentSources = compareDocs.length >= 2 ? [] : (request.documentSources ?? []);
   const tableNames = request.tableNames ?? [];
+  const documentSources = compareDocs.length >= 2 ? undefined : request.documentSources;
 
   const body: Record<string, unknown> = {
     query: request.query,
     sessionId: request.sessionId,
-    enableThinking: request.enableThinking,
-    preserveThinking: request.preserveThinking,
-    qwenMode: request.qwenMode || 'auto',
-    limit: request.limit,
-    relevanceScore: request.relevanceScore,
-    threshold: request.relevanceScore,
-    history: request.history,
-    intent: request.intent,
-    file_context: {
-      documents: compareDocs.length >= 2 ? compareDocs : documentSources,
-      tables: tableNames,
-      compare: { documents: compareDocs },
-    },
+    history: streamHistory(request.history),
   };
 
-  if (compareDocs.length >= 2) {
-    body.compareDocuments = compareDocs;
+  if (request.enableThinking !== undefined) body.enableThinking = request.enableThinking;
+  if (request.preserveThinking !== undefined) body.preserveThinking = request.preserveThinking;
+  if (request.qwenMode) body.qwenMode = request.qwenMode;
+  if (request.limit !== undefined) body.limit = request.limit;
+  if (request.relevanceScore !== undefined) {
+    body.relevanceScore = request.relevanceScore;
+    body.threshold = request.relevanceScore;
   }
-  if (documentSources.length > 0) {
-    body.documentSources = documentSources;
-  }
-  if (tableNames.length > 0) {
-    body.tableNames = tableNames;
+  if (request.intent) body.intent = request.intent;
+  if (compareDocs.length >= 2) body.compareDocuments = compareDocs;
+  if (documentSources) body.documentSources = documentSources;
+  if (tableNames.length > 0) body.tableNames = tableNames;
+
+  const contextDocuments = compareDocs.length >= 2 ? compareDocs : documentSources?.filter(Boolean) ?? [];
+  if (contextDocuments.length > 0 || tableNames.length > 0 || compareDocs.length > 0) {
+    body.file_context = {
+      documents: contextDocuments,
+      tables: tableNames,
+      compare: { documents: compareDocs },
+    };
   }
 
   return body;
@@ -908,11 +923,7 @@ export const ragService = {
   ): Promise<void> {
     const response = await ragFetch('/query/stream', {
       method: 'POST',
-      headers: {
-        Accept: 'text/event-stream',
-        'Accept-Encoding': 'identity',
-        'Cache-Control': 'no-cache',
-      },
+      headers: { Accept: 'text/event-stream' },
       body: JSON.stringify(buildStreamRequestBody(request)),
       signal: handlers.signal,
     }, 200_000);
