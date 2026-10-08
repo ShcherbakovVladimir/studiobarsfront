@@ -1,5 +1,7 @@
 import type { UserSettings } from '../types';
 
+import { normalizeReasoningEffort, type ReasoningEffort } from './reasoningEffort';
+
 export type AssistantQwenMode = 'auto' | 'thinking' | 'instruct' | 'coding';
 
 export interface ChatUserSettings {
@@ -8,6 +10,7 @@ export interface ChatUserSettings {
   maxTokens?: number;
   enableThinking?: boolean;
   mode?: AssistantQwenMode;
+  reasoningEffort?: ReasoningEffort;
   use_tools?: boolean;
   useTools?: boolean;
   selectedTools?: string[];
@@ -26,6 +29,9 @@ export function readChatUserSettings(settings: UserSettings | null | undefined):
     temperature: typeof chat.temperature === 'number' ? chat.temperature : undefined,
     maxTokens: typeof chat.maxTokens === 'number' ? chat.maxTokens : undefined,
     enableThinking: typeof chat.enableThinking === 'boolean' ? chat.enableThinking : undefined,
+    reasoningEffort: chat.reasoningEffort === undefined
+      ? undefined
+      : normalizeReasoningEffort(chat.reasoningEffort),
     mode:
       mode === 'auto' || mode === 'thinking' || mode === 'instruct' || mode === 'coding'
         ? mode

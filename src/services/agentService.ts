@@ -35,6 +35,7 @@ import { ContextLimitError, contextLimitFromBody, type ContextLimitNotice } from
 import type { ContextUsage } from '../utils/contextUsage';
 import { registerActiveStream } from '../utils/activeStreams';
 import { stripThinkingTags } from '../utils/thinkingContent';
+import { qwenChatFields, type ReasoningEffort } from '../utils/reasoningEffort';
 import { filesToVisionPayloads } from '../utils/chatVision';
 import type { UnknownRecord, XLAMModel } from '../types';
 import { ModelLoadError, type LoadLaunchOptions } from './llamaLaunchService';
@@ -176,6 +177,7 @@ export interface XlamOptions {
   enableThinking?: boolean;
   preserveThinking?: boolean;
   mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
+  reasoningEffort?: ReasoningEffort;
   topP?: number;
   presencePenalty?: number;
   repetitionPenalty?: number;
@@ -443,11 +445,7 @@ export async function chatStream(
               tool_choice: options.tool_choice ?? 'auto',
             }
           : {}),
-        ...(isQwen36ModelFlag && {
-          enableThinking: finalOptions.enableThinking,
-          preserveThinking: options.preserveThinking,
-          mode: finalOptions.mode,
-        })
+        ...(isQwen36ModelFlag && qwenChatFields(finalOptions))
       }),
       signal: abort.signal,
     }, STREAM_TIMEOUT_MS);
@@ -501,6 +499,9 @@ export async function chatStreamVision(
     const images = await filesToVisionPayloads(files);
     if (abort.signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
+    const activeModel = await getActiveModel();
+    const qwenFields = isQwen36Model(activeModel) ? qwenChatFields(applyQwenMode(options)) : null;
+
     const requestStartedAt = performance.now();
     const response = await fetchChatApi('/chat/vision', {
       method: 'POST',
@@ -521,6 +522,7 @@ export async function chatStreamVision(
         useTools: false,
         system_prompt: options.systemPrompt,
         systemPrompt: options.systemPrompt,
+        ...(qwenFields ?? {}),
       }),
       signal: abort.signal,
     }, STREAM_TIMEOUT_MS);
@@ -610,11 +612,7 @@ export async function chatStreamWithTools(
           grammar: finalOptions.grammar,
           jsonSchema: finalOptions.jsonSchema,
         }),
-        ...(isQwen36ModelFlag && {
-          enableThinking: finalOptions.enableThinking,
-          preserveThinking: options.preserveThinking,
-          mode: finalOptions.mode
-        }),
+        ...(isQwen36ModelFlag && qwenChatFields(finalOptions)),
         stream: true
       }),
       signal: abort.signal,
@@ -1095,6 +1093,7 @@ export async function smartChat(
         enableThinking: options.enableThinking,
         preserveThinking: options.preserveThinking,
         mode: options.mode,
+        reasoningEffort: options.reasoningEffort,
         sessionId: options.sessionId,
         systemPrompt: options.systemPrompt
       });
@@ -1897,6 +1896,7 @@ type QwenMode = 'auto' | 'thinking' | 'instruct' | 'coding';
 /**
  * Сэмплинг Qwen 3.6/3.8 задаёт сервер (STANDARD_CHAT_BACKEND §4.7):
  * вне `auto` temperature из body игнорируется, top_p/top_k/penalty фиксированы.
+ * Усилие — поле reasoningEffort, фразу печатает шаблон GGUF.
  */
 export function getQwen36Options(mode: QwenMode = 'auto'): Partial<GenerationOptions> {
   switch (mode) {
@@ -1919,20 +1919,27 @@ type QwenModeFields = {
   repetitionPenalty?: number;
   presencePenalty?: number;
   enableThinking?: boolean;
+  preserveThinking?: boolean;
+  reasoningEffort?: ReasoningEffort;
 };
 
 function applyQwenMode<T extends QwenModeFields>(options: T): T {
   const mode = options.mode || 'auto';
+  const qwen = qwenChatFields({
+    mode,
+    enableThinking: options.enableThinking,
+    preserveThinking: options.preserveThinking,
+    reasoningEffort: options.reasoningEffort,
+  });
   return {
     ...options,
-    mode,
+    ...qwen,
     temperature: mode === 'auto' ? options.temperature : undefined,
     topP: undefined,
     topK: undefined,
     repeatPenalty: undefined,
     repetitionPenalty: undefined,
     presencePenalty: undefined,
-    enableThinking: mode === 'auto' ? options.enableThinking : getQwen36Options(mode).enableThinking,
   } as T;
 }
 

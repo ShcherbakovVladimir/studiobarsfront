@@ -45,6 +45,12 @@ import { ChatList } from './ChatList';
 import { AssistantToolsMenu } from './AssistantToolsMenu';
 import { PanelScrollArea } from './ui/panel-scroll-area';
 import { splitThinkingContent, stripThinkingTags } from '../utils/thinkingContent';
+import {
+  qwenChatFields,
+  REASONING_EFFORT_LABELS,
+  REASONING_EFFORTS,
+  type ReasoningEffort,
+} from '../utils/reasoningEffort';
 import { usePanelScroll, useWorkspacePanel } from '../hooks/useWorkspacePanel';
 import { PANEL_IDS } from '../store/workspaceUiSlice';
 import { filterToolsForRole, isAdmin, isEmployee } from '../utils/auth';
@@ -542,6 +548,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   
   // State for Qwen3.6
   const [qwenMode, setQwenMode] = useState<QwenMode>('auto');
+  const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('xhigh');
   const [selectedToolNames, setSelectedToolNames] = useState<string[]>(
     () => loadLocalToolPrefs().selectedTools ?? []
   );
@@ -562,7 +569,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const setActiveToolRef = useRef(setActiveTool);
   setActiveToolRef.current = setActiveTool;
   const selectTool = useCallback((tool: ActiveTool) => setActiveToolRef.current(tool), []);
-  const enableThinking = getToggle('enableThinking', false);
+  const enableThinking = getToggle('enableThinking', true);
   const preserveThinking = getToggle('preserveThinking', true);
   const showSettings = getToggle('showSettings', false);
   const showMobileMenu = getToggle('showMobileMenu', false);
@@ -628,7 +635,13 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       ...(typeof chat.maxTokens === 'number' ? { maxTokens: chat.maxTokens } : {}),
     }));
     if (chat.mode) setQwenMode(chat.mode);
-    if (typeof chat.enableThinking === 'boolean') setEnableThinking(chat.enableThinking);
+    if (chat.reasoningEffort) {
+      setReasoningEffort(chat.reasoningEffort);
+      if (typeof chat.enableThinking === 'boolean') setEnableThinking(chat.enableThinking);
+    } else if (chat.mode !== 'instruct') {
+      setReasoningEffort('xhigh');
+      setEnableThinking(true);
+    }
     const toolsOn = toolsEnabledFromSettings(chat);
     if (typeof toolsOn === 'boolean') setUseTools(toolsOn);
     if (chat.selectedTools) setSelectedToolNames(chat.selectedTools);
@@ -639,6 +652,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       maxTokens: chat.maxTokens,
       enableThinking: chat.enableThinking,
       mode: chat.mode,
+      reasoningEffort: chat.reasoningEffort,
       use_tools: toolsOn ?? false,
       useTools: toolsOn ?? false,
       selectedTools: chat.selectedTools ?? [],
@@ -658,6 +672,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       maxTokens: advancedOptions.maxTokens,
       enableThinking,
       mode: qwenMode,
+      reasoningEffort,
       use_tools: useTools,
       useTools,
       selectedTools: selectedToolNames,
@@ -678,6 +693,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     advancedOptions.maxTokens,
     enableThinking,
     qwenMode,
+    reasoningEffort,
     useTools,
     selectedToolNames,
     requireTools,
@@ -1594,7 +1610,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         fullResponse,
         currentModel?.modelFamily,
         promptForProcess,
-        enableThinking
+        qwenChatFields({ mode: qwenMode, enableThinking, preserveThinking, reasoningEffort }).enableThinking
       );
       if (timedOut && !isAborted()) {
         const notice = 'Сервер перестал присылать данные — соединение закрыто. Полученная часть ответа сохранена.';
@@ -1734,9 +1750,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         useTools,
         tools: useTools ? selectedTools : undefined,
         tool_choice: useTools ? (requireTools ? 'required' : 'auto') : 'none',
-        enableThinking: qwenMode === 'instruct' ? false : enableThinking,
-        preserveThinking: preserveThinking,
-        mode: qwenMode,
+        ...qwenChatFields({
+          mode: qwenMode,
+          enableThinking,
+          preserveThinking,
+          reasoningEffort,
+        }),
       };
       sentMaxTokens = options.maxTokens ?? 16384;
 
@@ -1945,6 +1964,27 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           Coding
                         </button>
                       </div>
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className="sr-only">Усилие рассуждений</span>
+                        <select
+                          aria-label="Усилие рассуждений"
+                          value={reasoningEffort}
+                          onChange={(event) => {
+                            const next = event.target.value as ReasoningEffort;
+                            setReasoningEffort(next);
+                            if (next === 'none' && qwenMode === 'auto') setEnableThinking(false);
+                            else if (next !== 'none' && qwenMode !== 'instruct') setEnableThinking(true);
+                          }}
+                          title="Фразу усилия печатает шаблон модели. Выкл — без рассуждений, как Instruct."
+                          className="h-7 rounded-lg bg-accent px-2 text-xs text-foreground"
+                        >
+                          {REASONING_EFFORTS.map((effort) => (
+                            <option key={effort} value={effort}>
+                              {REASONING_EFFORT_LABELS[effort]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     </div>
                   )}
                   
@@ -2045,6 +2085,21 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('thinking'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Thinking</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('instruct'); setEnableThinking(false); setHeaderMenuOpen(false); }}>Instruct</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('coding'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Coding</button>
+                        {REASONING_EFFORTS.map((effort) => (
+                          <button
+                            key={effort}
+                            type="button"
+                            className={celestia.headerMenuItem}
+                            onClick={() => {
+                              setReasoningEffort(effort);
+                              if (effort === 'none' && qwenMode === 'auto') setEnableThinking(false);
+                              else if (effort !== 'none' && qwenMode !== 'instruct') setEnableThinking(true);
+                              setHeaderMenuOpen(false);
+                            }}
+                          >
+                            Усилие: {REASONING_EFFORT_LABELS[effort]}
+                          </button>
+                        ))}
                         {qwenMode !== 'instruct' && (
                           <label className={cn(celestia.headerMenuItem, 'cursor-pointer')}>
                             <input

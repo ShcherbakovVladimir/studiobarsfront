@@ -954,6 +954,8 @@ export interface GenerationOptions {
   enableThinking?: boolean;
   preserveThinking?: boolean;
   mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
+  /** Qwen 3.6/3.8: xhigh | medium | low | none. high на сервере равен xhigh. */
+  reasoningEffort?: 'xhigh' | 'medium' | 'low' | 'none';
 }
 
 export interface GenerationResponse {

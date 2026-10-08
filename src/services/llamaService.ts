@@ -121,6 +121,7 @@ export interface GenerationOptions {
   enableThinking?: boolean;
   preserveThinking?: boolean;
   mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
+  reasoningEffort?: 'xhigh' | 'medium' | 'low' | 'none';
   signal?: AbortSignal;
 }
 
@@ -1587,6 +1588,7 @@ export const llamaApi = {
         ...(options.mode && { mode: options.mode }),
         ...(options.enableThinking !== undefined && { enableThinking: options.enableThinking }),
         ...(options.preserveThinking !== undefined && { preserveThinking: options.preserveThinking }),
+        ...(options.reasoningEffort && { reasoningEffort: options.reasoningEffort }),
         ...buildGrammarApiFields({
           grammar: options.grammar,
           jsonSchema: options.jsonSchema,
