@@ -45,6 +45,10 @@ const AuthGuard: React.FC = () => {
       dispatch(setMaintenance({ enabled: true, message: maintenanceMessage(data) }));
     });
     setForbiddenHandler((message, code) => {
+      if (code === 'API_KEY_SCOPE') {
+        showForbiddenToast(message || 'Ключ sk-... открывает только /v1, не кабинет');
+        return;
+      }
       if (code === 'ROLE_FORBIDDEN' || isRoleScopeDenial(message)) {
         if (!isEmployeeAppPath(window.location.pathname)) {
           navigate('/chat', { replace: true });

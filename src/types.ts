@@ -22,6 +22,18 @@ export interface User {
   isActive?: boolean;
 }
 
+/** Сервисный ключ внешних клиентов `/v1/*`. Секрет `key` приходит только в ответе создания. */
+export interface LlmApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: ['llm'];
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  key?: string;
+}
+
 export interface ChatUserSettings {
   systemPrompt?: string;
   temperature?: number;

@@ -12,8 +12,9 @@ import type { UserSettings } from '../types';
 import { homePath, isEmployee } from '../utils/auth';
 import { InlineError, InlineSuccess } from '../components/ui/alert-banner';
 import { PanelCard } from '../components/ui/panel-card';
+import ApiKeysPanel from '../components/ApiKeysPanel';
 
-type ProfileTab = 'profile' | 'password' | 'settings';
+type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys';
 
 const ProfilePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -104,10 +105,11 @@ const ProfilePage: React.FC = () => {
   };
 
   const employee = isEmployee(user);
-  const visibleTab = employee && tab === 'settings' ? 'profile' : tab;
+  const visibleTab = employee && (tab === 'settings' || tab === 'api-keys') ? 'profile' : tab;
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'profile', label: 'Профиль' },
     { id: 'password', label: 'Пароль' },
+    ...(!employee ? [{ id: 'api-keys' as const, label: 'API-ключ' }] : []),
     ...(!employee ? [{ id: 'settings' as const, label: 'Настройки сервера' }] : []),
   ];
 
@@ -235,6 +237,8 @@ const ProfilePage: React.FC = () => {
                 </button>
               </form>
             )}
+
+            {visibleTab === 'api-keys' && <ApiKeysPanel />}
 
             {visibleTab === 'settings' && (
               <div className="space-y-4">

@@ -85,6 +85,7 @@ export function getToken(): string | null {
 }
 
 export function setToken(token: string | null): void {
+  if (token?.startsWith('sk-')) return;
   if (token) {
     localStorage.setItem(TOKEN_KEY, token);
   } else {

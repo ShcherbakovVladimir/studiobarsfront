@@ -1910,7 +1910,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <button
                           type="button"
                           aria-pressed={qwenMode === 'auto'}
-                          onClick={() => { setQwenMode('auto'); }}
+                          onClick={() => { setQwenMode('auto'); setEnableThinking(reasoningEffort !== 'none'); }}
                           className={cn(
                             'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
                             qwenMode === 'auto'
@@ -2081,7 +2081,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     )}
                     {isQwen36Model && isServerReady && !isStreaming && (
                       <>
-                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('auto'); setHeaderMenuOpen(false); }}>Auto</button>
+                        <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('auto'); setEnableThinking(reasoningEffort !== 'none'); setHeaderMenuOpen(false); }}>Auto</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('thinking'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Thinking</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('instruct'); setEnableThinking(false); setHeaderMenuOpen(false); }}>Instruct</button>
                         <button type="button" className={celestia.headerMenuItem} onClick={() => { setQwenMode('coding'); setEnableThinking(true); setHeaderMenuOpen(false); }}>Coding</button>

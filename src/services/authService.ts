@@ -1,5 +1,5 @@
 import { api, setToken, clearToken, getToken, getMailLinkApiBase } from './apiClient';
-import type { User, UserSettings } from '../types';
+import type { LlmApiKey, User, UserSettings } from '../types';
 import { parseUserRole, setActiveUserRole } from '../utils/auth';
 import { clearLocalChatStore, setChatSyncUserId } from './chatSyncService';
 import { abortActiveStreams } from '../utils/activeStreams';
@@ -129,6 +129,44 @@ export async function updateUserSettings(settings: UserSettings): Promise<UserSe
     body: JSON.stringify({ settings }),
   });
   return data.settings;
+}
+
+export async function listApiKeys(): Promise<LlmApiKey[]> {
+  const data = await api<{ success: boolean; apiKeys: LlmApiKey[] }>('/auth/api-keys');
+  return (data.apiKeys ?? []).map(withoutApiKeySecret);
+}
+
+export async function createApiKey(input: {
+  name?: string;
+  expiresInDays?: number;
+}): Promise<{ message: string; apiKey: LlmApiKey }> {
+  const body: { name?: string; expiresInDays?: number } = {};
+  if (input.name?.trim()) body.name = input.name.trim();
+  if (input.expiresInDays != null) body.expiresInDays = input.expiresInDays;
+  const data = await api<{ success: boolean; message?: string; apiKey: LlmApiKey }>('/auth/api-keys', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return {
+    message: data.message || 'Сохраните ключ: он показывается один раз',
+    apiKey: data.apiKey,
+  };
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  await api(`/auth/api-keys/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+function withoutApiKeySecret(row: LlmApiKey): LlmApiKey {
+  return {
+    id: row.id,
+    name: row.name,
+    prefix: row.prefix,
+    scopes: row.scopes,
+    expiresAt: row.expiresAt,
+    lastUsedAt: row.lastUsedAt,
+    createdAt: row.createdAt,
+  };
 }
 
 export function logout(): void {
