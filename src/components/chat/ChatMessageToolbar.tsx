@@ -10,6 +10,7 @@ interface ChatMessageToolbarProps {
   onEdit: () => void;
   onRegenerate: () => void;
   onFork: () => void;
+  onRate?: (rating: 1 | -1 | 0) => void;
 }
 
 const ChatMessageToolbar: React.FC<ChatMessageToolbarProps> = ({
@@ -22,6 +23,7 @@ const ChatMessageToolbar: React.FC<ChatMessageToolbarProps> = ({
   onEdit,
   onRegenerate,
   onFork,
+  onRate,
 }) => (
   <div className="mt-1 flex flex-wrap gap-1 opacity-80">
     <ToolbarButton label="Копировать" disabled={disabled} onClick={onCopy} />
@@ -29,6 +31,8 @@ const ChatMessageToolbar: React.FC<ChatMessageToolbarProps> = ({
     {canEdit && <ToolbarButton label="Править" disabled={disabled} onClick={onEdit} />}
     {canRegenerate && <ToolbarButton label="Повторить" disabled={disabled} onClick={onRegenerate} />}
     {canFork && <ToolbarButton label="Ветка" disabled={disabled} onClick={onFork} />}
+    {onRate && <ToolbarButton label="+1" disabled={disabled} onClick={() => onRate(1)} />}
+    {onRate && <ToolbarButton label="−1" disabled={disabled} onClick={() => onRate(-1)} />}
   </div>
 );
 

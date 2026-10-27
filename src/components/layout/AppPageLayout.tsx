@@ -15,6 +15,7 @@ import CelestiaBackground from './CelestiaBackground';
 import { celestia } from '../../lib/celestia';
 import { StudioLogo } from '../brand/StudioLogo';
 import { APP_NAME } from '../../constants/brand';
+import ChatBanners from '../chat/ChatBanners';
 
 interface AppPageLayoutProps {
   children?: React.ReactNode;
@@ -70,6 +71,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
           fill ? 'h-dvh overflow-hidden flex flex-col' : 'min-h-dvh'
         )}
       >
+        <ChatBanners />
         <header className={cn('md:hidden sticky top-0 z-30', celestia.mobileHeader, celestia.appHeaderBar)}>
           <div className="flex items-center gap-2 w-full min-w-0">
             <button

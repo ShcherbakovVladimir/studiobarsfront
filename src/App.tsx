@@ -40,6 +40,7 @@ const AdminChatsPage = lazyWithRetry(() => import('./pages/admin/AdminChatsPage'
 const AdminSessionsPage = lazyWithRetry(() => import('./pages/admin/AdminSessionsPage'));
 const AdminInferenceLabPage = lazyWithRetry(() => import('./pages/admin/AdminInferenceLabPage'));
 const AdminHelpPage = lazyWithRetry(() => import('./pages/admin/AdminHelpPage'));
+const AdminChatDeskPage = lazyWithRetry(() => import('./pages/admin/AdminChatDeskPage'));
 
 function RouteFallback() {
   return (
@@ -116,6 +117,7 @@ const App: React.FC = () => {
               <Route path="inference-lab" element={<AdminInferenceLabPage />} />
               <Route path="api-tester" element={<AdminApiTesterPage />} />
               <Route path="help" element={<AdminHelpPage />} />
+              <Route path="chat-desk" element={<AdminChatDeskPage />} />
               <Route path="help/:slug" element={<AdminHelpPage />} />
             </Route>
           </Route>

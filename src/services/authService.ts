@@ -1,4 +1,4 @@
-import { api, setToken, clearToken, getToken, getMailLinkApiBase } from './apiClient';
+import { api, setToken, clearToken, getToken, getMailLinkApiBase, ApiError } from './apiClient';
 import type { LlmApiKey, User, UserSettings } from '../types';
 import { parseUserRole, setActiveUserRole } from '../utils/auth';
 import { clearLocalChatStore, setChatSyncUserId } from './chatSyncService';
@@ -8,10 +8,18 @@ function normalizeUser(user: User): User {
   return { ...user, role: parseUserRole(user.role) };
 }
 
-interface LoginResponse {
+interface SessionResponse {
   success: boolean;
   accessToken: string;
   user: User;
+}
+
+interface LoginResponse {
+  success: boolean;
+  accessToken?: string;
+  user?: User;
+  mfaRequired?: boolean;
+  mfaToken?: string;
 }
 
 interface MeResponse {
@@ -31,10 +39,41 @@ export async function login(email: string, password: string): Promise<{ user: Us
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+  if (data.mfaRequired) {
+    throw new ApiError('Введите код второго фактора', 401, 'MFA_REQUIRED', { mfaToken: data.mfaToken });
+  }
+  if (!data.accessToken || !data.user) {
+    throw new ApiError('Сервер не выдал токен входа', 401, 'UNAUTHORIZED');
+  }
   setToken(data.accessToken);
   const user = normalizeUser(data.user);
   setChatSyncUserId(user.id);
   return { user, accessToken: data.accessToken };
+}
+
+export async function completeMfa(mfaToken: string, code: string): Promise<{ user: User; accessToken: string }> {
+  const paths = ['/auth/2fa/verify', '/auth/mfa', '/auth/login/mfa'];
+  let last: unknown;
+  for (const path of paths) {
+    try {
+      const data = await api<SessionResponse>(path, {
+        method: 'POST',
+        body: JSON.stringify({ mfaToken, code }),
+      });
+      if (!data.accessToken || !data.user) {
+        throw new ApiError('Сервер не выдал токен входа', 401, 'UNAUTHORIZED');
+      }
+      setToken(data.accessToken);
+      const user = normalizeUser(data.user);
+      setChatSyncUserId(user.id);
+      return { user, accessToken: data.accessToken };
+    } catch (error) {
+      last = error;
+      if (error instanceof ApiError && error.status === 404) continue;
+      throw error;
+    }
+  }
+  throw last instanceof Error ? last : new ApiError('Второй фактор не подтверждён', 404, 'MFA_REQUIRED');
 }
 
 export async function register(
@@ -62,7 +101,7 @@ export async function getMe(): Promise<{ user: User; settings: UserSettings } | 
 }
 
 export async function verifyEmail(token: string): Promise<{ user: User; accessToken: string }> {
-  const data = await api<LoginResponse>('/auth/verify-email', {
+  const data = await api<SessionResponse>('/auth/verify-email', {
     method: 'POST',
     body: JSON.stringify({ token }),
   });

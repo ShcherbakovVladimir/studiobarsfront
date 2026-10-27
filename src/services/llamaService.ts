@@ -122,6 +122,10 @@ export interface GenerationOptions {
   preserveThinking?: boolean;
   mode?: 'auto' | 'thinking' | 'instruct' | 'coding';
   reasoningEffort?: 'xhigh' | 'medium' | 'low' | 'none';
+  /** Продолжить оборванный ответ. `message` при этом не отправляется. */
+  continueGeneration?: boolean;
+  referenceChatId?: string;
+  temporary?: boolean;
   signal?: AbortSignal;
 }
 

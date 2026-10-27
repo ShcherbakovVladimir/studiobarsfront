@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import type { AppDispatch, RootState } from '../store/store';
-import { login, clearAuthError } from '../store/authSlice';
+import { login, clearAuthError, bootstrapAuth } from '../store/authSlice';
+import { completeMfa } from '../services/authService';
+import { oidcStartAvailable, oidcStartUrl } from '../services/chatDeskService';
 import { loadRuntimeConfig } from '../store/runtimeConfigSlice';
 import ResendVerificationBlock from '../components/ResendVerificationBlock';
 import AuthFormCard from '../components/AuthFormCard';
@@ -28,6 +30,14 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [oidcReady, setOidcReady] = useState(false);
+  const [mfaError, setMfaError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void oidcStartAvailable().then(setOidcReady);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +49,12 @@ const LoginPage: React.FC = () => {
         await dispatch(loadRuntimeConfig());
         const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
         navigate(postLoginPath(result.payload.user, from), { replace: true });
+        return;
+      }
+      const payload = result.payload as { code?: string; mfaToken?: string } | undefined;
+      if (payload?.code === 'MFA_REQUIRED' && payload.mfaToken) {
+        dispatch(clearAuthError());
+        setMfaToken(payload.mfaToken);
       }
     } finally {
       setIsSubmitting(false);
@@ -113,6 +129,47 @@ const LoginPage: React.FC = () => {
         <button type="submit" disabled={isSubmitting || !email.trim() || !password} className={authButtonClass}>
           {isSubmitting ? 'Вход…' : 'Войти'}
         </button>
+        {mfaToken && (
+          <div className="space-y-2">
+            {mfaError && <InlineError message={mfaError} />}
+            <label htmlFor="mfa-code" className="block space-y-1.5">
+              <span className={authLabelClass}>Код второго фактора</span>
+              <input
+                id="mfa-code"
+                name="code"
+                inputMode="numeric"
+                value={mfaCode}
+                onChange={(event) => setMfaCode(event.target.value)}
+                className={authInputClass}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={isSubmitting || mfaCode.trim().length < 6}
+              className={authButtonClass}
+              onClick={() => {
+                setIsSubmitting(true);
+                void completeMfa(mfaToken, mfaCode.trim())
+                  .then(async (session) => {
+                    await dispatch(bootstrapAuth());
+                    navigate(postLoginPath(session.user), { replace: true });
+                  })
+                  .catch((err: unknown) => {
+                    dispatch(clearAuthError());
+                    setMfaError(err instanceof Error ? err.message : 'Код не принят');
+                  })
+                  .finally(() => setIsSubmitting(false));
+              }}
+            >
+              Подтвердить код
+            </button>
+          </div>
+        )}
+        {oidcReady && (
+          <a href={oidcStartUrl()} className={authLinkClass}>
+            Корпоративный вход
+          </a>
+        )}
       </form>
     </AuthFormCard>
   );

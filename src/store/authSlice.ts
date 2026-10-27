@@ -48,6 +48,10 @@ export const login = createAsyncThunk(
         if (error.code === 'EMAIL_NOT_VERIFIED') {
           return rejectWithValue({ code: 'EMAIL_NOT_VERIFIED', message: error.message });
         }
+        if (error.code === 'MFA_REQUIRED') {
+          const mfaToken = (error.data as { mfaToken?: string } | undefined)?.mfaToken;
+          return rejectWithValue({ code: 'MFA_REQUIRED', message: error.message, mfaToken });
+        }
       }
       return rejectWithValue({ code: 'LOGIN_FAILED', message: error instanceof Error ? error.message : 'Login failed' });
     }

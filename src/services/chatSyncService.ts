@@ -380,7 +380,8 @@ export function deleteChatFromLocal(chatId: string): void {
   });
 }
 
-export async function listChatSummaries(): Promise<ChatSummary[]> {
+export async function listChatSummaries(scope: 'active' | 'archived' | 'all' = 'active'): Promise<ChatSummary[]> {
+  const archived = scope === 'archived' ? '&archived=true' : scope === 'all' ? '&archived=all' : '';
   const data = await api<{
     success: boolean;
     chats: Array<ChatSummary & { user_id?: string }>;
@@ -388,7 +389,7 @@ export async function listChatSummaries(): Promise<ChatSummary[]> {
     email?: string;
     role?: string;
     total: number;
-  }>('/chats?summary=true');
+  }>(`/chats?summary=true${archived}`);
   const myId = currentUserId();
   if (data.userId && myId && data.userId !== myId) {
     console.warn('GET /chats userId mismatch — ignoring list');
@@ -486,6 +487,8 @@ export async function saveChatToServer(chat: ChatData): Promise<boolean> {
         systemPrompt: chat.systemPrompt,
         chatWrapper: chat.chatWrapper,
         updatedAt: chat.updatedAt ?? new Date().toISOString(),
+        ...(typeof chat.pinned === 'boolean' ? { pinned: chat.pinned } : {}),
+        ...(chat.temporary ? { temporary: true } : {}),
       },
     };
     const data = await api<{ success: boolean; synced?: boolean; duplicated?: boolean }>('/chats/sync', {
@@ -549,6 +552,14 @@ function summaryToChat(summary: ChatSummary): ChatData {
     contextUsage: local?.contextUsage,
     createdAt: summary.createdAt ?? local?.createdAt,
     updatedAt: summary.updatedAt ?? local?.updatedAt,
+    turnCount: summary.turnCount ?? local?.turnCount,
+    lastMessage: summary.lastMessage ?? local?.lastMessage,
+    preview: summary.preview ?? local?.preview,
+    pinned: summary.pinned ?? local?.pinned,
+    pinnedAt: summary.pinnedAt ?? local?.pinnedAt,
+    archived: summary.archived ?? local?.archived,
+    tags: summary.tags ?? local?.tags,
+    folderId: summary.folderId ?? local?.folderId,
   };
 }
 

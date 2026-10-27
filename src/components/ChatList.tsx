@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MessageSquare, Plus, Trash2, RefreshCw, Edit2, X, Search, Pin, Upload } from 'lucide-react';
 import type { ChatData } from '../services/chatSyncService';
+import { previewText, searchChats } from '../services/chatDeskService';
 import { confirmDialog } from '../services/dialogService';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
@@ -22,11 +23,15 @@ interface ChatListProps {
   pinnedIds?: string[];
   onTogglePin?: (chatId: string) => void;
   onImportFile?: (file: File) => void;
+  scope?: 'active' | 'archived' | 'all';
+  onScopeChange?: (scope: 'active' | 'archived' | 'all') => void;
   open?: boolean;
   className?: string;
 }
 
 function chatPreview(chat: ChatData): string {
+  const fromPreview = previewText(chat.preview);
+  if (fromPreview) return fromPreview;
   if (chat.lastMessage?.trim()) return chat.lastMessage.trim();
   const last = [...(chat.messages ?? [])].reverse().find((message) => message.content?.trim());
   return last?.content.replace(/\s+/g, ' ').trim() ?? '';
@@ -61,12 +66,15 @@ export const ChatList: React.FC<ChatListProps> = ({
   pinnedIds = [],
   onTogglePin,
   onImportFile,
+  scope = 'active',
+  onScopeChange,
   open = true,
   className = '',
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [query, setQuery] = useState('');
+  const [serverHits, setServerHits] = useState<ChatData[] | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const drawerRef = useDrawerRootRef(open);
   const overlay = useWorkspaceOverlay();
@@ -76,12 +84,50 @@ export const ChatList: React.FC<ChatListProps> = ({
     .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime())
     .sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
   const needle = query.trim().toLowerCase();
-  const visibleChats = needle
-    ? sortedChats.filter((chat) => {
-        const preview = chatPreview(chat).toLowerCase();
-        return (chat.title ?? '').toLowerCase().includes(needle) || preview.includes(needle);
-      })
-    : sortedChats;
+
+  useEffect(() => {
+    if (needle.length < 2) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void searchChats(query.trim())
+        .then((rows) => {
+          if (cancelled) return;
+          setServerHits(rows.map((row) => ({
+            id: row.id,
+            title: row.title,
+            modelId: row.modelId,
+            sessionId: row.sessionId ?? row.id,
+            messages: [],
+            messageCount: row.messageCount,
+            turnCount: row.turnCount,
+            lastMessage: row.lastMessage,
+            preview: row.preview,
+            pinned: row.pinned,
+            pinnedAt: row.pinnedAt,
+            archived: row.archived,
+            tags: row.tags,
+            folderId: row.folderId,
+            updatedAt: row.updatedAt,
+            createdAt: row.createdAt,
+          })));
+        })
+        .catch(() => {
+          if (!cancelled) setServerHits(null);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [needle, query]);
+
+  const visibleChats = (needle.length >= 2 ? serverHits : null)
+    ?? (needle
+      ? sortedChats.filter((chat) => {
+          const preview = chatPreview(chat).toLowerCase();
+          return (chat.title ?? '').toLowerCase().includes(needle) || preview.includes(needle);
+        })
+      : sortedChats);
 
   const startRename = (chat: ChatData) => {
     setEditingId(chat.id);
@@ -203,7 +249,21 @@ export const ChatList: React.FC<ChatListProps> = ({
         </div>
       </div>
 
-      <div className="px-2 pt-2">
+      <div className="px-2 pt-2 space-y-2">
+        {onScopeChange && (
+          <div className="flex gap-1 text-[11px]">
+            {(['active', 'archived', 'all'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => onScopeChange(item)}
+                className={cn('rounded-lg px-2 py-1', scope === item ? 'bg-primary text-primary-foreground' : 'bg-accent text-muted-foreground')}
+              >
+                {item === 'active' ? 'Чаты' : item === 'archived' ? 'Архив' : 'Все'}
+              </button>
+            ))}
+          </div>
+        )}
         <label className="relative block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -294,6 +354,13 @@ export const ChatList: React.FC<ChatListProps> = ({
                     {preview && (
                       <div className="text-[11px] text-muted-foreground mt-1 line-clamp-2" title={preview}>
                         {preview}
+                      </div>
+                    )}
+                    {chat.tags && chat.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {chat.tags.map((tag) => (
+                          <span key={tag} className="rounded-md bg-accent px-1.5 py-0.5 text-[10px] text-muted-foreground">{tag}</span>
+                        ))}
                       </div>
                     )}
                   </button>

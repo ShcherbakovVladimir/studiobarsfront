@@ -238,7 +238,14 @@ export interface ChatSummary {
   createdAt?: string;
   updatedAt?: string;
   messageCount: number;
+  turnCount?: number;
   lastMessage?: string;
+  preview?: string | Array<{ role?: string; content?: string }>;
+  pinned?: boolean;
+  pinnedAt?: string | null;
+  archived?: boolean;
+  tags?: string[];
+  folderId?: string | null;
   userId?: string;
 }
 
@@ -249,6 +256,15 @@ export interface PersistedChat {
   title?: string;
   /** Превью для списка. В POST /chats/sync не уходит. */
   lastMessage?: string;
+  preview?: string | Array<{ role?: string; content?: string }>;
+  turnCount?: number;
+  pinned?: boolean;
+  pinnedAt?: string | null;
+  archived?: boolean;
+  tags?: string[];
+  folderId?: string | null;
+  /** Не писать диалог в PostgreSQL. */
+  temporary?: boolean;
   messages: ChatMessage[];
   systemPrompt?: string;
   chatWrapper?: string;
@@ -392,6 +408,7 @@ export interface ChatImageAttachment {
 }
 
 export interface ChatMessage {
+  id?: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   images?: ChatImageAttachment[];

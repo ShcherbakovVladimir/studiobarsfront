@@ -421,7 +421,6 @@ export async function chatStream(
       method: 'POST',
       headers: getStreamHeaders(chatId),
       body: JSON.stringify({
-        message: prompt,
         stream: true,
         use_tools: useTools,
         useTools,
@@ -430,9 +429,12 @@ export async function chatStream(
         topP: finalOptions.topP,
         topK: finalOptions.topK,
         repetitionPenalty: finalOptions.repeatPenalty,
+        ...(options.continueGeneration ? { continue: true } : { message: prompt }),
         sessionId: chatId,
         chatId,
         history: options.history,
+        ...(options.referenceChatId ? { referenceChatId: options.referenceChatId } : {}),
+        ...(options.temporary ? { temporary: true } : {}),
         system_prompt: options.systemPrompt,
         systemPrompt: options.systemPrompt,
         ...buildGrammarApiFields({

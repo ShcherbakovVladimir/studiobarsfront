@@ -13,8 +13,9 @@ import { homePath, isEmployee } from '../utils/auth';
 import { InlineError, InlineSuccess } from '../components/ui/alert-banner';
 import { PanelCard } from '../components/ui/panel-card';
 import ApiKeysPanel from '../components/ApiKeysPanel';
+import { SecondFactorPanel, ShortcutsPanel, WebhooksPanel } from '../components/account/AccountDeskPanel';
 
-type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys';
+type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys' | 'security' | 'shortcuts' | 'webhooks';
 
 const ProfilePage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -109,6 +110,9 @@ const ProfilePage: React.FC = () => {
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'profile', label: 'Профиль' },
     { id: 'password', label: 'Пароль' },
+    { id: 'security', label: 'Вход' },
+    { id: 'shortcuts', label: 'Клавиши' },
+    { id: 'webhooks', label: 'Вебхуки' },
     ...(!employee ? [{ id: 'api-keys' as const, label: 'API-ключ' }] : []),
     ...(!employee ? [{ id: 'settings' as const, label: 'Настройки сервера' }] : []),
   ];
@@ -239,6 +243,9 @@ const ProfilePage: React.FC = () => {
             )}
 
             {visibleTab === 'api-keys' && <ApiKeysPanel />}
+            {visibleTab === 'security' && <SecondFactorPanel />}
+            {visibleTab === 'shortcuts' && <ShortcutsPanel />}
+            {visibleTab === 'webhooks' && <WebhooksPanel />}
 
             {visibleTab === 'settings' && (
               <div className="space-y-4">

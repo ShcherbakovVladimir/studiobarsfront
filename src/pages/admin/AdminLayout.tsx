@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Files,
   BookOpen,
+  Megaphone,
 } from 'lucide-react';
 import type { AppDispatch, RootState } from '../../store/store';
 import { toggleTheme } from '../../store/appSlice';
@@ -40,6 +41,7 @@ const NAV_GROUPS: Array<{
       { to: '/admin', label: 'Обзор', icon: LayoutDashboard, end: true },
       { to: '/admin/users', label: 'Пользователи', icon: Users },
       { to: '/admin/chats', label: 'Чаты', icon: MessageSquare },
+      { to: '/admin/chat-desk', label: 'Стол чата', icon: Megaphone },
       { to: '/admin/sessions', label: 'RAG-сессии', icon: Files },
       { to: '/admin/audit', label: 'Аудит', icon: ScrollText },
       { to: '/admin/help', label: 'Справка', icon: BookOpen },
