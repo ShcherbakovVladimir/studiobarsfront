@@ -247,6 +247,8 @@ export interface PersistedChat {
   modelId?: string;
   sessionId?: string;
   title?: string;
+  /** Превью для списка. В POST /chats/sync не уходит. */
+  lastMessage?: string;
   messages: ChatMessage[];
   systemPrompt?: string;
   chatWrapper?: string;

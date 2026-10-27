@@ -13,12 +13,28 @@ import agentService, {
 } from '../services/agentService';
 import type { ChatImageAttachment, ChatMessage as StoredChatMessage, XLAMModel } from '../types';
 import type { AppDispatch, RootState } from '../store/store';
-import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage, discardStreamingAssistant } from '../store/chatSlice';
+import { addMessage, setLoading, clearHistory, updateLastMessage, finalizeLastMessage, discardStreamingAssistant, syncHistory } from '../store/chatSlice';
 import { saveUserSettings } from '../store/authSlice';
 import { setModelOperation, setServerStatus } from '../store/appSlice';
 import { setSelectedModelId, setActiveModel } from '../store/modelsSlice';
 import { confirmDialog } from '../services/dialogService';
-import { showErrorToast } from '../services/toastService';
+import { showErrorToast, showSuccessToast } from '../services/toastService';
+import ChatMessageToolbar from './chat/ChatMessageToolbar';
+import {
+  chatToExportJson,
+  chatToMarkdown,
+  downloadTextFile,
+  parseImportedChats,
+  quoteChat,
+  readAutoScroll,
+  readPinnedChatIds,
+  readPromptLibrary,
+  safeFileSlug,
+  writeAutoScroll,
+  writePinnedChatIds,
+  writePromptLibrary,
+  type PromptTemplate,
+} from '../utils/chatDesk';
 import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
@@ -405,6 +421,12 @@ const AttachIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
   </Icon>
 );
+const MicIcon = () => (
+  <Icon className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 10v1a7 7 0 01-14 0v-1M12 18v4M8 22h8" />
+  </Icon>
+);
 const GrammarIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></Icon>;
 const EmbeddingIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></Icon>;
 const RankingIcon = () => <Icon><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></Icon>;
@@ -515,6 +537,16 @@ const ToolRail = React.memo(function ToolRail({
   );
 });
 
+interface SpeechDictation {
+  lang: string;
+  interimResults: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 const AgentLab: React.FC<AgentLabProps> = () => {
   const dispatch = useDispatch<AppDispatch>();
   
@@ -615,6 +647,15 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     filterToolsForRole(DEFAULT_TOOLS, productMode ? 'employee' : undefined)
   );
   const [grammarSelection, setGrammarSelection] = useState<GrammarSelection>(createEmptyGrammarSelection());
+  const [pinnedIds, setPinnedIds] = useState<string[]>(() => readPinnedChatIds());
+  const [prompts, setPrompts] = useState<PromptTemplate[]>(() => readPromptLibrary());
+  const [autoScroll, setAutoScroll] = useState(() => readAutoScroll());
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
+  const [listening, setListening] = useState(false);
+  const autoScrollRef = useRef(autoScroll);
+  autoScrollRef.current = autoScroll;
+  const sendReplayRef = useRef<(override: { text: string; history: StoredChatMessage[] }) => Promise<void>>(async () => {});
 
   useEffect(() => {
     if (!authUserId) {
@@ -922,6 +963,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             sessionId: summary.sessionId ?? summary.id,
             messages: [],
             messageCount: summary.messageCount ?? 0,
+            lastMessage: summary.lastMessage,
             systemPrompt: '',
             chatWrapper: 'default',
             createdAt: summary.createdAt,
@@ -932,6 +974,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               ...base,
               title: summary.title ?? base.title,
               updatedAt: summary.updatedAt ?? base.updatedAt,
+              lastMessage: summary.lastMessage ?? base.lastMessage,
               messageCount: live.length || summary.messageCount || base.messageCount,
               messages: live.length ? live : base.messages,
               sessionId: open.sessionId ?? base.sessionId,
@@ -941,6 +984,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             ...base,
             title: summary.title ?? base.title,
             updatedAt: summary.updatedAt ?? base.updatedAt,
+            lastMessage: summary.lastMessage ?? base.lastMessage,
             messageCount: summary.messageCount ?? base.messageCount ?? base.messages?.length ?? 0,
           };
         });
@@ -949,6 +993,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
             ...open,
             title: open.title,
             updatedAt: open.updatedAt,
+            lastMessage: open.lastMessage,
             messages: live.length ? live : open.messages,
             messageCount: live.length || open.messageCount || 0,
           });
@@ -1097,6 +1142,160 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       currentChatRef.current = updated;
     }
   }, []);
+
+  const togglePin = useCallback((chatId: string) => {
+    setPinnedIds((prev) => {
+      const next = prev.includes(chatId) ? prev.filter((id) => id !== chatId) : [chatId, ...prev];
+      writePinnedChatIds(next);
+      return next;
+    });
+  }, []);
+
+  const copyMessage = useCallback(async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      showSuccessToast('Скопировано');
+    } catch {
+      showErrorToast('Не удалось скопировать');
+    }
+  }, []);
+
+  const speakMessage = useCallback((content: string) => {
+    if (!('speechSynthesis' in window)) {
+      showErrorToast('Браузер не озвучивает текст');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(content.slice(0, 4000));
+    utterance.lang = 'ru-RU';
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const editMessage = useCallback((index: number) => {
+    const message = messagesRef.current[index];
+    if (!message || message.role !== 'user' || abortControllerRef.current) return;
+    dispatch(syncHistory({ modelId: currentModelId, history: messagesRef.current.slice(0, index) }));
+    setInput(message.content);
+    inputRef.current?.focus();
+  }, [currentModelId, dispatch]);
+
+  const regenerateMessage = useCallback((index: number) => {
+    if (abortControllerRef.current) return;
+    const live = messagesRef.current;
+    let userIndex = -1;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      if (live[i]?.role === 'user') {
+        userIndex = i;
+        break;
+      }
+    }
+    const user = userIndex >= 0 ? live[userIndex] : undefined;
+    if (!user?.content) return;
+    const history = live.slice(0, userIndex);
+    dispatch(syncHistory({ modelId: currentModelId, history }));
+    void sendReplayRef.current({ text: user.content, history });
+  }, [currentModelId, dispatch]);
+
+  const forkChatAt = useCallback(async (index: number) => {
+    const source = currentChatRef.current;
+    if (!source || abortControllerRef.current) return;
+    const slice = messagesRef.current.slice(0, index + 1).filter((row) => row.content?.trim() && !row.isStreaming);
+    const forked = chatSyncService.createNewChat(currentModelId, undefined, `${source.title || 'Чат'} (fork)`);
+    forked.sessionId = forked.id;
+    forked.systemPrompt = source.systemPrompt ?? systemPrompt;
+    forked.chatWrapper = source.chatWrapper ?? selectedWrapper;
+    forked.messages = slice;
+    forked.messageCount = slice.length;
+    await chatSyncService.persistChat(forked, true);
+    setAvailableChats((prev) => [forked, ...prev.filter((chat) => chat.id !== forked.id)]);
+    await switchToChat(forked);
+    showSuccessToast('Ветка сохранена отдельным чатом');
+  }, [currentModelId, selectedWrapper, switchToChat, systemPrompt]);
+
+  const exportCurrentChat = useCallback((kind: 'md' | 'json') => {
+    const title = currentChatRef.current?.title || 'Чат';
+    const slug = safeFileSlug(title);
+    const live = messagesRef.current;
+    if (kind === 'md') downloadTextFile(`${slug}.md`, chatToMarkdown(title, live), 'text/markdown;charset=utf-8');
+    else downloadTextFile(`${slug}.json`, chatToExportJson(title, live), 'application/json');
+  }, []);
+
+  const importChatFile = useCallback(async (file: File) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text()) as unknown;
+    } catch {
+      showErrorToast('Файл не JSON');
+      return;
+    }
+    const rows = parseImportedChats(parsed);
+    if (rows.length === 0) {
+      showErrorToast('В файле нет сообщений');
+      return;
+    }
+    const created: ChatData[] = [];
+    for (const row of rows) {
+      const chat = chatSyncService.createNewChat(currentModelId, undefined, row.title);
+      chat.sessionId = chat.id;
+      chat.systemPrompt = systemPrompt;
+      chat.chatWrapper = selectedWrapper;
+      chat.messages = row.messages;
+      chat.messageCount = row.messages.length;
+      await chatSyncService.persistChat(chat, true);
+      created.push(chat);
+    }
+    setAvailableChats((prev) => [...created, ...prev]);
+    const first = created[0];
+    if (first) await switchToChat(first);
+    showSuccessToast(created.length === 1 ? 'Чат импортирован' : `Импортировано чатов: ${created.length}`);
+  }, [currentModelId, selectedWrapper, switchToChat, systemPrompt]);
+
+  const insertReferencedChat = useCallback(async (chat: ChatData) => {
+    const full = chat.messages?.length ? chat : (await chatSyncService.getChatFromServer(chat.id)) ?? chat;
+    const quote = quoteChat(full.title || 'Чат', full.messages ?? []);
+    setInput((prev) => (prev.trim() ? `${prev.trim()}\n\n${quote}` : quote));
+  }, []);
+
+  const savePromptFromInput = useCallback(() => {
+    const content = input.trim();
+    if (!content) return;
+    const title = content.split('\n')[0]?.slice(0, 48) || 'Шаблон';
+    const next = [{ id: `prompt_${Date.now()}`, title, content }, ...prompts].slice(0, 40);
+    setPrompts(next);
+    writePromptLibrary(next);
+    showSuccessToast('Шаблон сохранён. В поле введите / чтобы вставить его');
+  }, [input, prompts]);
+
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const toggleDictation = useCallback(() => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const host = window as Window & {
+      SpeechRecognition?: new () => SpeechDictation;
+      webkitSpeechRecognition?: new () => SpeechDictation;
+    };
+    const Ctor = host.SpeechRecognition ?? host.webkitSpeechRecognition;
+    if (!Ctor) {
+      showErrorToast('Браузер не принимает диктовку');
+      return;
+    }
+    const recognition = new Ctor();
+    recognition.lang = 'ru-RU';
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript ?? '';
+      if (!transcript.trim()) return;
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${transcript.trim()}` : transcript.trim()));
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  }, [listening]);
 
   useEffect(() => {
     currentChatRef.current = currentChat;
@@ -1306,7 +1505,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     if (!element) return;
     const onScroll = () => {
       const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
-      stickToBottomRef.current = distanceFromBottom < 240;
+      stickToBottomRef.current = autoScrollRef.current && distanceFromBottom < 240;
     };
     element.addEventListener('scroll', onScroll, { passive: true });
     return () => element.removeEventListener('scroll', onScroll);
@@ -1553,14 +1752,16 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   };
 
   // ОСНОВНАЯ ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ С STREAMING
-  const handleSendMessage = async () => {
-    const filesToSend = pendingImages.map((item) => item.file);
-    const imageAttachments: ChatImageAttachment[] = pendingImages.map((item) => ({
+  const handleSendMessage = async (override?: { text: string; history: StoredChatMessage[] }) => {
+    const replay = override && typeof override.text === 'string' ? override : null;
+    const filesToSend = replay ? [] : pendingImages.map((item) => item.file);
+    const imageAttachments: ChatImageAttachment[] = replay ? [] : pendingImages.map((item) => ({
       name: item.file.name,
       mimeType: item.file.type,
       previewUrl: item.previewUrl,
     }));
-    if ((!input.trim() && filesToSend.length === 0) || loading || isStreaming) return;
+    const promptSource = replay ? replay.text : input;
+    if ((!promptSource.trim() && filesToSend.length === 0) || loading || isStreaming) return;
     if (currentChatRef.current?.contextLimit) return;
     stickToBottomRef.current = true;
     
@@ -1575,8 +1776,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       return;
     }
     
-    const userMessageContent = persistableVisionContent(input.trim(), filesToSend.length);
-    const promptText = input.trim();
+    const userMessageContent = persistableVisionContent(promptSource.trim(), filesToSend.length);
+    const promptText = promptSource.trim();
     const userMessage: ChatMessage = {
       role: 'user',
       content: userMessageContent,
@@ -1585,8 +1786,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     };
     
     dispatch(addMessage({ modelId: currentModelId, message: userMessage }));
-    setInput('');
-    setPendingImages([]);
+    if (!replay) {
+      setInput('');
+      setPendingImages([]);
+    }
     
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
@@ -1737,7 +1940,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         sessionId: activeChatId,
         chatId: activeChatId,
         history: toChatMessages(
-          messages.filter((m) =>
+          (replay ? replay.history : messages).filter((m) =>
             (m.role === 'user' || m.role === 'assistant' || m.role === 'system') &&
             !m.isError &&
             !m.isStreaming
@@ -1816,6 +2019,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       }
     }
   };
+  sendReplayRef.current = handleSendMessage;
 
 
     return (
@@ -2038,7 +2242,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     aria-expanded={headerMenuOpen}
                     onClick={() => setHeaderMenuOpen((open) => !open)}
                     className={cn(
-                      'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80 @[42rem]/agentchat:hidden',
+                      'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80',
                       celestia.headerIcon,
                       headerMenuOpen && 'bg-accent text-foreground'
                     )}
@@ -2124,6 +2328,26 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <button type="button" className={celestia.headerMenuItem} disabled={isModelActionLoading} onClick={() => { setHeaderMenuOpen(false); handleStopModel(); }}>Остановить</button>
                       </>
                     )}
+                    <button type="button" className={celestia.headerMenuItem} disabled={messages.length === 0} onClick={() => { setHeaderMenuOpen(false); exportCurrentChat('md'); }}>Скачать Markdown</button>
+                    <button type="button" className={celestia.headerMenuItem} disabled={messages.length === 0} onClick={() => { setHeaderMenuOpen(false); exportCurrentChat('json'); }}>Скачать JSON</button>
+                    <button type="button" className={celestia.headerMenuItem} disabled={messages.length === 0} onClick={() => { setOverviewOpen((open) => !open); setHeaderMenuOpen(false); }}>Карта диалога</button>
+                    <button type="button" className={celestia.headerMenuItem} onClick={() => { setReferenceOpen((open) => !open); setHeaderMenuOpen(false); }}>Вставить другой чат</button>
+                    <button type="button" className={celestia.headerMenuItem} disabled={!input.trim()} onClick={() => { savePromptFromInput(); setHeaderMenuOpen(false); }}>Сохранить шаблон</button>
+                    <button
+                      type="button"
+                      className={celestia.headerMenuItem}
+                      onClick={() => {
+                        setAutoScroll((enabled) => {
+                          const next = !enabled;
+                          writeAutoScroll(next);
+                          stickToBottomRef.current = next;
+                          return next;
+                        });
+                        setHeaderMenuOpen(false);
+                      }}
+                    >
+                      {autoScroll ? 'Автопрокрутка: вкл' : 'Автопрокрутка: выкл'}
+                    </button>
                     <button
                       type="button"
                       className={cn(celestia.headerMenuItem, 'text-red-500')}
@@ -2152,6 +2376,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
               onDeleteChat={deleteChat}
               onRenameChat={renameChat}
               onCreateNew={createNewChat}
+              pinnedIds={pinnedIds}
+              onTogglePin={togglePin}
+              onImportFile={(file) => void importChatFile(file)}
               onRefresh={() => void refreshChatList()}
               onClose={() => setShowChatList(false)}
               open={showChatList}
@@ -2163,6 +2390,23 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     <div className="flex flex-col h-full min-w-0">
                         <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-3 sm:px-4 py-3" ref={scrollRef}>
                             <div className={cn(celestia.chatColumn, 'space-y-4 min-w-0')}>
+                            {overviewOpen && messages.length > 0 && (
+                              <div className="rounded-2xl border border-border bg-card/80 p-2 text-sm">
+                                <div className="mb-1 px-1 text-xs font-medium text-muted-foreground">Карта диалога</div>
+                                <div className="max-h-40 space-y-1 overflow-y-auto">
+                                  {messages.map((msg, idx) => (
+                                    <button
+                                      key={`map-${idx}`}
+                                      type="button"
+                                      className="block w-full truncate rounded-lg px-2 py-1 text-left text-xs hover:bg-accent"
+                                      onClick={() => document.querySelector(`[data-chat-msg="${idx}"]`)?.scrollIntoView({ block: 'center' })}
+                                    >
+                                      {msg.role === 'user' ? 'Вы' : 'Ассистент'}: {msg.content.replace(/\s+/g, ' ').slice(0, 80) || '…'}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             {messages.length === 0 && (
                                 <div className="flex flex-col items-center justify-center min-h-[50vh] text-muted-foreground">
                                     <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center mb-3">
@@ -2197,7 +2441,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 </div>
                             )}
                             {messages.map((msg, idx) => (
-                                <div key={idx} className={cn('flex w-full min-w-0 max-w-full', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                <div key={idx} data-chat-msg={idx} className={cn('flex w-full min-w-0 max-w-full flex-col', msg.role === 'user' ? 'items-end' : 'items-start')}>
                                     <div className={cn(msg.role === 'user' ? celestia.chatBubbleUser : celestia.chatBubbleAi, 'min-w-0')}>
                                         <FormattedMessage 
                                           content={msg.content} 
@@ -2210,6 +2454,19 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                           onStreamGrow={followStreamBottom}
                                         />
                                     </div>
+                                    {!msg.isStreaming && msg.content.trim() && (msg.role === 'user' || msg.role === 'assistant') && (
+                                      <ChatMessageToolbar
+                                        canEdit={msg.role === 'user'}
+                                        canRegenerate={msg.role === 'assistant'}
+                                        canFork
+                                        disabled={isStreaming}
+                                        onCopy={() => void copyMessage(msg.content)}
+                                        onSpeak={() => speakMessage(msg.content)}
+                                        onEdit={() => editMessage(idx)}
+                                        onRegenerate={() => regenerateMessage(idx)}
+                                        onFork={() => void forkChatAt(idx)}
+                                      />
+                                    )}
                                 </div>
                             ))}
                             {loading && !isStreaming && (
@@ -2263,6 +2520,43 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 ))}
                               </div>
                             )}
+                            {input.startsWith('/') && !input.includes('\n') && (
+                              <div className="mb-2 max-h-40 overflow-y-auto rounded-2xl border border-border bg-card p-1">
+                                {prompts.filter((prompt) => {
+                                  const needle = input.slice(1).trim().toLowerCase();
+                                  return !needle || prompt.title.toLowerCase().includes(needle) || prompt.content.toLowerCase().includes(needle);
+                                }).map((prompt) => (
+                                  <button
+                                    key={prompt.id}
+                                    type="button"
+                                    className="block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                                    onClick={() => setInput(prompt.content)}
+                                  >
+                                    {prompt.title}
+                                  </button>
+                                ))}
+                                {prompts.length === 0 && (
+                                  <p className="px-3 py-2 text-xs text-muted-foreground">Шаблонов нет. Напишите текст и выберите «Сохранить шаблон» в меню чата.</p>
+                                )}
+                              </div>
+                            )}
+                            {referenceOpen && (
+                              <div className="mb-2 max-h-40 overflow-y-auto rounded-2xl border border-border bg-card p-1">
+                                {availableChats.filter((chat) => chat.id !== currentChat?.id).map((chat) => (
+                                  <button
+                                    key={chat.id}
+                                    type="button"
+                                    className="block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                                    onClick={() => {
+                                      void insertReferencedChat(chat);
+                                      setReferenceOpen(false);
+                                    }}
+                                  >
+                                    {chat.title || 'Чат'}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             <div
                               className={celestia.chatComposer}
                               onDragOver={(e) => {
@@ -2300,6 +2594,20 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     </button>
                                   </>
                                 )}
+                                <button
+                                  type="button"
+                                  aria-label={listening ? 'Остановить диктовку' : 'Диктовка'}
+                                  title={listening ? 'Остановить диктовку' : 'Диктовка'}
+                                  aria-pressed={listening}
+                                  disabled={loading || !isServerReady || isStreaming || Boolean(currentChat?.contextLimit)}
+                                  onClick={toggleDictation}
+                                  className={cn(
+                                    'shrink-0 h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40',
+                                    listening && 'bg-red-500/15 text-red-600'
+                                  )}
+                                >
+                                  <MicIcon />
+                                </button>
                                 <textarea
                                     id="agent-lab-prompt"
                                     name="prompt"
@@ -2340,7 +2648,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 ) : (
                                   <button
                                       type="button"
-                                      onClick={handleSendMessage}
+                                      onClick={() => void handleSendMessage()}
                                       disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || Boolean(currentChat?.contextLimit)}
                                       aria-label="Отправить"
                                       className={celestia.sendButton}
