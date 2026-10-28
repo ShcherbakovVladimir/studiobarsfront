@@ -8,7 +8,7 @@ const variantClasses = {
   warning: 'bg-amber-600 hover:bg-amber-500 text-white',
   emerald: 'bg-emerald-600 hover:bg-emerald-500 text-white',
   purple: 'btn-gradient',
-  indigo: 'bg-[#ea4b71] hover:bg-[#d63f64] text-white',
+  indigo: 'bg-[#0f766e] hover:bg-[#115e59] text-white',
   orange: 'bg-orange-600 hover:bg-orange-500 text-white',
   neutral: 'glass-input hover:bg-accent text-foreground',
 } as const;

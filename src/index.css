@@ -9,9 +9,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ============================================================
-   Product UI aligned with n8n brand / DS3 (2026)
-   Signature pink #FF91AC, cool neutrals, 8px radius grid.
-   Brand refs: guidelines.n8n.design — Baumer → Figtree fallback.
+   Product UI: flat DS3 layout, cool neutrals, teal accent.
    ============================================================ */
 
 :root {
@@ -22,31 +20,31 @@
   --card-foreground: #191919;
   --popover: #ffffff;
   --popover-foreground: #191919;
-  --primary: #ff91ac;
-  --primary-foreground: #191919;
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
   --secondary: #f1f1f1;
   --secondary-foreground: #191919;
   --muted: #f1f1f1;
   --muted-foreground: #676767;
-  --accent: #ffe8ec;
-  --accent-foreground: #191919;
-  --destructive: #ea4b71;
+  --accent: #e6f7f5;
+  --accent-foreground: #134e4a;
+  --destructive: #dc2626;
   --border: #e0e0e0;
   --input: #eaeaea;
-  --ring: #ff91ac;
-  --chart-1: #ff91ac;
-  --chart-2: #ea4b71;
+  --ring: #0d9488;
+  --chart-1: #0d9488;
+  --chart-2: #0f766e;
   --chart-3: #a4a4a4;
-  --chart-4: #ffb080;
+  --chart-4: #f59e0b;
   --chart-5: #676767;
   --sidebar: #ffffff;
   --sidebar-foreground: #191919;
-  --sidebar-primary: #ff91ac;
-  --sidebar-primary-foreground: #191919;
-  --sidebar-accent: #ffe8ec;
-  --sidebar-accent-foreground: #191919;
+  --sidebar-primary: #0d9488;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6f7f5;
+  --sidebar-accent-foreground: #134e4a;
   --sidebar-border: #eaeaea;
-  --sidebar-ring: #ff91ac;
+  --sidebar-ring: #0d9488;
   --canvas-dot: #d6d6d6;
 
   --radius: 0.5rem;
@@ -60,31 +58,31 @@
   --card-foreground: #fafafa;
   --popover: #242424;
   --popover-foreground: #fafafa;
-  --primary: #ff91ac;
-  --primary-foreground: #191919;
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
   --secondary: #353535;
   --secondary-foreground: #fafafa;
   --muted: #2e2e2e;
   --muted-foreground: #a4a4a4;
-  --accent: #3a1a28;
-  --accent-foreground: #ffe8ec;
-  --destructive: #f85d82;
+  --accent: #134e4a;
+  --accent-foreground: #ccfbf1;
+  --destructive: #f87171;
   --border: rgb(255 255 255 / 12%);
   --input: rgb(255 255 255 / 14%);
-  --ring: #ff91ac;
-  --chart-1: #ff91ac;
-  --chart-2: #f85d82;
+  --ring: #2dd4bf;
+  --chart-1: #2dd4bf;
+  --chart-2: #14b8a6;
   --chart-3: #a4a4a4;
-  --chart-4: #ffb080;
+  --chart-4: #fbbf24;
   --chart-5: #bfbfbf;
   --sidebar: #1f1f1f;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #ff91ac;
-  --sidebar-primary-foreground: #191919;
-  --sidebar-accent: #3a1a28;
-  --sidebar-accent-foreground: #ffe8ec;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #042f2e;
+  --sidebar-accent: #134e4a;
+  --sidebar-accent-foreground: #ccfbf1;
   --sidebar-border: rgb(255 255 255 / 10%);
-  --sidebar-ring: #ff91ac;
+  --sidebar-ring: #2dd4bf;
   --canvas-dot: #353535;
 }
 
@@ -297,18 +295,18 @@ h1,
   max-width: min(85%, 40rem);
   padding: 0.5rem 0.875rem;
   border-radius: 0.5rem;
-  background: #ffe8ec;
-  color: var(--foreground);
+  background: var(--accent);
+  color: var(--accent-foreground);
   font-size: 0.875rem;
   line-height: 1.5;
   box-shadow: none;
-  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
 }
 
 .dark .chat-msg-user {
-  background: #3a1a28;
-  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
-  color: var(--foreground);
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  color: var(--accent-foreground);
 }
 
 .chat-msg-ai {
@@ -443,7 +441,7 @@ h1,
   align-items: center;
   justify-content: center;
   background: var(--primary);
-  border: 1px solid color-mix(in srgb, var(--primary) 80%, #ea4b71);
+  border: 1px solid color-mix(in srgb, var(--primary) 85%, #0f766e);
   color: var(--primary-foreground);
   border-radius: var(--radius);
   font-weight: 500;
@@ -451,13 +449,22 @@ h1,
 }
 
 .btn-gradient:hover:not(:disabled) {
-  background: #ff7a9c;
-  border-color: #ea4b71;
+  background: #0f766e;
+  border-color: #0f766e;
   box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
+.dark .btn-gradient:hover:not(:disabled) {
+  background: #14b8a6;
+  border-color: #14b8a6;
+}
+
 .btn-gradient:active:not(:disabled) {
-  background: #f06a8f;
+  background: #115e59;
+}
+
+.dark .btn-gradient:active:not(:disabled) {
+  background: #0d9488;
 }
 
 .text-gradient {

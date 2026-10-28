@@ -1,4 +1,4 @@
-/** Product surfaces aligned with n8n DS3 (flat panels, 8px radius, pink accent). */
+/** Product surfaces: flat DS3 panels, 8px radius, teal accent. */
 export const celestia = {
   page: 'min-h-dvh text-foreground font-sans',
   glassPanel: 'glass-panel rounded-lg',
