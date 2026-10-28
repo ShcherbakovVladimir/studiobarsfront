@@ -1,9 +1,14 @@
-// /home/user/projects/studioxlam/src/store/appSlice.ts
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import { ViewMode } from '../types';
 import type { AppState, HardwareStats, ServiceHealth, ServerStatus } from '../types';
-import { resolveInitialTheme, saveTheme } from '../lib/theme';
+import {
+  applyHighContrast,
+  loadHighContrast,
+  resolveInitialTheme,
+  saveHighContrast,
+  saveTheme,
+} from '../lib/theme';
 import {
   applyPalette,
   DEFAULT_PALETTE,
@@ -12,11 +17,22 @@ import {
   savePalette,
   type PaletteId,
 } from '../lib/palettes';
+import {
+  applyFontPairing,
+  DEFAULT_FONT_PAIRING,
+  ensureFontStylesheet,
+  isFontPairingId,
+  loadSavedFontPairing,
+  saveFontPairing,
+  type FontPairingId,
+} from '../lib/fonts';
 
 const initialState: AppState = {
   viewMode: ViewMode.CATALOG,
   isDarkMode: resolveInitialTheme(),
   paletteId: loadSavedPalette(),
+  fontPairingId: loadSavedFontPairing(),
+  highContrast: loadHighContrast(),
   hardwareStats: {
     cpu: 15,
     gpu: 42,
@@ -24,7 +40,7 @@ const initialState: AppState = {
     temperature: 0,
     gpuMemory: 0,
     disk: 0,
-    lastUpdated: ''
+    lastUpdated: '',
   },
   serverStatus: {
     status: 'checking',
@@ -32,7 +48,7 @@ const initialState: AppState = {
     activeModel: null,
     modelLoaded: false,
     timestamp: '',
-    sessions: 0
+    sessions: 0,
   },
   health: {
     api: 'checking',
@@ -40,7 +56,7 @@ const initialState: AppState = {
     activeModel: null,
     llamaServerHealthy: false,
     modelOperation: null,
-  }
+  },
 };
 
 const appSlice = createSlice({
@@ -64,11 +80,23 @@ const appSlice = createSlice({
       savePalette(id);
       applyPalette(id, state.isDarkMode);
     },
+    setFontPairing: (state, action: PayloadAction<FontPairingId>) => {
+      const id = isFontPairingId(action.payload) ? action.payload : DEFAULT_FONT_PAIRING;
+      state.fontPairingId = id;
+      saveFontPairing(id);
+      ensureFontStylesheet(id);
+      applyFontPairing(id);
+    },
+    setHighContrast: (state, action: PayloadAction<boolean>) => {
+      state.highContrast = action.payload;
+      saveHighContrast(action.payload);
+      applyHighContrast(action.payload);
+    },
     updateHardwareStats: (state, action: PayloadAction<HardwareStats>) => {
       state.hardwareStats = {
         ...state.hardwareStats,
         ...action.payload,
-        lastUpdated: action.payload.lastUpdated || new Date().toLocaleTimeString()
+        lastUpdated: action.payload.lastUpdated || new Date().toLocaleTimeString(),
       };
     },
     setServerStatus: (state, action: PayloadAction<ServerStatus>) => {
@@ -81,7 +109,7 @@ const appSlice = createSlice({
       state.health.modelOperation = action.payload;
       if (action.payload === 'load' || action.payload === 'swap') state.health.model = 'loading';
     },
-  }
+  },
 });
 
 export const {
@@ -89,6 +117,8 @@ export const {
   toggleTheme,
   setTheme,
   setPalette,
+  setFontPairing,
+  setHighContrast,
   updateHardwareStats,
   setServerStatus,
   updateHealth,

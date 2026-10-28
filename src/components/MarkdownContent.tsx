@@ -202,7 +202,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
           },
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-primary bg-accent/50 dark:bg-accent pl-4 py-2 my-3 rounded-r-lg">
+              <blockquote className="border border-border bg-muted/40 px-4 py-2 my-3 rounded-lg">
                 <div className="text-foreground/80 italic">{children}</div>
               </blockquote>
             );

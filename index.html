@@ -2,26 +2,85 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Barsseek</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link id="studio-font-boot" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
-      try {
-        var t = localStorage.getItem('__STUDIOXLAM_THEME__');
-        var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        if (dark) document.documentElement.classList.add('dark');
-        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-        var p = localStorage.getItem('__STUDIOXLAM_PALETTE__') || 'teal';
-        document.documentElement.setAttribute('data-palette', p);
-      } catch (e) {}
+      (function () {
+        try {
+          var root = document.documentElement;
+          var theme = localStorage.getItem('studio_theme') || localStorage.getItem('__STUDIOXLAM_THEME__');
+          var dark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+
+          var palette = localStorage.getItem('studio_palette') || localStorage.getItem('__STUDIOXLAM_PALETTE__') || 'teal';
+          root.setAttribute('data-palette', palette);
+
+          var palettes = {
+            teal: ['#0d9488','#ffffff','#e6f7f5','#134e4a','#0d9488','#2dd4bf','#042f2e','#134e4a','#ccfbf1','#2dd4bf'],
+            ocean: ['#0284c7','#ffffff','#e0f2fe','#0c4a6e','#0284c7','#38bdf8','#082f49','#0c4a6e','#e0f2fe','#38bdf8'],
+            forest: ['#16a34a','#ffffff','#dcfce7','#14532d','#16a34a','#4ade80','#052e16','#14532d','#dcfce7','#4ade80'],
+            amber: ['#d97706','#ffffff','#fef3c7','#78350f','#d97706','#fbbf24','#451a03','#78350f','#fef3c7','#fbbf24'],
+            slate: ['#475569','#ffffff','#e2e8f0','#1e293b','#475569','#94a3b8','#0f172a','#1e293b','#e2e8f0','#94a3b8'],
+            coral: ['#ea580c','#ffffff','#ffedd5','#7c2d12','#ea580c','#fb923c','#431407','#7c2d12','#ffedd5','#fb923c'],
+            indigo: ['#4f46e5','#ffffff','#e0e7ff','#312e81','#4f46e5','#818cf8','#1e1b4b','#312e81','#e0e7ff','#818cf8'],
+            lime: ['#65a30d','#ffffff','#ecfccb','#365314','#65a30d','#a3e635','#1a2e05','#365314','#ecfccb','#a3e635'],
+            copper: ['#c2410c','#ffffff','#ffedd5','#7c2d12','#c2410c','#fb923c','#431407','#7c2d12','#ffedd5','#fb923c'],
+            steel: ['#0e7490','#ffffff','#cffafe','#164e63','#0e7490','#22d3ee','#083344','#164e63','#cffafe','#22d3ee'],
+            deepseek: ['#4d6bfe','#ffffff','#eef1ff','#1e2a6b','#4d6bfe','#6b85ff','#0b1240','#1a2258','#eef1ff','#6b85ff'],
+            grok: ['#1a1a1a','#fafafa','#f4f4f5','#18181b','#3f3f46','#e5e5e5','#0a0a0a','#27272a','#fafafa','#a1a1aa'],
+            gpt: ['#10a37f','#ffffff','#e7f8f3','#0a3d32','#10a37f','#2ee6b3','#042f26','#0a3d32','#e7f8f3','#2ee6b3'],
+            cursor: ['#f54e00','#ffffff','#fff1eb','#5c1f00','#f54e00','#ff6624','#2a0e00','#3d1600','#fff1eb','#ff6624']
+          };
+          var p = palettes[palette] || palettes.teal;
+          var i = dark ? 5 : 0;
+          root.style.setProperty('--primary', p[i]);
+          root.style.setProperty('--primary-foreground', p[i + 1]);
+          root.style.setProperty('--accent', p[dark ? 7 : 2]);
+          root.style.setProperty('--accent-foreground', p[dark ? 8 : 3]);
+          root.style.setProperty('--ring', p[dark ? 9 : 4]);
+          root.style.setProperty('--sidebar-primary', p[i]);
+          root.style.setProperty('--sidebar-accent', p[dark ? 7 : 2]);
+          root.style.setProperty('--sidebar-ring', p[dark ? 9 : 4]);
+
+          var fonts = {
+            bricolage: ['"Bricolage Grotesque", system-ui, sans-serif', '"Manrope", system-ui, sans-serif', '"JetBrains Mono", ui-monospace, monospace'],
+            outfit: ['"Outfit", system-ui, sans-serif', '"Plus Jakarta Sans", system-ui, sans-serif', '"JetBrains Mono", ui-monospace, monospace'],
+            urbanist: ['"Urbanist", system-ui, sans-serif', '"DM Sans", system-ui, sans-serif', '"JetBrains Mono", ui-monospace, monospace'],
+            manrope: ['"Manrope", system-ui, sans-serif', '"Manrope", system-ui, sans-serif', '"JetBrains Mono", ui-monospace, monospace'],
+            fraunces: ['"Fraunces", Georgia, serif', '"DM Sans", system-ui, sans-serif', '"JetBrains Mono", ui-monospace, monospace'],
+            archivo: ['"Archivo", system-ui, sans-serif', '"Archivo", system-ui, sans-serif', '"IBM Plex Mono", ui-monospace, monospace']
+          };
+          var fontId = localStorage.getItem('studio_font_pairing') || localStorage.getItem('__STUDIOXLAM_FONT__') || 'bricolage';
+          var f = fonts[fontId] || fonts.bricolage;
+          root.setAttribute('data-font', fontId);
+          root.style.setProperty('--font-display', f[0]);
+          root.style.setProperty('--font-sans', f[1]);
+          root.style.setProperty('--font-mono', f[2]);
+          root.style.setProperty('--font-serif', f[0]);
+
+          if (localStorage.getItem('studio_high_contrast') === '1') {
+            root.classList.add('high-contrast');
+            root.setAttribute('data-high-contrast', '1');
+          }
+        } catch (e) {}
+      })();
     </script>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-shell" aria-hidden="true">
+        <aside class="boot-sidebar"></aside>
+        <div class="boot-main">
+          <header class="boot-header"></header>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

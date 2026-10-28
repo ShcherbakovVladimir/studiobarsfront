@@ -550,6 +550,9 @@ export interface AppState {
   isDarkMode: boolean;
   /** Accent palette id (see lib/palettes). */
   paletteId: string;
+  /** Font pairing id (see lib/fonts). */
+  fontPairingId: string;
+  highContrast: boolean;
   hardwareStats: HardwareStats;
   serverStatus: ServerStatus;
   health: ServiceHealth;

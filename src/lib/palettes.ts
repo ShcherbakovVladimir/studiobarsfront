@@ -352,41 +352,42 @@ const DARK: Record<PaletteId, AccentTokens> = {
     chart2: '#4d6bfe',
   },
   grok: {
-    primary: '#fafafa',
+    primary: '#e5e5e5',
     primaryForeground: '#0a0a0a',
-    primaryHover: '#e4e4e7',
-    primaryActive: '#d4d4d8',
+    primaryHover: '#f5f5f5',
+    primaryActive: '#d4d4d4',
     accent: '#27272a',
     accentForeground: '#fafafa',
     ring: '#a1a1aa',
-    chart1: '#fafafa',
+    chart1: '#e5e5e5',
     chart2: '#a1a1aa',
   },
   gpt: {
-    primary: '#1fc79a',
+    primary: '#2ee6b3',
     primaryForeground: '#042f26',
     primaryHover: '#10a37f',
     primaryActive: '#0d8c6d',
     accent: '#0a3d32',
     accentForeground: '#e7f8f3',
-    ring: '#1fc79a',
-    chart1: '#1fc79a',
+    ring: '#2ee6b3',
+    chart1: '#2ee6b3',
     chart2: '#10a37f',
   },
   cursor: {
-    primary: '#ff6a2a',
+    primary: '#ff6624',
     primaryForeground: '#2a0e00',
     primaryHover: '#f54e00',
     primaryActive: '#d94300',
     accent: '#3d1600',
     accentForeground: '#fff1eb',
-    ring: '#ff6a2a',
-    chart1: '#ff6a2a',
+    ring: '#ff6624',
+    chart1: '#ff6624',
     chart2: '#f54e00',
   },
 };
 
-const PALETTE_STORAGE_KEY = '__STUDIOXLAM_PALETTE__';
+const PALETTE_STORAGE_KEY = 'studio_palette';
+const PALETTE_STORAGE_LEGACY = '__STUDIOXLAM_PALETTE__';
 
 export function isPaletteId(value: unknown): value is PaletteId {
   return typeof value === 'string' && (PALETTE_IDS as readonly string[]).includes(value);
@@ -394,7 +395,7 @@ export function isPaletteId(value: unknown): value is PaletteId {
 
 export function loadSavedPalette(): PaletteId {
   try {
-    const raw = localStorage.getItem(PALETTE_STORAGE_KEY);
+    const raw = localStorage.getItem(PALETTE_STORAGE_KEY) ?? localStorage.getItem(PALETTE_STORAGE_LEGACY);
     if (isPaletteId(raw)) return raw;
   } catch {
     /* ignore */
@@ -405,6 +406,7 @@ export function loadSavedPalette(): PaletteId {
 export function savePalette(id: PaletteId): void {
   try {
     localStorage.setItem(PALETTE_STORAGE_KEY, id);
+    localStorage.setItem(PALETTE_STORAGE_LEGACY, id);
   } catch {
     /* ignore */
   }

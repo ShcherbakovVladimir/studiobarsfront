@@ -15,6 +15,7 @@ import { PanelCard } from '../components/ui/panel-card';
 import ApiKeysPanel from '../components/ApiKeysPanel';
 import { SecondFactorPanel, ShortcutsPanel, WebhooksPanel } from '../components/account/AccountDeskPanel';
 import { PalettePicker } from '../components/PalettePicker';
+import { FontPairingPicker } from '../components/FontPairingPicker';
 
 type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys' | 'security' | 'shortcuts' | 'webhooks';
 
@@ -133,8 +134,9 @@ const ProfilePage = () => {
             </Link>
           </div>
 
-          <PanelCard className="p-4 mb-6">
+          <PanelCard className="p-4 mb-6 space-y-6">
             <PalettePicker />
+            <FontPairingPicker />
           </PanelCard>
 
           <div className="flex gap-2 mb-6 border-b border-border pb-2 flex-wrap">

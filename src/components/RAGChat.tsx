@@ -340,7 +340,7 @@ const RAGSourcesList = ({
             key={`${source.source}-${source.similarity ?? 0}`}
             type="button"
             onClick={() => onOpenDocument?.(source.source)}
-            className="text-xs px-2 py-1 rounded-full bg-accent dark:bg-accent text-foreground dark:text-muted-foreground hover:underline"
+            className="text-xs meta-text hover:underline"
             title={source.similarity != null ? `Релевантность ${Math.round(source.similarity * 100)}%` : undefined}
           >
             {source.source}
@@ -407,10 +407,10 @@ const ThinkBlockDisplay = ({ thinkBlocks }: { thinkBlocks: string[] }) => {
       </button>
       
       {isExpanded && (
-        <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border-l-4 border-purple-500">
-          <div className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-2">🧠 Рассуждения модели:</div>
+        <div className="mt-2 cot-block">
+          <div className="text-xs font-medium text-foreground mb-2">Рассуждения модели</div>
           {thinkBlocks.map((block, idx) => (
-            <div key={idx} className="text-xs text-muted-foreground whitespace-pre-wrap">
+            <div key={idx} className="text-xs text-muted-foreground whitespace-pre-wrap font-mono">
               {block}
             </div>
           ))}
@@ -597,7 +597,7 @@ const FormattedMessageBase: React.FC<{
           
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-primary bg-accent/50 dark:bg-accent pl-4 py-2 my-3 rounded-r-lg">
+              <blockquote className="border border-border bg-accent/50 dark:bg-accent pl-4 py-2 my-3 rounded-r-lg">
                 <div className="text-foreground/80 italic">{children}</div>
               </blockquote>
             );
@@ -2036,10 +2036,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               "Покажи мне из файлов данные о посещаемости"
             </p>
             <div className="mt-4 flex gap-2">
-              <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'llm' ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}>
+              <span className={`text-xs meta-text ${searchMode === 'llm' ? 'text-primary' : 'text-muted-foreground'}`}>
                 🤖 LLM режим
               </span>
-              <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'direct' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-accent text-muted-foreground'}`}>
+              <span className={`text-xs meta-text ${searchMode === 'direct' ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                 💾 Direct режим
               </span>
             </div>
@@ -2231,7 +2231,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             {(compareMode ? compareDocumentSources : selectedDocumentSources).map((source) => (
               <span
                 key={source}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-accent dark:bg-accent text-foreground dark:text-muted-foreground"
+                className="inline-flex items-center gap-1 text-[11px] meta-text"
               >
                 📄 {source.length > 24 ? `${source.slice(0, 24)}…` : source}
                 <button

@@ -22,7 +22,7 @@ export function MenuPopover({
   className,
   minWidth = 176,
   matchTriggerWidth = true,
-  zIndex = 80,
+  zIndex = 60,
   align = 'start',
 }: MenuPopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null);

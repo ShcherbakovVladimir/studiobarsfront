@@ -360,15 +360,14 @@ const FormattedMessageBase: React.FC<{
     return (
     <div className={hasThinking ? 'space-y-3' : undefined}>
       {hasThinking && (
-        <details className="text-sm" open={isStreaming && !isThinkingComplete}>
-          <summary className="cursor-pointer list-none flex items-center gap-2 text-purple-700 dark:text-purple-300 font-medium">
-            <span>🧠</span>
+        <details className="cot-block" open={isStreaming && !isThinkingComplete}>
+          <summary className="list-none flex items-center gap-2">
             <span>Размышление</span>
             {isStreaming && !isThinkingComplete && (
-              <span className="text-xs text-purple-500 animate-pulse">пишется...</span>
+              <span className="text-xs text-muted-foreground animate-pulse">пишется…</span>
             )}
           </summary>
-          <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 rounded-lg text-purple-900 dark:text-purple-100 text-sm italic whitespace-pre-wrap break-words">
+          <div className="mt-2 whitespace-pre-wrap break-words">
             {thinkingContent}
             {isStreaming && !isThinkingComplete && (
               <span className="inline-block w-2 h-4 ml-0.5 bg-primary animate-pulse align-middle" />

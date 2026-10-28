@@ -13,18 +13,19 @@ type PillVariant =
   | 'green'
   | 'blue';
 
-const pillClasses: Record<PillVariant, string> = {
-  success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  error: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  info: 'bg-accent text-foreground',
-  neutral: 'bg-muted text-muted-foreground',
-  purple: 'bg-accent text-foreground',
-  teal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-  indigo: 'bg-accent text-foreground',
-  amber: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  blue: 'bg-accent text-foreground',
+/** Anti-slop: metadata as plain text, not colored capsules. */
+const textTone: Record<PillVariant, string> = {
+  success: 'text-emerald-700 dark:text-emerald-400',
+  error: 'text-red-700 dark:text-red-400',
+  warning: 'text-amber-700 dark:text-amber-400',
+  info: 'text-foreground',
+  neutral: 'text-muted-foreground',
+  purple: 'text-foreground',
+  teal: 'text-primary',
+  indigo: 'text-foreground',
+  amber: 'text-amber-700 dark:text-amber-400',
+  green: 'text-emerald-700 dark:text-emerald-400',
+  blue: 'text-foreground',
 };
 
 const dotClasses: Record<PillVariant, string> = {
@@ -34,20 +35,11 @@ const dotClasses: Record<PillVariant, string> = {
   info: 'bg-primary',
   neutral: 'bg-muted-foreground',
   purple: 'bg-primary',
-  teal: 'bg-teal-500',
+  teal: 'bg-primary',
   indigo: 'bg-primary',
   amber: 'bg-amber-500',
   green: 'bg-green-500',
   blue: 'bg-primary',
-};
-
-const borderedPillClasses: Record<'success' | 'error' | 'warning', string> = {
-  success:
-    'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800',
-  error:
-    'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
-  warning:
-    'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800',
 };
 
 interface StatusPillProps {
@@ -64,19 +56,14 @@ export function StatusPill({
   children,
   dot = false,
   pulse = false,
-  bordered = false,
+  bordered: _bordered = false,
   className,
 }: StatusPillProps) {
-  const borderedVariant =
-    variant === 'success' || variant === 'error' || variant === 'warning' ? variant : null;
-
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 text-xs font-medium rounded-full whitespace-nowrap',
-        bordered && borderedVariant
-          ? cn('px-2.5 py-1 border', borderedPillClasses[borderedVariant])
-          : cn('px-2 py-0.5', pillClasses[variant]),
+        'inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap meta-text',
+        textTone[variant],
         className
       )}
     >
@@ -109,7 +96,7 @@ const connectionConfig: Record<
 export function ConnectionStatusPill({ status }: { status: ConnectionStatus }) {
   const config = connectionConfig[status];
   return (
-    <StatusPill variant={config.variant} dot bordered pulse={config.pulse}>
+    <StatusPill variant={config.variant} dot pulse={config.pulse}>
       {config.label}
     </StatusPill>
   );
