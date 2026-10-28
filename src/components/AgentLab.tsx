@@ -51,6 +51,7 @@ import { IconButton } from './ui/icon-button';
 import { celestia } from '../lib/celestia';
 import { cn } from '../lib/utils';
 import { MenuPopover } from './ui/menu-popover';
+import { ReasoningEffortMenu } from './chat/ReasoningEffortMenu';
 import { isWorkspaceOverlay, WORKSPACE_PHONE_MQ } from '../utils/workspaceLayout';
 import { formatLoadedModelLabel, isQwenThinkingModel } from '../utils/modelDisplay';
 import { contextLimitUsageLabel, isContextLimitError, type ContextLimitNotice } from '../utils/contextLimit';
@@ -2305,27 +2306,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           Coding
                         </button>
                       </div>
-                      <label className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <span className="sr-only">Усилие рассуждений</span>
-                        <select
-                          aria-label="Усилие рассуждений"
-                          value={reasoningEffort}
-                          onChange={(event) => {
-                            const next = event.target.value as ReasoningEffort;
-                            setReasoningEffort(next);
-                            if (next === 'none' && qwenMode === 'auto') setEnableThinking(false);
-                            else if (next !== 'none' && qwenMode !== 'instruct') setEnableThinking(true);
-                          }}
-                          title="Фразу усилия печатает шаблон модели. Выкл — без рассуждений, как Instruct."
-                          className="h-7 rounded-lg bg-accent px-2 text-xs text-foreground"
-                        >
-                          {REASONING_EFFORTS.map((effort) => (
-                            <option key={effort} value={effort}>
-                              {REASONING_EFFORT_LABELS[effort]}
-                            </option>
-                          ))}
-                        </select>
-                        </label>
+                      <ReasoningEffortMenu
+                        value={reasoningEffort}
+                        onChange={(next) => {
+                          setReasoningEffort(next);
+                          if (next === 'none' && qwenMode === 'auto') setEnableThinking(false);
+                          else if (next !== 'none' && qwenMode !== 'instruct') setEnableThinking(true);
+                        }}
+                      />
                     </div>
                   )}
                   
