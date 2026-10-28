@@ -238,6 +238,29 @@ export function isRecognitionPending(recognition?: WorkspaceRecognition): boolea
   return recognition.status !== 'ready' && recognition.status !== 'error';
 }
 
+/** Infer RAG source path used by workspace-indexed documents. */
+export function workspaceRagSource(path: string, recognition?: WorkspaceRecognition): string | undefined {
+  if (recognition?.ragSource?.trim()) return recognition.ragSource.trim();
+  const name = path.split('/').pop()?.trim();
+  if (!name) return undefined;
+  return `workspace/${name}`;
+}
+
+/**
+ * DOCX (and similar) are binary on disk — GET /workspace/file has no plain `content`.
+ * Mammoth extracts readable text in the browser for preview.
+ */
+async function extractOfficeText(path: string): Promise<string | null> {
+  const ext = workspaceFileExtension(path);
+  if (ext !== 'docx' && ext !== 'doc') return null;
+  const blob = await workspaceService.fetchFileBlob(path);
+  const arrayBuffer = await blob.arrayBuffer();
+  const mammoth = await import('mammoth');
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  const text = typeof result?.value === 'string' ? result.value.trim() : '';
+  return text || null;
+}
+
 function readRecognition(raw: unknown): WorkspaceRecognition | undefined {
   const row = asRecord(raw);
   if (!row) return undefined;
@@ -560,7 +583,7 @@ export const workspaceService = {
     const data = await api<UnknownRecord>(`/workspace/file?${fileQuery(path)}`);
     const file = asRecord(data.file) ?? data;
     const recognitionRow = asRecord(file.recognition ?? data.recognition);
-    const content = [
+    let content = [
       file.content,
       file.text,
       file.markdown,
@@ -570,6 +593,13 @@ export const workspaceService = {
       recognitionRow?.text,
       recognitionRow?.markdown,
     ].find((value) => typeof value === 'string');
+
+    // Office binary: API often returns null content; extract locally for reading.
+    if (typeof content !== 'string') {
+      const extracted = await extractOfficeText(path).catch(() => null);
+      if (extracted) content = extracted;
+    }
+
     return {
       path: asString(file.path) ?? path,
       content: typeof content === 'string' ? content : null,

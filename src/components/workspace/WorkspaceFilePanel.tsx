@@ -10,6 +10,7 @@ import workspaceService, {
   isRecognitionPending,
   matchWorkspaceImage,
   workspaceFileExtension,
+  workspaceRagSource,
   type WorkspaceEntry,
   type WorkspaceFileContent,
 } from '../../services/workspaceService';
@@ -93,9 +94,11 @@ export function WorkspaceFilePanel({
 
   const recognition = file?.recognition ?? entry?.recognition;
   const workspaceText = file?.content?.trim() ? file.content : '';
-  const indexedSource = !loading && !workspaceText && recognition?.status === 'ready'
-    ? recognition.ragSource
-    : undefined;
+  // Office/PDF: API content is often null; fall back to RAG text when indexed.
+  const indexedSource =
+    !loading && !workspaceText
+      ? workspaceRagSource(path, recognition)
+      : undefined;
   const indexedText = indexedSource && indexed?.source === indexedSource ? indexed.text : null;
   const indexedLoading = Boolean(indexedSource) && indexed?.source !== indexedSource;
   const previewText = workspaceText || indexedText || '';
@@ -314,7 +317,9 @@ export function WorkspaceFilePanel({
             {file?.message ??
               (isRecognitionPending(recognition)
                 ? 'Текст появится, когда закончится распознавание.'
-                : 'Предпросмотр для этого файла недоступен — скачайте его.')}
+                : recognition?.ragSource
+                  ? `Текст для чтения недоступен напрямую (бинарный Office). Поиск — по ragSource «${recognition.ragSource}».`
+                  : 'Предпросмотр для этого файла недоступен — скачайте его. Для .docx текст извлекается локально; если не удалось, откройте через поиск.')}
           </div>
         )}
       </div>
