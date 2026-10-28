@@ -16,7 +16,7 @@ const sectionClasses: Record<MetricTheme, { container: string; title: string; la
   purple: {
     container: 'bg-accent border border-primary/25',
     title: 'text-foreground',
-    label: 'text-[#0f766e]',
+    label: 'text-primary',
   },
   emerald: {
     container: 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700',

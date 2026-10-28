@@ -55,7 +55,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
               type="range" min="0" max="2" step="0.1"
               value={settings.temperature}
               onChange={(e) => handleChange('temperature', parseFloat(e.target.value))}
-              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <p className="text-xs text-muted-foreground mt-1">Контролирует случайность вывода. Выше = креативнее.</p>
           </div>
@@ -78,7 +78,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
               type="range" min="64" max="8192" step="64"
               value={settings.maxTokens}
               onChange={(e) => handleChange('maxTokens', parseInt(e.target.value))}
-              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
               aria-label="Max Tokens"
             />
             <p className="text-xs text-muted-foreground mt-1">Максимальное количество токенов в ответе.</p>
@@ -95,7 +95,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
               type="range" min="0" max="1" step="0.05"
               value={settings.topP}
               onChange={(e) => handleChange('topP', parseFloat(e.target.value))}
-              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <p className="text-xs text-muted-foreground mt-1">Nucleus sampling. Учитывает токены с суммарной вероятностью P.</p>
           </div>
@@ -111,7 +111,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
               type="range" min="0" max="100" step="1"
               value={settings.topK}
               onChange={(e) => handleChange('topK', parseInt(e.target.value))}
-              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <p className="text-xs text-muted-foreground mt-1">Ограничивает выборку K наиболее вероятными токенами.</p>
           </div>
@@ -127,7 +127,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
               type="range" min="1" max="2" step="0.05"
               value={settings.repeatPenalty}
               onChange={(e) => handleChange('repeatPenalty', parseFloat(e.target.value))}
-              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <p className="text-xs text-muted-foreground mt-1">Штраф за повторение токенов.</p>
           </div>

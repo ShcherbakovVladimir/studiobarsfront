@@ -10,14 +10,14 @@ const variantClasses: Record<AlertVariant, string> = {
   warning:
     'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200',
   info:
-    'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+    'bg-accent dark:bg-accent border-primary/25 dark:border-primary/30 text-primary dark:text-primary',
 };
 
 const dismissClasses: Record<AlertVariant, string> = {
   error: 'text-red-500 hover:text-red-700 dark:hover:text-red-300',
   success: 'text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300',
   warning: 'text-amber-500 hover:text-amber-700 dark:hover:text-amber-300',
-  info: 'text-primary hover:text-blue-700 dark:hover:text-blue-300',
+  info: 'text-primary hover:text-primary dark:hover:text-primary',
 };
 
 interface AlertBannerProps {

@@ -157,7 +157,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
           href={href}
           target={isExternal ? '_blank' : '_self'}
           rel={isExternal ? 'noopener noreferrer' : undefined}
-          className="text-primary hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+          className="text-primary hover:underline hover:text-primary dark:hover:text-primary transition-colors"
         >
           {children}
           {isExternal && (
@@ -191,7 +191,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
 
     blockquote({ children }) {
       return (
-        <blockquote className="border-l-4 border-primary bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
+        <blockquote className="border-l-4 border-primary bg-accent/50 dark:bg-accent pl-4 py-2 my-3 rounded-r-lg">
           <div className="text-foreground/80 italic">{children}</div>
         </blockquote>
       );
@@ -218,7 +218,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
     },
 
     h3({ children }) {
-      return <h3 className="text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300">{children}</h3>;
+      return <h3 className="text-lg font-bold my-2.5 text-primary dark:text-primary">{children}</h3>;
     },
 
     h4({ children }) {
@@ -238,7 +238,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
     },
 
     strong({ children }) {
-      return <strong className="font-bold text-blue-700 dark:text-blue-300">{children}</strong>;
+      return <strong className="font-bold text-primary dark:text-primary">{children}</strong>;
     },
 
     em({ children }) {
@@ -261,7 +261,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
 
     summary({ children }) {
       return (
-        <summary className="font-semibold cursor-pointer text-primary hover:text-blue-700 dark:hover:text-blue-300">
+        <summary className="font-semibold cursor-pointer text-primary hover:text-primary dark:hover:text-primary">
           {children}
         </summary>
       );

@@ -155,7 +155,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
               key={session.sessionId}
               className={`workspace-list-item group relative rounded-lg border transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.99] ${
                 isActive
-                  ? 'border-primary bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
+                  ? 'border-primary bg-accent ring-1 ring-primary/35 shadow-sm'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
               }`}
               style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}
@@ -185,7 +185,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
                     className="w-full text-left p-3 pr-16"
                   >
                     <div
-                      className={`text-sm truncate ${isActive ? 'font-semibold text-blue-700 dark:text-blue-300' : 'font-medium'}`}
+                      className={`text-sm truncate ${isActive ? 'font-semibold text-primary' : 'font-medium'}`}
                       title={session.title}
                     >
                       {session.title || 'Без названия'}

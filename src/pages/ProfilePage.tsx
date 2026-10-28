@@ -14,6 +14,7 @@ import { InlineError, InlineSuccess } from '../components/ui/alert-banner';
 import { PanelCard } from '../components/ui/panel-card';
 import ApiKeysPanel from '../components/ApiKeysPanel';
 import { SecondFactorPanel, ShortcutsPanel, WebhooksPanel } from '../components/account/AccountDeskPanel';
+import { PalettePicker } from '../components/PalettePicker';
 
 type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys' | 'security' | 'shortcuts' | 'webhooks';
 
@@ -132,7 +133,11 @@ const ProfilePage: React.FC = () => {
             </Link>
           </div>
 
-          <div className="flex gap-2 mb-6 border-b border-border pb-2">
+          <PanelCard className="p-4 mb-6">
+            <PalettePicker />
+          </PanelCard>
+
+          <div className="flex gap-2 mb-6 border-b border-border pb-2 flex-wrap">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -140,7 +145,7 @@ const ProfilePage: React.FC = () => {
                 onClick={() => handleTabChange(t.id)}
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   visibleTab === t.id
-                    ? 'bg-blue-600 text-white'
+                    ? 'btn-gradient'
                     : 'text-muted-foreground hover:bg-accent/70'
                 }`}
               >

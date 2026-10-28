@@ -553,7 +553,7 @@ const FormattedMessageBase: React.FC<{
                 href={href} 
                 target={isExternal ? "_blank" : "_self"}
                 rel={isExternal ? "noopener noreferrer" : undefined}
-                className="text-primary hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors break-words"
+                className="text-primary hover:underline hover:text-primary dark:hover:text-primary transition-colors break-words"
               >
                 {children}
                 {isExternal && (
@@ -597,7 +597,7 @@ const FormattedMessageBase: React.FC<{
           
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-primary bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
+              <blockquote className="border-l-4 border-primary bg-accent/50 dark:bg-accent pl-4 py-2 my-3 rounded-r-lg">
                 <div className="text-foreground/80 italic">{children}</div>
               </blockquote>
             );
@@ -624,7 +624,7 @@ const FormattedMessageBase: React.FC<{
           },
           
           h3({ children }) {
-            return <h3 className="text-lg font-bold my-2.5 text-blue-700 dark:text-blue-300 break-words">{children}</h3>;
+            return <h3 className="text-lg font-bold my-2.5 text-primary dark:text-primary break-words">{children}</h3>;
           },
           
           h4({ children }) {
@@ -640,7 +640,7 @@ const FormattedMessageBase: React.FC<{
           },
           
           strong({ children }) {
-            return <strong className="font-bold text-blue-700 dark:text-blue-300 break-words">{children}</strong>;
+            return <strong className="font-bold text-primary dark:text-primary break-words">{children}</strong>;
           },
           
           em({ children }) {
@@ -2036,7 +2036,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               "Покажи мне из файлов данные о посещаемости"
             </p>
             <div className="mt-4 flex gap-2">
-              <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'llm' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-accent text-muted-foreground'}`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'llm' ? 'bg-accent text-primary' : 'bg-muted text-muted-foreground'}`}>
                 🤖 LLM режим
               </span>
               <span className={`text-xs px-2 py-1 rounded-full ${searchMode === 'direct' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-accent text-muted-foreground'}`}>
@@ -2066,7 +2066,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               {msg.role !== 'user' && Boolean(msg.search_mode || msg.metrics?.qwen_mode) && (
                 <div className="mb-1 flex flex-wrap gap-1">
                 {typeof msg.metrics?.qwen_mode === 'string' && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-primary">
                     {String(msg.metrics.qwen_mode)}
                   </span>
                 )}
@@ -2074,7 +2074,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                     msg.search_mode === 'direct' 
                       ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400'
-                      : 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400'
+                      : 'bg-accent text-primary'
                   }`}>
                     {msg.search_mode === 'direct' ? 'Direct' : 'LLM'}
                   </span>

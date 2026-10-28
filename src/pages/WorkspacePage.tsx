@@ -604,7 +604,7 @@ const WorkspacePage: React.FC = () => {
     <div className="flex h-full min-h-0 overflow-hidden glass-panel text-foreground">
       <aside className="hidden w-72 shrink-0 flex-col border-r border-border/60 lg:flex">
         <div className={cn(celestia.appHeaderBar, 'gap-2')}>
-          <FolderOpen className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+          <FolderOpen className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold">Файлы</span>
         </div>
         {tree}
@@ -670,7 +670,7 @@ const WorkspacePage: React.FC = () => {
           <div className={celestia.chatColumn}>
             {messages.length === 0 ? (
               <div className="mx-auto max-w-xl py-10 text-center">
-                <FolderOpen className="mx-auto mb-3 h-10 w-10 text-sky-600/70 dark:text-sky-400/70" />
+                <FolderOpen className="mx-auto mb-3 h-10 w-10 text-primary/70" />
                 <h2 className="mb-1 text-lg font-semibold">Что сделать с файлами?</h2>
                 <p className="mb-5 text-sm leading-relaxed text-muted-foreground">
                   Модель видит только вашу рабочую папку: читает документы, создаёт и правит текстовые файлы. Замену и

@@ -496,7 +496,7 @@ const RailButton = React.memo(function RailButton({
       className={cn(
         'group relative w-full flex items-center justify-center rounded-lg transition-all duration-200',
         active
-          ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm'
+          ? 'bg-accent text-primary shadow-sm'
           : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground dark:hover:text-foreground'
       )}
       style={{ aspectRatio: '1 / 1' }}

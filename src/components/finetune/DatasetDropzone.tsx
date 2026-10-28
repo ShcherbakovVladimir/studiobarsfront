@@ -113,7 +113,7 @@ const DatasetDropzone: React.FC<DatasetDropzoneProps> = ({
             border-2 border-dashed rounded-lg p-6 transition-all cursor-pointer
             ${isDisabled 
               ? 'border-border bg-card/60 opacity-50 cursor-not-allowed' 
-              : 'border-border hover:border-primary dark:hover:border-primary hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
+              : 'border-border hover:border-primary dark:hover:border-primary hover:bg-accent/50 dark:hover:bg-accent/40'
             }
 `}
           onDrop={handleDrop}

@@ -119,7 +119,7 @@ export function WorkspaceSourcesSection({
           ) : (
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          <FolderOpen className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+          <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
           <span className="truncate">
             Рабочая папка ({searchable.length}){selectedHere > 0 ? ` · выбрано ${selectedHere}` : ''}
           </span>
@@ -173,14 +173,14 @@ export function WorkspaceSourcesSection({
                     className={cn(
                       'flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed',
                       highlightSource === source
-                        ? 'border-primary bg-blue-50 dark:bg-blue-950/30'
+                        ? 'border-primary bg-accent dark:bg-accent'
                         : selected
                           ? 'border-primary/50 bg-primary/10 dark:bg-primary/15'
                           : 'border-transparent hover:bg-accent disabled:hover:bg-transparent'
                     )}
                     title={disabled ? state.label : `${entry.path} → ${source}`}
                   >
-                    <span className="mt-0.5 shrink-0 text-blue-600">
+                    <span className="mt-0.5 shrink-0 text-primary">
                       {state.kind === 'pending' ? (
                         <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                       ) : state.kind === 'error' || state.kind === 'missing' ? (

@@ -262,7 +262,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
                   type="button"
                   disabled={!ready}
                   onClick={() => ready && file.ragSource && toggleSource(file.ragSource)}
-                  className="mt-0.5 shrink-0 text-blue-600 disabled:opacity-30"
+                  className="mt-0.5 shrink-0 text-primary disabled:opacity-30"
                   title={ready ? 'Использовать в запросе' : 'Дождитесь статуса «Готов»'}
                 >
                   {selected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}

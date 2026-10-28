@@ -326,7 +326,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
               key={doc.source}
               className={`rounded-lg border p-3 transition-colors ${
                 highlighted
-                  ? 'border-primary bg-blue-50 dark:bg-blue-950/30'
+                  ? 'border-primary bg-accent dark:bg-accent'
                   : selected
                   ? 'border-primary/50 bg-primary/10 dark:bg-primary/15'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
@@ -336,7 +336,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
                 <button
                   type="button"
                   onClick={() => toggleSource(doc.source)}
-                  className="mt-0.5 shrink-0 text-blue-600"
+                  className="mt-0.5 shrink-0 text-primary"
                   title={selected ? 'Убрать из запроса' : 'Использовать в запросе'}
                 >
                   {selected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}

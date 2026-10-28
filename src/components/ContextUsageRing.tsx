@@ -76,10 +76,10 @@ function buildSegments(usage: ContextUsage): Segment[] {
     (usage.tokensTotal !== null && generated !== null ? usage.tokensTotal - generated : null);
   const promptSegments: Segment[] = hasSplit
     ? [
-        { key: 'cached', label: 'Промпт из кэша слота', value: usage.tokensCached, className: 'bg-sky-500/60' },
-        { key: 'evaluated', label: 'Промпт посчитан заново', value: usage.tokensEvaluated, className: 'bg-sky-500' },
+        { key: 'cached', label: 'Промпт из кэша слота', value: usage.tokensCached, className: 'bg-primary/60' },
+        { key: 'evaluated', label: 'Промпт посчитан заново', value: usage.tokensEvaluated, className: 'bg-primary' },
       ]
-    : [{ key: 'prompt', label: 'Промпт', value: prompt, className: 'bg-sky-500' }];
+    : [{ key: 'prompt', label: 'Промпт', value: prompt, className: 'bg-primary' }];
   return [
     ...promptSegments,
     { key: 'generated', label: 'Ответ модели', value: generated, className: 'bg-emerald-500' },

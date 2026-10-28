@@ -65,7 +65,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
               step="0.1"
               value={safeSettings.temperature}
               onChange={(e) => dispatch(updateSettings({ temperature: parseFloat(e.target.value) }))}
-              className="w-full h-1.5 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-1.5 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
           </div>
           
@@ -85,7 +85,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
               step="128"
               value={safeSettings.maxTokens}
               onChange={(e) => dispatch(updateSettings({ maxTokens: parseInt(e.target.value) }))}
-              className="w-full h-1.5 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-1.5 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
           </div>
         </div>
@@ -114,7 +114,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
             step="0.1"
             value={safeSettings.temperature}
             onChange={(e) => dispatch(updateSettings({ temperature: parseFloat(e.target.value) }))}
-            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Низкая: точнее / Высокая: креативнее
@@ -137,7 +137,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
             step="128"
             value={safeSettings.maxTokens}
             onChange={(e) => dispatch(updateSettings({ maxTokens: parseInt(e.target.value) }))}
-            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Максимальное количество токенов в ответе
@@ -160,7 +160,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
             step="0.05"
             value={safeSettings.topP}
             onChange={(e) => dispatch(updateSettings({ topP: parseFloat(e.target.value) }))}
-            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Выборка из топ вероятностей (1 = отключено)
@@ -183,7 +183,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
             step="0.1"
             value={safeSettings.repeatPenalty}
             onChange={(e) => dispatch(updateSettings({ repeatPenalty: parseFloat(e.target.value) }))}
-            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-blue-500"
+            className="w-full h-2 bg-border dark:bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <p className="text-[10px] text-muted-foreground mt-1">
             Штраф за повторение токенов (1 = нет штрафа)

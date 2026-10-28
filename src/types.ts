@@ -548,6 +548,8 @@ export interface ServiceHealth {
 export interface AppState {
   viewMode: ViewModeType;
   isDarkMode: boolean;
+  /** Accent palette id (see lib/palettes). */
+  paletteId: string;
   hardwareStats: HardwareStats;
   serverStatus: ServerStatus;
   health: ServiceHealth;

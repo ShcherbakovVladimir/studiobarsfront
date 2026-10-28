@@ -35,7 +35,7 @@ function roleLabel(role: string): string {
 function roleBadgeClass(role: string): string {
   switch (role) {
     case 'user':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200';
+      return 'bg-accent text-primary dark:bg-accent dark:text-primary';
     case 'assistant':
       return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200';
     case 'system':

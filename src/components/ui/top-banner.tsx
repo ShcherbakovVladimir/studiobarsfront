@@ -19,9 +19,9 @@ const variantClasses: Record<BannerVariant, { container: string; text: string; a
     action: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50',
   },
   info: {
-    container: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+    container: 'bg-accent dark:bg-accent border-primary/25 dark:border-primary/30',
     text: 'text-primary',
-    action: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/50',
+    action: 'bg-accent dark:bg-accent text-primary dark:text-primary hover:bg-accent dark:hover:bg-accent',
   },
 };
 

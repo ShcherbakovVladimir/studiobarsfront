@@ -37,6 +37,7 @@ import { cn } from '../lib/utils';
 import { celestia } from '../lib/celestia';
 import { StudioLogo } from './brand/StudioLogo';
 import { APP_NAME } from '../constants/brand';
+import { PalettePicker } from './PalettePicker';
 
 interface SidebarProps {
   onRefreshModels?: () => void;
@@ -522,6 +523,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </div>
           )}
+
+          <div className={cn(footerCardClass, 'space-y-1.5')}>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Цвет
+            </p>
+            <PalettePicker variant="compact" />
+          </div>
 
           {user && (
             <div className={cn(footerCardClass, 'space-y-2')}>

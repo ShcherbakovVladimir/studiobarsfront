@@ -4,10 +4,19 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import { ViewMode } from '../types';
 import type { AppState, HardwareStats, ServiceHealth, ServerStatus } from '../types';
 import { resolveInitialTheme, saveTheme } from '../lib/theme';
+import {
+  applyPalette,
+  DEFAULT_PALETTE,
+  isPaletteId,
+  loadSavedPalette,
+  savePalette,
+  type PaletteId,
+} from '../lib/palettes';
 
 const initialState: AppState = {
   viewMode: ViewMode.CATALOG,
   isDarkMode: resolveInitialTheme(),
+  paletteId: loadSavedPalette(),
   hardwareStats: {
     cpu: 15,
     gpu: 42,
@@ -49,6 +58,12 @@ const appSlice = createSlice({
       state.isDarkMode = action.payload;
       saveTheme(state.isDarkMode);
     },
+    setPalette: (state, action: PayloadAction<PaletteId>) => {
+      const id = isPaletteId(action.payload) ? action.payload : DEFAULT_PALETTE;
+      state.paletteId = id;
+      savePalette(id);
+      applyPalette(id, state.isDarkMode);
+    },
     updateHardwareStats: (state, action: PayloadAction<HardwareStats>) => {
       state.hardwareStats = {
         ...state.hardwareStats,
@@ -73,6 +88,7 @@ export const {
   setViewMode,
   toggleTheme,
   setTheme,
+  setPalette,
   updateHardwareStats,
   setServerStatus,
   updateHealth,

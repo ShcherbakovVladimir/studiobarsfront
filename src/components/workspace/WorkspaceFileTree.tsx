@@ -53,7 +53,7 @@ function FileKindIcon({ path }: { path: string }) {
 
 const CHANGE_TONE: Record<string, string> = {
   created: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-  edited: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+  edited: 'bg-primary/15 text-primary dark:text-primary',
   overwritten: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
 };
 
@@ -101,9 +101,9 @@ function TreeRow({ node, depth, expanded, toggle, props }: NodeProps) {
         >
           <ChevronRight className={cn('h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
           {open ? (
-            <FolderOpen className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+            <FolderOpen className="h-4 w-4 shrink-0 text-primary" />
           ) : (
-            <Folder className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
+            <Folder className="h-4 w-4 shrink-0 text-primary" />
           )}
           <span className="min-w-0 flex-1 truncate">{node.name}</span>
           <span className="text-[10px] text-muted-foreground">{node.children.length || ''}</span>

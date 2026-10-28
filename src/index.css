@@ -22,6 +22,8 @@
   --popover-foreground: #191919;
   --primary: #0d9488;
   --primary-foreground: #ffffff;
+  --primary-hover: #0f766e;
+  --primary-active: #115e59;
   --secondary: #f1f1f1;
   --secondary-foreground: #191919;
   --muted: #f1f1f1;
@@ -60,6 +62,8 @@
   --popover-foreground: #fafafa;
   --primary: #2dd4bf;
   --primary-foreground: #042f2e;
+  --primary-hover: #14b8a6;
+  --primary-active: #0d9488;
   --secondary: #353535;
   --secondary-foreground: #fafafa;
   --muted: #2e2e2e;
@@ -441,7 +445,7 @@ h1,
   align-items: center;
   justify-content: center;
   background: var(--primary);
-  border: 1px solid color-mix(in srgb, var(--primary) 85%, #0f766e);
+  border: 1px solid var(--primary-hover);
   color: var(--primary-foreground);
   border-radius: var(--radius);
   font-weight: 500;
@@ -449,22 +453,14 @@ h1,
 }
 
 .btn-gradient:hover:not(:disabled) {
-  background: #0f766e;
-  border-color: #0f766e;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
   box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
-.dark .btn-gradient:hover:not(:disabled) {
-  background: #14b8a6;
-  border-color: #14b8a6;
-}
-
 .btn-gradient:active:not(:disabled) {
-  background: #115e59;
-}
-
-.dark .btn-gradient:active:not(:disabled) {
-  background: #0d9488;
+  background: var(--primary-active);
+  border-color: var(--primary-active);
 }
 
 .text-gradient {

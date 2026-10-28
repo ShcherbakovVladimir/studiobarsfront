@@ -274,7 +274,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
               {gpus.map((gpu) => {
                 const share = gpu.totalGb > 0 ? Math.min(100, (gpu.usedGb / gpu.totalGb) * 100) : 0;
                 return (
-                  <tr key={gpu.key} className="hover:bg-background dark:hover:bg-muted/30 bg-blue-50/50 dark:bg-blue-900/10">
+                  <tr key={gpu.key} className="hover:bg-background dark:hover:bg-muted/30 bg-accent/50 dark:bg-accent/40">
                     <td className="px-6 py-4 font-medium text-foreground">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-primary" />

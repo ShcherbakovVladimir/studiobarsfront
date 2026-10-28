@@ -585,7 +585,7 @@ const FinetuneView: React.FC = () => {
             
             {isRestoring && (
               <div className="animate-in fade-in duration-300">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 md:p-4">
+                <div className="bg-accent dark:bg-accent border border-primary/25 dark:border-primary/30 rounded-lg p-3 md:p-4">
                   <div className="flex items-center gap-3">
                     <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-xs md:text-sm text-primary">

@@ -101,9 +101,9 @@ const TrainingProgress: React.FC<TrainingProgressProps> = ({
             {formatNumber(metrics?.loss)}
           </div>
         </div>
-        <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800/30">
+        <div className="text-center p-2 bg-accent dark:bg-accent/40 rounded-lg border border-primary/20 dark:border-primary/30">
           <div className="text-[9px] text-primary uppercase tracking-wider mb-0.5">LR</div>
-          <div className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300">
+          <div className="text-xs font-mono font-bold text-primary dark:text-primary">
             {formatNumber(metrics?.learningRate, 6)}
           </div>
         </div>

@@ -171,7 +171,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   checked={config.useFlashAttention}
                   onChange={(e) => handleChange('useFlashAttention', e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
+                  className="w-4 h-4 text-primary rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
                 />
               </div>
               
@@ -184,7 +184,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   checked={config.useGradientCheckpointing}
                   onChange={(e) => handleChange('useGradientCheckpointing', e.target.checked)}
                   disabled={isDisabled}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
+                  className="w-4 h-4 text-primary rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
                 />
               </div>
 
@@ -207,7 +207,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                           handleChange('targetModules', newModules);
                         }}
                         disabled={isDisabled}
-                        className="w-3 h-3 text-blue-600 rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
+                        className="w-3 h-3 text-primary rounded focus:ring-ring/40 border-gray-300 dark:border-border dark:bg-muted"
                       />
                       {module}
                     </label>

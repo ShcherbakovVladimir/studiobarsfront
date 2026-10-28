@@ -76,7 +76,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
     }
     if (isLocalOnly) {
       return {
-        color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        color: 'bg-accent dark:bg-accent text-primary dark:text-primary border-primary/25 dark:border-primary/30',
         text: '🌐 Информация',
         badgeColor: 'bg-primary',
         description: 'Оригинальная модель'
@@ -116,7 +116,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
       };
     }
     return {
-      color: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
+      color: 'bg-accent dark:bg-accent text-primary dark:text-primary',
       text: 'Original'
     };
   };

@@ -161,7 +161,7 @@ export function GpuMonitorCard({ gpuKey, gpuIndex, stat }: GpuMonitorCardProps) 
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <div className="p-3 rounded-lg bg-accent dark:bg-accent">
               <div className="flex flex-col items-center text-center">
                 <Activity className="h-5 w-5 mb-1 text-primary" />
                 <div className="text-sm">Загрузка</div>
