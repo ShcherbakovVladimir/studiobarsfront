@@ -945,12 +945,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         chatSyncService.setLastActiveChat(openChat.id);
 
         if (currentModelId) {
-          dispatch(clearHistory(currentModelId));
-          for (const msg of openChat.messages ?? []) {
-            if (msg?.content && msg.role) {
-              dispatch(addMessage({ modelId: currentModelId, message: msg }));
-            }
-          }
+          dispatch(syncHistory({
+            modelId: currentModelId,
+            history: (openChat.messages ?? []).filter((msg) => msg?.role && msg.content),
+          }));
         }
       }
 
@@ -1097,7 +1095,36 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     closeChatListIfMobile();
   }, [currentModelId, systemPrompt, selectedWrapper, dispatch, closeChatListIfMobile]);
 
+  const chatSwitchGenRef = useRef(0);
+
+  const applyOpenedChat = useCallback((nextChat: ChatData) => {
+    const opened: ChatData = {
+      ...nextChat,
+      sessionId: nextChat.sessionId || nextChat.id,
+    };
+    currentChatRef.current = opened;
+    lastSavedMessagesRef.current = JSON.stringify(opened.messages ?? []);
+    stickToBottomRef.current = true;
+    setCurrentChat(opened);
+    setSessionId(opened.id);
+    if (currentModelId) {
+      dispatch(syncHistory({
+        modelId: currentModelId,
+        history: (opened.messages ?? []).filter((msg) => Boolean(msg?.role)),
+      }));
+    }
+    chatSyncService.setLastActiveChat(opened.id);
+    setAvailableChats((prev) => {
+      const index = prev.findIndex((row) => row.id === opened.id);
+      if (index < 0) return prev;
+      const copy = [...prev];
+      copy[index] = { ...copy[index], ...opened, messages: opened.messages ?? [] };
+      return copy;
+    });
+  }, [currentModelId, dispatch]);
+
   const switchToChat = useCallback(async (chat: ChatData) => {
+    const switchGen = ++chatSwitchGenRef.current;
     const outgoing = currentChatRef.current;
     const outgoingMessages = messagesRef.current;
     if (
@@ -1106,36 +1133,34 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       outgoingMessages.length > 0 &&
       !chatSyncService.isDeletedChatId(outgoing.id)
     ) {
-      await chatSyncService.persistChat({
+      // Не ждём sync: на длинных чатах POST /chats/sync блокировал UI (и мог ответить 413).
+      void chatSyncService.persistChat({
         ...outgoing,
         messages: outgoingMessages,
-      }, true);
+      }, false);
     }
 
-    let nextChat = chat;
-    if (!chat.messages?.length) {
-      nextChat = (await chatSyncService.getChatFromServer(chat.id)) ?? chat;
-    }
-    nextChat = {
-      ...nextChat,
-      sessionId: nextChat.id,
-    };
+    const localCached =
+      chat.messages?.length
+        ? chat
+        : chatSyncService.loadChatFromLocal(chat.id);
 
-    currentChatRef.current = nextChat;
-    lastSavedMessagesRef.current = JSON.stringify(nextChat.messages ?? []);
-    stickToBottomRef.current = true;
-    setCurrentChat(nextChat);
-    setSessionId(nextChat.id);
-
-    dispatch(clearHistory(currentModelId));
-    
-    for (const msg of nextChat.messages) {
-      dispatch(addMessage({ modelId: currentModelId, message: msg }));
+    if (localCached?.messages?.length) {
+      applyOpenedChat(localCached);
+      closeChatListIfMobile();
+      void chatSyncService.getChatFromServer(chat.id).then((full) => {
+        if (switchGen !== chatSwitchGenRef.current) return;
+        if (!full || currentChatRef.current?.id !== chat.id) return;
+        applyOpenedChat(full);
+      });
+      return;
     }
-    
-    chatSyncService.setLastActiveChat(nextChat.id);
+
+    const fromServer = await chatSyncService.getChatFromServer(chat.id);
+    if (switchGen !== chatSwitchGenRef.current) return;
+    applyOpenedChat(fromServer ?? { ...chat, sessionId: chat.id, messages: chat.messages ?? [] });
     closeChatListIfMobile();
-  }, [currentModelId, dispatch, closeChatListIfMobile]);
+  }, [applyOpenedChat, closeChatListIfMobile]);
 
   const deleteChat = useCallback(async (chatId: string) => {
     const chatToDelete = availableChats.find(c => c.id === chatId);
@@ -1451,11 +1476,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   useEffect(() => {
     const chat = currentChatRef.current;
     if (!currentModelId || !chat?.messages?.length || messages.length > 0) return;
-    for (const msg of chat.messages) {
-      if (msg?.content && msg.role) {
-        dispatch(addMessage({ modelId: currentModelId, message: msg }));
-      }
-    }
+    dispatch(syncHistory({
+      modelId: currentModelId,
+      history: chat.messages.filter((msg) => Boolean(msg?.role)),
+    }));
   }, [currentModelId, dispatch, messages.length]);
 
   useEffect(() => {

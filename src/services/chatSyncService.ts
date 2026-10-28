@@ -502,6 +502,11 @@ export async function saveChatToServer(chat: ChatData): Promise<boolean> {
       console.warn('CHAT_ID_FOREIGN: not copying chat id', chat.id);
       return false;
     }
+    if (error instanceof ApiError && error.status === 413) {
+      console.warn('chats/sync 413: тело чата слишком большое, оставляем локальную копию', chat.id);
+      if (pendingSyncChat?.id === chat.id) pendingSyncChat = null;
+      return false;
+    }
     console.error('saveChatToServer failed:', getErrorMessage(error));
     return false;
   }
