@@ -41,6 +41,8 @@ const AdminSessionsPage = lazyWithRetry(() => import('./pages/admin/AdminSession
 const AdminInferenceLabPage = lazyWithRetry(() => import('./pages/admin/AdminInferenceLabPage'));
 const AdminHelpPage = lazyWithRetry(() => import('./pages/admin/AdminHelpPage'));
 const AdminChatDeskPage = lazyWithRetry(() => import('./pages/admin/AdminChatDeskPage'));
+const AdminOidcPage = lazyWithRetry(() => import('./pages/admin/AdminOidcPage'));
+const OidcCallbackPage = lazyWithRetry(() => import('./pages/OidcCallbackPage'));
 
 function RouteFallback() {
   return (
@@ -77,6 +79,7 @@ const App: React.FC = () => {
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/auth/oidc" element={<OidcCallbackPage />} />
         <Route element={<AuthGuard />}>
           <Route element={<AppPageLayout />}>
             <Route path="/" element={<Navigate to={appHome} replace />} />
@@ -111,6 +114,7 @@ const App: React.FC = () => {
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="maintenance" element={<AdminMaintenancePage />} />
               <Route path="mail" element={<AdminMailPage />} />
+              <Route path="oidc" element={<AdminOidcPage />} />
               <Route path="backups" element={<AdminBackupsPage />} />
               <Route path="audit" element={<AdminAuditPage />} />
               <Route path="system" element={<AdminSystemPage />} />

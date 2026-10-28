@@ -58,6 +58,7 @@ export interface RuntimeConfig {
     ragEnabled: boolean;
     supportsTools: boolean;
     bitrix24Enabled: boolean;
+    oidcEnabled?: boolean;
     inferenceLabEnabled?: boolean;
     inferenceLabAdminOnly?: boolean;
   };
@@ -219,6 +220,20 @@ export interface AdminMailSettings {
   from?: string;
   enabled?: boolean;
   [key: string]: unknown;
+}
+
+export interface AdminOidcSettings {
+  enabled: boolean;
+  ready?: boolean;
+  issuer: string;
+  clientId: string;
+  clientSecret?: string;
+  scope: string;
+  autoProvision: boolean;
+  clientSecretConfigured?: boolean;
+  callbackUrl?: string;
+  updatedAt?: string | null;
+  source?: string;
 }
 
 export interface AdminReindexStatus {

@@ -22,6 +22,7 @@ import {
   Files,
   BookOpen,
   Megaphone,
+  KeyRound,
 } from 'lucide-react';
 import type { AppDispatch, RootState } from '../../store/store';
 import { toggleTheme } from '../../store/appSlice';
@@ -53,6 +54,7 @@ const NAV_GROUPS: Array<{
       { to: '/admin/settings', label: 'Настройки', icon: Settings },
       { to: '/admin/maintenance', label: 'Техработы', icon: Wrench },
       { to: '/admin/mail', label: 'Почта', icon: Mail },
+      { to: '/admin/oidc', label: 'OIDC', icon: KeyRound },
       { to: '/admin/backups', label: 'Бэкапы', icon: Database },
     ],
   },

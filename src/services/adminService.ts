@@ -6,6 +6,7 @@ import type {
   AdminConversationListParams,
   AdminDashboardData,
   AdminMailSettings,
+  AdminOidcSettings,
   AdminMaintenanceSettings,
   AdminReindexStatus,
   AdminSessionRow,
@@ -139,6 +140,7 @@ function emptyRuntimeConfig(): RuntimeConfig {
       ragEnabled: false,
       supportsTools: false,
       bitrix24Enabled: false,
+      oidcEnabled: false,
       inferenceLabEnabled: false,
       inferenceLabAdminOnly: false,
     },
@@ -194,6 +196,7 @@ function readRuntimeConfig(raw: unknown): RuntimeConfig | null {
       ragEnabled: asBool(features.ragEnabled, base.features.ragEnabled),
       supportsTools: asBool(features.supportsTools, base.features.supportsTools),
       bitrix24Enabled: asBool(features.bitrix24Enabled, base.features.bitrix24Enabled),
+      oidcEnabled: asBool(features.oidcEnabled, base.features.oidcEnabled ?? false),
       inferenceLabEnabled: asBool(features.inferenceLabEnabled, base.features.inferenceLabEnabled ?? false),
       inferenceLabAdminOnly: asBool(features.inferenceLabAdminOnly, base.features.inferenceLabAdminOnly ?? false),
     },
@@ -521,6 +524,21 @@ export const adminService = {
     api<{ success: boolean; message?: string }>(adminPath('/mail/test'), {
       method: 'POST',
       body: JSON.stringify(to ? { to } : {}),
+    }),
+
+  getOidcSettings: () =>
+    api<{ success: boolean; settings: AdminOidcSettings }>(adminPath('/oidc')),
+
+  updateOidcSettings: (settings: Partial<AdminOidcSettings>) =>
+    api<{ success: boolean; settings: AdminOidcSettings }>(adminPath('/oidc'), {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+
+  testOidc: () =>
+    api<{ success: boolean; message?: string; error?: string }>(adminPath('/oidc/test'), {
+      method: 'POST',
+      body: '{}',
     }),
 
   listAuditEvents: async (params?: { limit?: number; offset?: number }) => {

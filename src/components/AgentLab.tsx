@@ -28,6 +28,7 @@ import {
   patchChat,
   rateMessage,
   savePrompts,
+  serverSttDisabled,
   serverVoiceDisabled,
   speakOnServer,
   transcribeBlob,
@@ -1352,7 +1353,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       setListening(false);
       return;
     }
-    if (serverVoiceDisabled() || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    if (serverSttDisabled() || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       startBrowser();
       return;
     }

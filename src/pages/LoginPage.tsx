@@ -34,10 +34,17 @@ const LoginPage: React.FC = () => {
   const [mfaCode, setMfaCode] = useState('');
   const [oidcReady, setOidcReady] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
+  const oidcFromConfig = useSelector(
+    (state: RootState) => Boolean(state.runtimeConfig.config?.features?.oidcEnabled)
+  );
 
   useEffect(() => {
+    if (oidcFromConfig) {
+      setOidcReady(true);
+      return;
+    }
     void oidcStartAvailable().then(setOidcReady);
-  }, []);
+  }, [oidcFromConfig]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +173,7 @@ const LoginPage: React.FC = () => {
           </div>
         )}
         {oidcReady && (
-          <a href={oidcStartUrl()} className={authLinkClass}>
+          <a href={oidcStartUrl()} className={cn(authButtonClass, 'text-center no-underline')}>
             Корпоративный вход
           </a>
         )}

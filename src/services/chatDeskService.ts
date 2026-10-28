@@ -256,12 +256,16 @@ export async function disableSecondFactor(password: string, code: string): Promi
   await api('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ password, code }) });
 }
 
+/** Публичный статус кнопки на логине. Не вызывать `/start` — браузер уйдёт в IdP. */
 export async function oidcStartAvailable(): Promise<boolean> {
   try {
-    await api('/auth/oidc/start');
-    return true;
-  } catch (error) {
-    return !(error instanceof ApiError && (error.code === 'OIDC_DISABLED' || error.status === 404));
+    const base = resolveChatApiBase().replace(/\/$/, '');
+    const res = await fetch(`${base}/auth/oidc`);
+    if (!res.ok) return false;
+    const data = await res.json() as { enabled?: boolean; success?: boolean };
+    return Boolean(data.enabled);
+  } catch {
+    return false;
   }
 }
 
@@ -270,28 +274,40 @@ export function oidcStartUrl(): string {
   return `${base}/auth/oidc/start`;
 }
 
-const VOICE_FLAG = 'studioxlam_voice_server';
+const TTS_FLAG = 'studioxlam_voice_tts_v2';
+const STT_FLAG = 'studioxlam_voice_stt_v2';
 
 export function serverVoiceDisabled(): boolean {
-  return sessionStorage.getItem(VOICE_FLAG) === '0';
+  return sessionStorage.getItem(TTS_FLAG) === '0';
 }
 
-function rememberVoiceFailure(error: unknown): boolean {
-  if (error instanceof ApiError && (error.status === 503 || error.code === 'VOICE_TTS_UNAVAILABLE')) {
-    sessionStorage.setItem(VOICE_FLAG, '0');
-    return true;
+export function serverSttDisabled(): boolean {
+  return sessionStorage.getItem(STT_FLAG) === '0';
+}
+
+function rememberTtsFailure(code?: string): void {
+  if (!code || code === 'VOICE_TTS_UNAVAILABLE') {
+    sessionStorage.setItem(TTS_FLAG, '0');
   }
-  return false;
+}
+
+function rememberSttFailure(error: unknown): void {
+  if (error instanceof ApiError && (error.status === 503 || error.code === 'VOICE_STT_UNAVAILABLE')) {
+    sessionStorage.setItem(STT_FLAG, '0');
+  }
 }
 
 export async function transcribeBlob(blob: Blob): Promise<string> {
+  if (serverSttDisabled()) {
+    throw new ApiError('Распознавание на сервере недоступно', 503, 'VOICE_STT_UNAVAILABLE');
+  }
   const body = new FormData();
   body.append('audio', blob, 'speech.webm');
   try {
     const data = await api<{ text?: string; transcript?: string }>('/voice/transcribe', { method: 'POST', body });
     return data.text || data.transcript || '';
   } catch (error) {
-    rememberVoiceFailure(error);
+    rememberSttFailure(error);
     throw error;
   }
 }
@@ -308,7 +324,14 @@ export async function speakOnServer(text: string): Promise<boolean> {
     body: JSON.stringify({ text: text.slice(0, 4000) }),
   });
   if (res.status === 503) {
-    sessionStorage.setItem(VOICE_FLAG, '0');
+    const raw = await res.text().catch(() => '');
+    let code: string | undefined;
+    try {
+      code = (JSON.parse(raw) as { code?: string }).code;
+    } catch {
+      /* тело не JSON */
+    }
+    rememberTtsFailure(code);
     return false;
   }
   if (!res.ok) {
