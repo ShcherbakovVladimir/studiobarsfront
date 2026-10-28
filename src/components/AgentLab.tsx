@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from
 import { useSelector, useDispatch } from 'react-redux';
 import { ChatMarkdown, StreamingChatMarkdown } from './markdown/ChatMarkdown';
 import { chatSyncService, toChatMessages, type ChatData } from '../services/chatSyncService';
-import agentService, {
+import agentService, { 
   type ModelControlResponse,
   type ChatWrapperInfo,
   type XlamToolDefinition,
@@ -326,7 +326,7 @@ const FormattedMessageBase: React.FC<{
           key={`${image.name}-${index}`}
           src={image.previewUrl}
           alt={image.name || 'Изображение'}
-          className="max-h-40 max-w-[220px] rounded-xl object-cover border border-white/20"
+          className="max-h-40 max-w-[220px] rounded-lg object-cover border border-white/20"
         />
       ))}
     </div>
@@ -356,7 +356,7 @@ const FormattedMessageBase: React.FC<{
   const markdownText = hasThinkingBlock ? answerContent : shown;
   const answerStreaming = isStreaming && (!hasThinking || isThinkingComplete);
 
-  return (
+    return (
     <div className={hasThinking ? 'space-y-3' : undefined}>
       {hasThinking && (
         <details className="text-sm" open={isStreaming && !isThinkingComplete}>
@@ -370,7 +370,7 @@ const FormattedMessageBase: React.FC<{
           <div className="mt-2 p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/50 rounded-lg text-purple-900 dark:text-purple-100 text-sm italic whitespace-pre-wrap break-words">
             {thinkingContent}
             {isStreaming && !isThinkingComplete && (
-              <span className="inline-block w-2 h-4 ml-0.5 bg-purple-500 animate-pulse align-middle" />
+              <span className="inline-block w-2 h-4 ml-0.5 bg-primary animate-pulse align-middle" />
             )}
           </div>
         </details>
@@ -386,11 +386,11 @@ const FormattedMessageBase: React.FC<{
           <p className="text-xs text-muted-foreground italic">Ответ появится после размышления...</p>
         )
       )}
-      {answerStreaming && <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>}
+      {answerStreaming && <span className="inline-block ml-1 animate-pulse text-primary">▊</span>}
       {interrupted && !isStreaming && <InterruptedNote />}
       {!interrupted && !isStreaming && hitMaxTokens ? <MaxTokensNote limit={hitMaxTokens} /> : null}
-    </div>
-  );
+                  </div>
+                );
 };
 
 // Без memo каждый чанк перерисовывает всю историю через ReactMarkdown.
@@ -493,7 +493,7 @@ const RailButton = React.memo(function RailButton({
       aria-label={label}
       onClick={() => onSelect(tool)}
       className={cn(
-        'group relative w-full flex items-center justify-center rounded-xl transition-all duration-200',
+        'group relative w-full flex items-center justify-center rounded-lg transition-all duration-200',
         active
           ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm'
           : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground dark:hover:text-foreground'
@@ -631,7 +631,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       setActiveTool('chat');
     }
   }, [productMode, activeTool, setActiveTool]);
-
+  
   // State
   const [input, setInput] = useState('');
   const [pendingImages, setPendingImages] = useState<Array<{ id: string; file: File; previewUrl: string }>>([]);
@@ -951,8 +951,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
           }));
         }
       }
-
-    isChatLoadedRef.current = true;
+      
+      isChatLoadedRef.current = true;
     } catch (error) {
       console.error('Ошибка восстановления чатов:', error);
       setAvailableChats([]);
@@ -1049,7 +1049,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     const liveMessages = messagesRef.current;
     if (!chat || liveMessages.length === 0) return;
     if (chatSyncService.isDeletedChatId(chat.id)) return;
-
+    
     const messagesSnapshot = JSON.stringify(liveMessages);
     if (messagesSnapshot === lastSavedMessagesRef.current) return;
 
@@ -1109,7 +1109,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     setSessionId(opened.id);
     if (currentModelId) {
       dispatch(syncHistory({
-        modelId: currentModelId,
+      modelId: currentModelId,
         history: (opened.messages ?? []).filter((msg) => Boolean(msg?.role)),
       }));
     }
@@ -1165,14 +1165,14 @@ const AgentLab: React.FC<AgentLabProps> = () => {
   const deleteChat = useCallback(async (chatId: string) => {
     const chatToDelete = availableChats.find(c => c.id === chatId);
     if (!chatToDelete) return;
-
+    
     const wasCurrent = currentChatRef.current?.id === chatId;
     if (wasCurrent) {
       currentChatRef.current = null;
     }
 
     try {
-      await chatSyncService.deleteChat(chatId);
+    await chatSyncService.deleteChat(chatId);
     } catch (error) {
       showErrorToast(error instanceof Error ? error.message : 'Не удалось удалить чат');
       return;
@@ -1487,11 +1487,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     if (!currentChatRef.current || messages.length === 0 || !isChatLoadedRef.current) {
       return;
     }
-    const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
       void saveCurrentChat();
     }, 0);
-
-    return () => clearTimeout(timeoutId);
+      
+      return () => clearTimeout(timeoutId);
   }, [messages, saveCurrentChat, isStreaming]);
 
   const initializeSession = useCallback(async (forceReinit = false) => {
@@ -1563,7 +1563,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
       }
       
       if (isServerReady && currentModelId) {
-        sessionCreatedRef.current = true;
+              sessionCreatedRef.current = true;
       }
       
       setIsInitialized(true);
@@ -1640,7 +1640,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     element.addEventListener('scroll', onScroll, { passive: true });
     return () => element.removeEventListener('scroll', onScroll);
   }, [scrollRef, activeTool]);
-
+  
   useEffect(() => {
     if (activeTool === 'chat' && messages.length > 0 && window.innerWidth < 768) {
       inputRef.current?.focus();
@@ -1717,7 +1717,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         
         const modelPrompt = model ? getSystemPromptForModel(model) : DEFAULT_SYSTEM_PROMPT;
         setSystemPrompt(modelPrompt);
-        sessionCreatedRef.current = true;
+          sessionCreatedRef.current = true;
         
         const modelTypeInfo = model?.modelFamily === 'saiga' ? '🇷🇺 Saiga (русскоязычная)' :
                               model?.modelFamily === 'qwen' ? '🐫 Qwen (мультиязычная)' :
@@ -1917,10 +1917,10 @@ const AgentLab: React.FC<AgentLabProps> = () => {
     };
     
     if (!continuing) {
-      dispatch(addMessage({ modelId: currentModelId, message: userMessage }));
+    dispatch(addMessage({ modelId: currentModelId, message: userMessage }));
     }
     if (!replay && !continuing) {
-      setInput('');
+    setInput('');
       setPendingImages([]);
     }
     
@@ -2131,35 +2131,35 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         setIsStreaming(false);
         dispatch(setLoading(false));
       } else if (!(e instanceof Error && e.name === 'AbortError')) {
-        console.error('Chat error:', e);
-        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      console.error('Chat error:', e);
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
         if (isContextLimitError(e)) {
           dispatch(discardStreamingAssistant(currentModelId));
           lockChatContext(chatId, e.notice);
-        } else {
-          dispatch(updateLastMessage({ 
-            modelId: currentModelId, 
-            content: `❌ Ошибка: ${errorMessage}`,
-            isError: true
-          }));
-          dispatch(finalizeLastMessage({ 
-            modelId: currentModelId, 
-            content: `❌ Ошибка: ${errorMessage}`
-          }));
-        }
-        setIsStreaming(false);
-        dispatch(setLoading(false));
+      } else {
+        dispatch(updateLastMessage({ 
+          modelId: currentModelId, 
+          content: `❌ Ошибка: ${errorMessage}`,
+          isError: true
+        }));
+        dispatch(finalizeLastMessage({ 
+          modelId: currentModelId, 
+          content: `❌ Ошибка: ${errorMessage}`
+        }));
+      }
+      setIsStreaming(false);
+      dispatch(setLoading(false));
       }
     } finally {
       if (abortControllerRef.current === abortController) {
-        abortControllerRef.current = null;
+      abortControllerRef.current = null;
       }
     }
   };
   sendReplayRef.current = handleSendMessage;
 
-
-    return (
+      
+      return (
       <div className="@container/agentchat flex h-full min-h-0 flex-col overflow-hidden glass-panel text-foreground">
             <header className={cn(celestia.appHeader, 'flex items-center')}>
                 <div className="flex h-full w-full items-center justify-between gap-1.5">
@@ -2195,9 +2195,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       title={currentModel ? formatLoadedModelLabel(currentModel) || currentModel.name : 'Модель не выбрана'}
                     >
                         {currentModel ? formatLoadedModelLabel(currentModel) || currentModel.name : 'Модель не выбрана'}
-                    </span>
-                </div>
-                
+          </span>
+            </div>
+            
                 <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
                   {activeTool === 'chat' && !productMode && (
                     <IconButton
@@ -2212,7 +2212,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     >
                       <span className={cn(isStreaming && 'animate-pulse')}>
                         <PanelRightIcon />
-                      </span>
+                    </span>
                     </IconButton>
                   )}
                   <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
@@ -2243,11 +2243,11 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       onRequireToolsChange={setRequireTools}
                       disabled={isStreaming}
                     />
-                  </div>
-
+                </div>
+                
                   {isQwen36Model && !isStreaming && (
                     <div className="hidden @[28rem]/agentchat:flex items-center gap-1.5 min-w-0">
-                      <div className="flex items-center bg-accent rounded-xl p-0.5">
+                      <div className="flex items-center bg-accent rounded-lg p-0.5">
                         <button
                           type="button"
                           aria-pressed={qwenMode === 'auto'}
@@ -2268,7 +2268,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           onClick={() => { setQwenMode('thinking'); setEnableThinking(true); }}
                           className={cn(
                             'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
-                            qwenMode === 'thinking'
+                            qwenMode === 'thinking' 
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
@@ -2282,7 +2282,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           onClick={() => { setQwenMode('instruct'); setEnableThinking(false); }}
                           className={cn(
                             'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
-                            qwenMode === 'instruct'
+                            qwenMode === 'instruct' 
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
@@ -2296,7 +2296,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                           onClick={() => { setQwenMode('coding'); setEnableThinking(true); }}
                           className={cn(
                             'px-2 h-7 rounded-lg text-xs transition-all duration-200 active:scale-95',
-                            qwenMode === 'coding'
+                            qwenMode === 'coding' 
                               ? 'bg-background text-foreground shadow-sm'
                               : 'text-muted-foreground hover:bg-border/80'
                           )}
@@ -2325,7 +2325,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                             </option>
                           ))}
                         </select>
-                      </label>
+                        </label>
                     </div>
                   )}
                   
@@ -2334,7 +2334,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                       type="button"
                       onClick={() => requestStartModel(currentModel.id)}
                       disabled={isModelActionLoading}
-                      className="hidden @[36rem]/agentchat:inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95 disabled:opacity-40"
+                      className="hidden @[36rem]/agentchat:inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-95 disabled:opacity-40"
                     >
                       <PlayIcon />
                       <span className="hidden sm:inline">{isModelActionLoading ? 'Запуск…' : 'Запустить'}</span>
@@ -2379,7 +2379,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     aria-expanded={headerMenuOpen}
                     onClick={() => setHeaderMenuOpen((open) => !open)}
                     className={cn(
-                      'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80',
+                      'inline-flex items-center justify-center rounded-lg hover:bg-accent/70 text-foreground/80',
                       celestia.headerIcon,
                       headerMenuOpen && 'bg-accent text-foreground'
                     )}
@@ -2523,7 +2523,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                     </button>
                   </MenuPopover>
                 </div>
-                </div>
+            </div>
             </header>
 
             <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -2531,7 +2531,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
         <ToolRail activeTool={activeToolId} onSelect={selectTool} />
         )}
 
-        {activeTool === 'chat' && (
+                {activeTool === 'chat' && (
             <ChatList
               chats={availableChats}
               currentChatId={currentChat?.id}
@@ -2562,7 +2562,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden px-3 sm:px-4 py-3" ref={scrollRef}>
                             <div className={cn(celestia.chatColumn, 'space-y-4 min-w-0')}>
                             {overviewOpen && messages.length > 0 && (
-                              <div className="rounded-2xl border border-border bg-card/80 p-2 text-sm">
+                              <div className="rounded-lg border border-border bg-card p-2 text-sm">
                                 <div className="mb-1 px-1 text-xs font-medium text-muted-foreground">Карта диалога</div>
                                 <div className="max-h-40 space-y-1 overflow-y-auto">
                                   {messages.map((msg, idx) => (
@@ -2596,7 +2596,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     {!isServerReady && currentModel && userIsAdmin && (
                                       <button
                                         onClick={() => requestStartModel(currentModel.id)}
-                                        className="mt-4 px-4 py-2 btn-gradient text-white rounded-lg text-sm font-medium"
+                                        className="mt-4 px-4 py-2 btn-gradient rounded-lg text-sm font-medium"
                                       >
                                         Запустить модель
                                       </button>
@@ -2652,9 +2652,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                             <div className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce delay-75"></div>
                                             <div className="w-1.5 h-1.5 bg-muted-foreground/50 rounded-full animate-bounce delay-150"></div>
                                         </div>
-                                </div>
+                                    </div>
                             )}
-                            </div>
+                                </div>
                         </div>
                         <div className={celestia.composerDock}>
                             <div className={celestia.chatColumn}>
@@ -2672,13 +2672,13 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               />
                             )}
                             {referenceChatId && (
-                              <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-xs">
+                              <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-xs">
                                 <span className="truncate">В запрос войдёт чат «{referenceTitle}»</span>
                                 <button type="button" onClick={() => setReferenceChatId(null)}>Убрать</button>
-                              </div>
+                        </div>
                             )}
                             {currentChat?.contextLimit && (
-                              <div className="mb-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                              <div className="mb-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
                                 <p className="text-sm text-foreground">{currentChat.contextLimit.message}</p>
                                 {contextLimitUsageLabel(currentChat.contextLimit) && (
                                   <p className="mt-1 font-mono text-[11px] text-muted-foreground">
@@ -2688,7 +2688,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                 <button
                                   type="button"
                                   onClick={() => void createNewChat()}
-                                  className="mt-2 inline-flex h-8 items-center rounded-xl bg-foreground px-3 text-xs font-medium text-background"
+                                  className="mt-2 inline-flex h-8 items-center rounded-lg bg-foreground px-3 text-xs font-medium text-background"
                                 >
                                   Новый чат
                                 </button>
@@ -2701,7 +2701,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                     <img
                                       src={item.previewUrl}
                                       alt={item.file.name}
-                                      className="h-16 w-16 rounded-xl object-cover border border-border"
+                                      className="h-16 w-16 rounded-lg object-cover border border-border"
                                     />
                                     <button
                                       type="button"
@@ -2716,7 +2716,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               </div>
                             )}
                             {input.startsWith('/') && !input.includes('\n') && (
-                              <div className="mb-2 max-h-40 overflow-y-auto rounded-2xl border border-border bg-card p-1">
+                              <div className="mb-2 max-h-40 overflow-y-auto rounded-lg border border-border bg-card p-1">
                                 {prompts.filter((prompt) => {
                                   const needle = input.slice(1).trim().toLowerCase();
                                   return !needle || prompt.title.toLowerCase().includes(needle) || prompt.content.toLowerCase().includes(needle);
@@ -2724,7 +2724,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                   <button
                                     key={prompt.id}
                                     type="button"
-                                    className="block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
                                     onClick={() => {
                                       void expandPrompt(prompt.content).then(setInput).catch(() => setInput(prompt.content));
                                     }}
@@ -2738,12 +2738,12 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                               </div>
                             )}
                             {referenceOpen && (
-                              <div className="mb-2 max-h-40 overflow-y-auto rounded-2xl border border-border bg-card p-1">
+                              <div className="mb-2 max-h-40 overflow-y-auto rounded-lg border border-border bg-card p-1">
                                 {availableChats.filter((chat) => chat.id !== currentChat?.id).map((chat) => (
                                   <button
                                     key={chat.id}
                                     type="button"
-                                    className="block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                                    className="block w-full truncate rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
                                     onClick={() => {
                                       void insertReferencedChat(chat);
                                       setReferenceOpen(false);
@@ -2833,7 +2833,7 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                   streaming={isStreaming}
                                 />
                                 {isStreaming ? (
-                                  <button
+                                <button 
                                       type="button"
                                       onClick={stopStreaming}
                                       aria-label="Остановить генерацию"
@@ -2849,9 +2849,9 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                                       disabled={loading || (!input.trim() && pendingImages.length === 0) || !isServerReady || Boolean(currentChat?.contextLimit)}
                                       aria-label="Отправить"
                                       className={celestia.sendButton}
-                                  >
-                                      <SendIcon />
-                                  </button>
+                                >
+                                    <SendIcon />
+                                </button>
                                 )}
                             </div>
                             <ComposerStatus
@@ -2929,8 +2929,8 @@ const AgentLab: React.FC<AgentLabProps> = () => {
                         <SystemInfoPanel isDarkMode={isDarkMode} embedded />
                     </PanelScrollArea>
                 )}
-            </div>
-
+        </div>
+        
         {activeTool === 'chat' && !productMode && (
             <LiveRuntimePanel
               open={showRuntime}

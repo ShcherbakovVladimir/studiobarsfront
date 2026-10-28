@@ -209,7 +209,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
           ) : (
             <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
           )}
-          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+          <FileText className="w-4 h-4 text-primary shrink-0" />
           <span className="truncate">Репозиторий PDF ({files.length})</span>
         </button>
         <button
@@ -301,7 +301,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
                   {isUserFileActive(file.status) && (
                     <div className="mt-2 h-1.5 w-full bg-border rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-500 transition-all"
+                        className="h-full bg-primary transition-all"
                         style={{ width: `${Math.min(file.progress || 8, 100)}%` }}
                       />
                     </div>
@@ -376,7 +376,7 @@ const UserFilesPanel: React.FC<UserFilesPanelProps> = ({
           <iframe
             src={pdfPreview.url}
             title={pdfPreview.name}
-            className="h-[min(75vh,44rem)] w-full rounded-xl border border-border bg-background"
+            className="h-[min(75vh,44rem)] w-full rounded-lg border border-border bg-background"
           />
         )}
       </RagPreviewDialog>

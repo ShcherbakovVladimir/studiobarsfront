@@ -24,7 +24,7 @@ const HardwareinfoPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit">
+          <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit">
             <button
               type="button"
               aria-pressed={tab === 'monitoring'}

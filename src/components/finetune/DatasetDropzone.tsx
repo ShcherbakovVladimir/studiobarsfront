@@ -59,7 +59,7 @@ const DatasetDropzone: React.FC<DatasetDropzoneProps> = ({
   }, []);
 
   return (
-    <div className="glass-panel border border-border rounded-xl p-4 md:p-5 shadow-sm h-full flex flex-col">
+    <div className="glass-panel border border-border rounded-lg p-4 md:p-5 shadow-sm h-full flex flex-col">
       <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
         <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
@@ -69,7 +69,7 @@ const DatasetDropzone: React.FC<DatasetDropzoneProps> = ({
 
       {dataset ? (
         <div className="flex-1 flex flex-col">
-          <div className="bg-background/50 dark:bg-muted/50 rounded-lg p-3 border border-border mb-3">
+          <div className="bg-background dark:bg-muted/50 rounded-lg p-3 border border-border mb-3">
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium text-sm text-foreground truncate pr-2">
                 {dataset.name}
@@ -93,11 +93,11 @@ const DatasetDropzone: React.FC<DatasetDropzoneProps> = ({
 
           {datasetStats && datasetStats.totalExamples > 0 && (
             <div className="grid grid-cols-2 gap-2 mt-auto">
-              <div className="bg-background/50 dark:bg-muted/30 p-2 rounded border border-border">
+              <div className="bg-background dark:bg-muted/30 p-2 rounded border border-border">
                 <span className="block text-[10px] text-muted-foreground uppercase">Примеров</span>
                 <span className="text-sm font-bold text-foreground">{datasetStats.totalExamples}</span>
               </div>
-              <div className="bg-background/50 dark:bg-muted/30 p-2 rounded border border-border">
+              <div className="bg-background dark:bg-muted/30 p-2 rounded border border-border">
                 <span className="block text-[10px] text-muted-foreground uppercase">Токенов</span>
                 <span className="text-sm font-bold text-foreground">
                   {datasetStats.totalTokens > 1000 ? `${(datasetStats.totalTokens / 1000).toFixed(1)}k` : datasetStats.totalTokens}
@@ -110,10 +110,10 @@ const DatasetDropzone: React.FC<DatasetDropzoneProps> = ({
         <div 
           className={`
  flex-1 flex flex-col items-center justify-center
-            border-2 border-dashed rounded-xl p-6 transition-all cursor-pointer
+            border-2 border-dashed rounded-lg p-6 transition-all cursor-pointer
             ${isDisabled 
               ? 'border-border bg-card/60 opacity-50 cursor-not-allowed' 
-              : 'border-border hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
+              : 'border-border hover:border-primary dark:hover:border-primary hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
             }
 `}
           onDrop={handleDrop}

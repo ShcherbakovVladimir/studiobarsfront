@@ -459,7 +459,7 @@ const ChatWrapperManager: React.FC<ChatWrapperManagerProps> = ({
             <ResultPanel
               success={Boolean(testResult.success)}
               title={testResult.success ? 'Тест пройден' : 'Тест не пройден'}
-              className="rounded-2xl p-3"
+              className="rounded-lg p-3"
             >
               <pre className="text-xs overflow-auto max-h-60 mt-2 break-all scroll-clip">
                 {JSON.stringify(testResult, null, 2)}

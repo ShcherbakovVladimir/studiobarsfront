@@ -25,7 +25,7 @@ const GlobalToast: React.FC = () => {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`px-4 py-3 rounded-2xl shadow-lg text-sm font-medium animate-in slide-in-from-top-2 duration-300 backdrop-blur-sm ${
+          className={`px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-top-2 duration-300 ${
             toast.type === 'success'
               ? 'bg-emerald-600/95 text-white dark:bg-emerald-500/90'
               : toast.type === 'error'

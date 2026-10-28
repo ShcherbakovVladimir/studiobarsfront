@@ -171,7 +171,7 @@ const ApiKeysPanel: React.FC = () => {
         <button
           type="submit"
           disabled={loading || keys.length >= 10}
-          className="px-4 py-2 rounded-lg btn-gradient text-white text-sm disabled:opacity-50"
+          className="px-4 py-2 rounded-lg btn-gradient text-sm disabled:opacity-50"
         >
           {loading ? 'Сохранение...' : 'Создать ключ'}
         </button>

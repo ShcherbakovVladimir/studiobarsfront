@@ -52,7 +52,7 @@ const RAGFilesSidebar: React.FC<RAGFilesSidebarProps> = ({
     >
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
         <div className="flex items-center gap-2 min-w-0">
-          <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
+          <FolderOpen className="w-4 h-4 text-primary shrink-0" />
           <h2 className="text-sm font-semibold truncate">Файлы RAG</h2>
         </div>
         <div className="flex items-center gap-1">

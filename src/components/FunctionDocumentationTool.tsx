@@ -225,7 +225,7 @@ const FunctionDocumentationTool: React.FC<FunctionDocumentationToolProps> = ({
           </p>
           <fieldset>
             <legend className="text-xs text-muted-foreground mb-1.5">Формат</legend>
-            <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit">
+            <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit">
               {(['typescript', 'markdown', 'jsdoc'] as const).map((fmt) => (
                 <button
                   key={fmt}
@@ -281,30 +281,30 @@ const FunctionDocumentationTool: React.FC<FunctionDocumentationToolProps> = ({
               />
               {documentationResult.success && (
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                  <div className="rounded-xl border border-border px-2.5 py-2">
+                  <div className="rounded-lg border border-border px-2.5 py-2">
                     <div className="font-medium text-foreground">Формат</div>
                     <div>{resultFormatLabel}</div>
                   </div>
                   {documentationResult.language && (
-                    <div className="rounded-xl border border-border px-2.5 py-2">
+                    <div className="rounded-lg border border-border px-2.5 py-2">
                       <div className="font-medium text-foreground">Язык</div>
                       <div className="truncate">{documentationResult.language}</div>
                     </div>
                   )}
                   {documentationResult.modelName && (
-                    <div className="rounded-xl border border-border px-2.5 py-2 min-w-0">
+                    <div className="rounded-lg border border-border px-2.5 py-2 min-w-0">
                       <div className="font-medium text-foreground">Модель</div>
                       <div className="truncate">{documentationResult.modelName}</div>
                     </div>
                   )}
                   {documentationResult.functionCount > 0 && (
-                    <div className="rounded-xl border border-border px-2.5 py-2">
+                    <div className="rounded-lg border border-border px-2.5 py-2">
                       <div className="font-medium text-foreground">Функций</div>
                       <div>{documentationResult.functionCount}</div>
                     </div>
                   )}
                   {documentationResult.role && (
-                    <div className="rounded-xl border border-border px-2.5 py-2">
+                    <div className="rounded-lg border border-border px-2.5 py-2">
                       <div className="font-medium text-foreground">Роль</div>
                       <div className="truncate">{documentationResult.role}</div>
                     </div>

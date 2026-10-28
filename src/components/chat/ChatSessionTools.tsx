@@ -78,7 +78,7 @@ const ChatSessionTools: React.FC<{
   };
 
   return (
-    <div className="mb-2 rounded-2xl border border-border bg-card/90 p-3 text-sm space-y-2">
+    <div className="mb-2 rounded-lg border border-border bg-card p-3 text-sm space-y-2">
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium">
           {panel === 'queue' && 'Очередь'}

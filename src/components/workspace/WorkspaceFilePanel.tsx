@@ -36,7 +36,7 @@ interface WorkspaceFilePanelProps {
 }
 
 const iconButton =
-  'inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40';
+  'inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40';
 
 function markdownHtml(source: string): string {
   const html = marked.parse(source, { async: false, gfm: true, breaks: true });
@@ -206,14 +206,14 @@ export function WorkspaceFilePanel({
               <button
                 type="button"
                 onClick={() => void copyPlain()}
-                className="flex w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                className="flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
               >
                 Без разметки
               </button>
               <button
                 type="button"
                 onClick={() => void copyFormatted()}
-                className="flex w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                className="flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
               >
                 С форматированием
               </button>
@@ -327,7 +327,7 @@ export function WorkspaceFilePanel({
           <button
             type="button"
             onClick={() => setEditing(false)}
-            className="h-8 rounded-xl px-3 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="h-8 rounded-lg px-3 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             Отмена
           </button>
@@ -339,7 +339,7 @@ export function WorkspaceFilePanel({
                 if (saved) setEditing(false);
               });
             }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-xl btn-gradient px-3 text-xs font-medium disabled:opacity-40"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg btn-gradient px-3 text-xs font-medium disabled:opacity-40"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Сохранить

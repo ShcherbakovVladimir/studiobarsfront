@@ -64,8 +64,8 @@ type DiagTab = 'log' | 'metrics';
 const emptyLaunch = (): LlamaLaunch => ({});
 const emptyArtifacts: Artifacts = { models: [], mmproj: [], draft: [] };
 const emptyPresetRow = (): PresetRow => ({ id: '', path: '', mmproj: '', contextSize: '', gpuLayers: '' });
-const selectClass = 'mt-1 h-9 w-full rounded-xl border border-border bg-background px-2 text-sm';
-const sectionClass = 'sm:col-span-2 rounded-xl border border-border p-3 space-y-2';
+const selectClass = 'mt-1 h-9 w-full rounded-lg border border-border bg-background px-2 text-sm';
+const sectionClass = 'sm:col-span-2 rounded-lg border border-border p-3 space-y-2';
 
 const presetIdFromPath = (path: string) =>
   (path.split(/[\\/]/).pop() || path).replace(/\.gguf$/i, '');
@@ -400,7 +400,7 @@ export const ModelLaunchDialog: React.FC<ModelLaunchDialogProps> = ({
         </DialogHeader>
 
         {canSwap && (
-          <div className="rounded-xl border border-border p-3 space-y-2">
+          <div className="rounded-lg border border-border p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium mr-auto">
                 Сменить {activeModelId} → {modelName || modelId} с сохранением сессий (swap)
@@ -653,7 +653,7 @@ export const ModelLaunchDialog: React.FC<ModelLaunchDialogProps> = ({
                 <label className="sm:col-span-2 text-xs text-muted-foreground">
                   env (KEY=VALUE по строке; CUDA_*, GGML_*, HF_TOKEN; до 20)
                   <textarea
-                    className="mt-1 w-full min-h-[4.5rem] rounded-xl border border-border bg-background px-3 py-2 text-sm font-mono"
+                    className="mt-1 w-full min-h-[4.5rem] rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
                     value={envText}
                     onChange={(event) => setEnvText(event.target.value)}
                     placeholder={'GGML_CUDA_FORCE_MMQ=1\nHF_TOKEN=hf_...'}
@@ -864,7 +864,7 @@ export const ModelLaunchDialog: React.FC<ModelLaunchDialogProps> = ({
         </div>
 
         {preview && (
-          <pre className="max-h-40 overflow-auto rounded-xl bg-muted/50 p-3 text-[11px] whitespace-pre-wrap">
+          <pre className="max-h-40 overflow-auto rounded-lg bg-muted/50 p-3 text-[11px] whitespace-pre-wrap">
             {(preview.args ?? []).join(' ')}
             {preview.binary ? `\nbinary: ${preview.binary}` : ''}
             {preview.cudaVisibleDevices ? `\nCUDA_VISIBLE_DEVICES: ${preview.cudaVisibleDevices}` : ''}

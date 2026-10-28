@@ -440,7 +440,7 @@ const FinetuneView: React.FC = () => {
   const MobileMenuButton = () => (
     <button
       onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-      className="lg:hidden fixed top-4 right-4 z-50 p-3 surface-elevated text-foreground/80 rounded-lg shadow-lg border border-border hover:bg-background/50 dark:hover:bg-muted transition-all active:scale-95"
+      className="lg:hidden fixed top-4 right-4 z-50 p-3 surface-elevated text-foreground/80 rounded-lg shadow-lg border border-border hover:bg-background dark:hover:bg-muted transition-all active:scale-95"
       aria-label="Toggle menu"
       style={{ zIndex: 60 }}
     >
@@ -462,7 +462,7 @@ const FinetuneView: React.FC = () => {
   const MobileOverlay = () => (
     isSidebarOpen && (
       <div
-        className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm transition-all duration-300"
+        className="lg:hidden fixed inset-0 bg-black/50 z-40 transition-all duration-300"
         onClick={() => setIsSidebarOpen(false)}
         style={{ zIndex: 40 }}
       />
@@ -483,7 +483,7 @@ const FinetuneView: React.FC = () => {
           className={`
  h-full flex flex-col
             glass-panel border border-border
-            rounded-2xl shadow-sm
+            rounded-lg shadow-sm
             transition-all duration-300 ease-in-out overflow-hidden
             ${isMobile ? `
               fixed inset-y-3 left-3 right-3
@@ -585,9 +585,9 @@ const FinetuneView: React.FC = () => {
             
             {isRestoring && (
               <div className="animate-in fade-in duration-300">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 md:p-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 md:p-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-xs md:text-sm text-primary">
                       Восстановление сессии...
                     </span>
@@ -607,7 +607,7 @@ const FinetuneView: React.FC = () => {
                 isRestoring
               }
               className={`
- w-full py-2.5 md:py-3 rounded-xl font-medium text-sm md:text-base
+ w-full py-2.5 md:py-3 rounded-lg font-medium text-sm md:text-base
                 transition-all flex items-center justify-center gap-2 
                 disabled:opacity-50 disabled:cursor-not-allowed
                 active:scale-[0.98]
@@ -615,7 +615,7 @@ const FinetuneView: React.FC = () => {
                   ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20'
                   : isStarting || isStopping
                   ? 'bg-muted-foreground text-white cursor-not-allowed shadow-lg'
-                  : 'btn-gradient text-white shadow-lg shadow-blue-500/20'
+                  : 'btn-gradient shadow-lg shadow-primary/20'
                 }
 `}
             >
@@ -657,14 +657,14 @@ const FinetuneView: React.FC = () => {
 
         {/* Правая панель (Терминал и Мониторинг) */}
         <div className="flex-1 flex flex-col gap-3 md:gap-4 h-full overflow-hidden">
-          <div className="flex-1 bg-card rounded-2xl shadow-sm border border-border overflow-hidden relative">
+          <div className="flex-1 bg-card rounded-lg shadow-sm border border-border overflow-hidden relative">
             <Terminal 
               logsEndRef={logsEndRef}
               isMobile={isMobile}
             />
           </div>
 
-          <div className="h-40 md:h-48 lg:h-56 glass-panel border border-border rounded-2xl shadow-sm p-3 md:p-4 shrink-0 overflow-hidden">
+          <div className="h-40 md:h-48 lg:h-56 glass-panel border border-border rounded-lg shadow-sm p-3 md:p-4 shrink-0 overflow-hidden">
             <div className="grid grid-cols-2 gap-3 md:gap-4 h-full">
               <SystemStats isMobile={isMobile} />
               <GpuStats isMobile={isMobile} />

@@ -43,7 +43,7 @@ const AdminInferenceLabPage: React.FC = () => {
       title="Инференс"
       description="Прогоны и аналитика"
       actions={
-        <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit">
+        <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit">
           <button
             type="button"
             onClick={() => setTab('analytics')}

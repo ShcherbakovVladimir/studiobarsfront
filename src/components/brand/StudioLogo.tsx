@@ -12,7 +12,7 @@ export function StudioLogo({ className, title = APP_NAME }: StudioLogoProps) {
       src={BRAND_ART_SRC}
       alt={title}
       title={title}
-      className={cn('studio-logo shrink-0 rounded-xl object-cover', className)}
+      className={cn('studio-logo shrink-0 rounded-lg object-cover', className)}
     />
   );
 }

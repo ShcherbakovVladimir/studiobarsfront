@@ -60,7 +60,7 @@ export function SelectMenu({
         className={cn(
           fieldControlClass,
           'w-full justify-between',
-          compact && 'h-8 rounded-xl px-3 text-xs',
+          compact && 'h-8 rounded-lg px-3 text-xs',
           open && 'ring-2 ring-ring/30',
           triggerClassName
         )}
@@ -82,7 +82,7 @@ export function SelectMenu({
         triggerRef={triggerRef}
         minWidth={180}
         zIndex={zIndex}
-        className="rounded-2xl border-border/80 bg-popover/95 backdrop-blur-xl p-1.5 shadow-2xl"
+        className="rounded-lg border-border/80 bg-popover p-1.5 shadow-2xl"
       >
         <ul role="listbox" className="max-h-64 overflow-y-auto overflow-x-hidden scroll-clip py-0.5">
           {options.map((option) => {
@@ -98,7 +98,7 @@ export function SelectMenu({
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-xl px-3 text-left transition-colors',
+                    'flex w-full items-center gap-2 rounded-lg px-3 text-left transition-colors',
                     compact ? 'h-8 text-xs' : 'h-9 text-sm',
                     active
                       ? 'bg-accent text-foreground font-medium shadow-sm'

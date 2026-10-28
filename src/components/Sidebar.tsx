@@ -180,28 +180,28 @@ function formatServerModel(model: ServerModel) {
 
 const navItemClass = (active: boolean) =>
   cn(
-    'group relative w-full flex items-center gap-2 px-3 py-2.5 rounded-3xl text-left no-underline',
+    'group relative w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left no-underline',
     'text-[13px] leading-snug font-medium transition-all duration-200 ease-out',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
     'text-foreground/80 hover:text-foreground',
     active
-      ? 'bg-primary/10 border border-primary/20 shadow-sm text-foreground'
-      : 'border border-transparent opacity-80 hover:opacity-100 hover:bg-accent/60 hover:border-border/60'
+      ? 'bg-accent border border-primary/30 text-foreground'
+      : 'border border-transparent hover:bg-muted hover:border-border'
   );
 
 const footerNavBtnClass = (active: boolean) =>
   cn(
-    'flex items-center justify-center gap-1.5 h-8 rounded-xl text-xs font-medium transition-colors duration-200',
+    'flex items-center justify-center gap-1.5 h-8 rounded-lg text-xs font-medium transition-colors duration-200',
     active
       ? 'bg-accent text-foreground'
       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
   );
 
 const footerCardClass =
-  'rounded-2xl border border-border/60 bg-accent/25 dark:bg-accent/15 px-2.5 py-2';
+  'rounded-lg border border-border/60 bg-accent/25 dark:bg-accent/15 px-2.5 py-2';
 
 const iconBtnClass = cn(
-  'p-1.5 rounded-xl transition-all duration-200',
+  'p-1.5 rounded-lg transition-all duration-200',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
   'text-foreground/70 hover:text-foreground hover:bg-accent/70'
 );
@@ -380,7 +380,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               navigate(homePath(user));
               closeIfMobile();
             }}
-            className="flex items-center gap-2 min-w-0 rounded-xl px-1 hover:bg-accent/50 transition-colors duration-200"
+            className="flex items-center gap-2 min-w-0 rounded-lg px-1 hover:bg-accent/50 transition-colors duration-200"
           >
             <StudioLogo className="h-7 w-7" />
             <span className="min-w-0 text-left">
@@ -465,7 +465,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={() => void triggerStatusCheck()}
-                className="min-w-0 flex-1 flex items-center gap-2 rounded-xl px-1 py-1 text-left hover:bg-accent/70 transition-colors"
+                className="min-w-0 flex-1 flex items-center gap-2 rounded-lg px-1 py-1 text-left hover:bg-accent/70 transition-colors"
                 title="Проверить API и модель"
               >
                 <StatusChip {...apiView} />
@@ -526,7 +526,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {user && (
             <div className={cn(footerCardClass, 'space-y-2')}>
               <div className="flex items-center gap-2 min-w-0">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary text-xs font-semibold shrink-0">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-semibold shrink-0">
                   {userInitial}
                 </span>
                 <div className="min-w-0 flex-1">

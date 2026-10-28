@@ -185,7 +185,7 @@ const ProfilePage: React.FC = () => {
                   type="button"
                   onClick={() => void handleSaveProfile()}
                   disabled={loading}
-                  className="px-4 py-2 rounded-lg btn-gradient text-white text-sm disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg btn-gradient text-sm disabled:opacity-50"
                 >
                   {loading ? 'Сохранение...' : 'Сохранить профиль'}
                 </button>
@@ -235,7 +235,7 @@ const ProfilePage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 rounded-lg btn-gradient text-white text-sm disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg btn-gradient text-sm disabled:opacity-50"
                 >
                   {loading ? 'Сохранение...' : 'Изменить пароль'}
                 </button>
@@ -270,7 +270,7 @@ const ProfilePage: React.FC = () => {
                     type="button"
                     onClick={() => void handleSaveSettings()}
                     disabled={loading}
-                    className="px-4 py-2 rounded-lg btn-gradient text-white text-sm disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg btn-gradient text-sm disabled:opacity-50"
                   >
                     {loading ? 'Сохранение...' : 'Сохранить на сервер'}
                   </button>

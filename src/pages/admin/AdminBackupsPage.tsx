@@ -138,7 +138,7 @@ const AdminBackupsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => void handleDownload(backup)}
-                      className="p-1.5 rounded-xl hover:bg-accent/70 text-muted-foreground hover:text-foreground"
+                      className="p-1.5 rounded-lg hover:bg-accent/70 text-muted-foreground hover:text-foreground"
                       title="Скачать"
                     >
                       <Download className="w-4 h-4" />

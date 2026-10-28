@@ -182,7 +182,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
       className={cn(
         celestia.workspaceDrawer,
         'right-0',
-        'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(78dvh,40rem)] max-md:!max-h-[78dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
+        'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(78dvh,40rem)] max-md:!max-h-[78dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-lg max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
         'md:top-0 md:h-full md:rounded-none',
         'md:max-xl:bg-card md:max-xl:backdrop-blur-none',
         'xl:bg-transparent xl:backdrop-blur-none',
@@ -216,7 +216,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
           <button
             type="button"
             onClick={() => void refresh()}
-            className="p-2 rounded-xl hover:bg-accent text-muted-foreground text-xs"
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground text-xs"
             title="Обновить"
           >
             ↻
@@ -227,7 +227,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
               (document.activeElement as HTMLElement | null)?.blur();
               onClose();
             }}
-            className="p-2 rounded-xl hover:bg-accent text-muted-foreground"
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
             title="Скрыть панель"
           >
             <X className="w-4 h-4" />
@@ -238,7 +238,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
         {error && <p className="text-xs text-destructive">{error}</p>}
 
-        <section className="rounded-2xl border border-border p-3 space-y-2">
+        <section className="rounded-lg border border-border p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold">
               <Gauge className="w-3.5 h-3.5" />
@@ -256,7 +256,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
             {inference.available ? inference.modelName ?? inference.modelId ?? '—' : 'Нет активной модели'}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-accent/50 px-2 py-1.5">
+            <div className="rounded-lg bg-accent/50 px-2 py-1.5">
               <div className="text-[10px] text-muted-foreground">
                 {showLive ? 'Генерация · поток' : 'Генерация'}
               </div>
@@ -267,15 +267,15 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
                 <div className="text-[10px] font-mono text-muted-foreground">{liveRate.tokens} ток</div>
               )}
             </div>
-            <div className="rounded-xl bg-accent/50 px-2 py-1.5">
+            <div className="rounded-lg bg-accent/50 px-2 py-1.5">
               <div className="text-[10px] text-muted-foreground">Промпт</div>
               <div className="text-sm font-semibold font-mono">{fmt(inference.promptTps)} ток/с</div>
             </div>
-            <div className="rounded-xl bg-accent/50 px-2 py-1.5">
+            <div className="rounded-lg bg-accent/50 px-2 py-1.5">
               <div className="text-[10px] text-muted-foreground">TTFT</div>
               <div className="text-sm font-semibold font-mono">{fmt(inference.ttftMs, 0)} мс</div>
             </div>
-            <div className="rounded-xl bg-accent/50 px-2 py-1.5">
+            <div className="rounded-lg bg-accent/50 px-2 py-1.5">
               <div className="text-[10px] text-muted-foreground">Ответ</div>
               <div className="text-sm font-semibold font-mono">{fmt(inference.latencyMs, 0)} мс</div>
             </div>
@@ -304,7 +304,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
           )}
         </section>
 
-        <section className="rounded-2xl border border-border p-3 space-y-1.5">
+        <section className="rounded-lg border border-border p-3 space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold">
             <Cpu className="w-3.5 h-3.5" />
             Система
@@ -355,7 +355,7 @@ function LiveRuntimePanelView({ open, onClose, streaming = false }: LiveRuntimeP
             details.temperature.max !== null ? `макс ${details.temperature.max}°` : null,
           ].filter(Boolean);
           return (
-            <section key={key} className="rounded-2xl border border-border p-3 space-y-1.5">
+            <section key={key} className="rounded-lg border border-border p-3 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold min-w-0">
                   <Activity className="w-3.5 h-3.5 shrink-0" />

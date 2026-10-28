@@ -164,7 +164,7 @@ const AdminHelpPage: React.FC = () => {
                       title={doc.summary || doc.title}
                       onClick={() => setTocOpen(false)}
                       className={cn(
-                        'block rounded-xl px-2.5 py-1.5 text-[13px] no-underline transition-colors',
+                        'block rounded-lg px-2.5 py-1.5 text-[13px] no-underline transition-colors',
                         active
                           ? 'bg-primary/10 text-foreground border border-primary/20'
                           : 'text-foreground/80 hover:bg-accent/70 border border-transparent',

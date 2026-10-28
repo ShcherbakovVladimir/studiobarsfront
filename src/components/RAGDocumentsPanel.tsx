@@ -251,7 +251,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
           ) : (
             <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
           )}
-          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+          <FileText className="w-4 h-4 text-primary shrink-0" />
           <span className="truncate">Индекс RAG ({indexDocs.length})</span>
         </button>
         <div className="flex items-center gap-1">
@@ -326,7 +326,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
               key={doc.source}
               className={`rounded-lg border p-3 transition-colors ${
                 highlighted
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                  ? 'border-primary bg-blue-50 dark:bg-blue-950/30'
                   : selected
                   ? 'border-primary/50 bg-primary/10 dark:bg-primary/15'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
@@ -347,7 +347,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
                     {doc.source}
                   </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground mt-1">
-                    {fromOcr && <span className="text-blue-500">из PDF</span>}
+                    {fromOcr && <span className="text-primary">из PDF</span>}
                     <span className={statusColor(doc)}>{statusLabel(doc)}</span>
                     {doc.chunks != null && <span>{doc.chunks} чанков</span>}
                     {doc.embedded_chunks != null && <span>{doc.embedded_chunks} эмб.</span>}
@@ -356,7 +356,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
                   {pct > 0 && pct < 100 && (
                     <div className="mt-2 h-1.5 w-full bg-border dark:bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-500 transition-all"
+                        className="h-full bg-primary transition-all"
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
@@ -424,7 +424,7 @@ const RAGDocumentsPanel: React.FC<RAGDocumentsPanelProps> = ({
             const text = row.content ?? '';
             if (!text.trim()) return null;
             return (
-              <div key={index} className="surface-elevated rounded-xl p-4">
+              <div key={index} className="surface-elevated rounded-lg p-4">
                 <p className="mb-2 text-[11px] text-muted-foreground">Фрагмент {index + 1}</p>
                 <MarkdownContent content={text} isDarkMode={isDarkMode} />
               </div>

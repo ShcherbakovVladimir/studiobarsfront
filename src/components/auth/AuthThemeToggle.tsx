@@ -19,7 +19,7 @@ const AuthThemeToggle: React.FC<AuthThemeToggleProps> = ({ floating = true, clas
       type="button"
       onClick={() => dispatch(toggleTheme())}
       className={cn(
-        'inline-flex items-center justify-center h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors',
+        'inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors',
         floating && 'fixed top-3 right-3 z-50 glass-panel shadow-sm',
         className
       )}

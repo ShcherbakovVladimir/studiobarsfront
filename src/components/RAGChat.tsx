@@ -172,13 +172,13 @@ const ChartDisplay = ({ chartData }: { chartData: ChartData }) => {
     }));
 
     return (
-      <div className="mt-4 p-4 bg-background/50 dark:bg-muted/50 rounded-lg overflow-x-auto">
+      <div className="mt-4 p-4 bg-background dark:bg-muted/50 rounded-lg overflow-x-auto">
         <div className="text-sm font-medium mb-2">{chartData.title || 'График'}</div>
         <div className="flex items-end gap-2 h-40 min-w-[200px]">
           {bars?.map((bar: { label: string | number; value: number; percent: number }, idx: number) => (
             <div key={idx} className="flex-1 flex flex-col items-center min-w-[30px]">
               <div 
-                className="w-full bg-blue-500 rounded-t-lg transition-all duration-500"
+                className="w-full bg-primary rounded-t-lg transition-all duration-500"
                 style={{ height: `${bar.percent}%`, minHeight: '4px' }}
               />
               <div className="text-[10px] text-muted-foreground mt-1 truncate max-w-full" title={String(bar.label)}>
@@ -200,7 +200,7 @@ const ChartDisplay = ({ chartData }: { chartData: ChartData }) => {
     const values = chartData.values;
     const total = values.reduce((a: number, b: number) => a + b, 0);
     return (
-      <div className="mt-4 p-4 bg-background/50 dark:bg-muted/50 rounded-lg">
+      <div className="mt-4 p-4 bg-background dark:bg-muted/50 rounded-lg">
         <div className="text-sm font-medium mb-2">{chartData.title || 'Распределение'}</div>
         <div className="space-y-2">
           {chartData.labels.map((label: string, idx: number) => {
@@ -214,7 +214,7 @@ const ChartDisplay = ({ chartData }: { chartData: ChartData }) => {
                 </div>
                 <div className="h-2 bg-border dark:bg-muted rounded-full overflow-hidden mt-1">
                   <div 
-                    className="h-full bg-blue-500 rounded-full"
+                    className="h-full bg-primary rounded-full"
                     style={{ width: `${percent}%` }}
                   />
                 </div>
@@ -340,7 +340,7 @@ const RAGSourcesList = ({
             key={`${source.source}-${source.similarity ?? 0}`}
             type="button"
             onClick={() => onOpenDocument?.(source.source)}
-            className="text-xs px-2 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 hover:underline"
+            className="text-xs px-2 py-1 rounded-full bg-accent dark:bg-accent text-foreground dark:text-muted-foreground hover:underline"
             title={source.similarity != null ? `Релевантность ${Math.round(source.similarity * 100)}%` : undefined}
           >
             {source.source}
@@ -477,7 +477,7 @@ const FormattedMessageBase: React.FC<{
           </div>
         )}
         <StreamingChatMarkdown content={shown} isDarkMode={isDarkMode} />
-        <span className="inline-block ml-1 animate-pulse text-blue-500">▊</span>
+        <span className="inline-block ml-1 animate-pulse text-primary">▊</span>
       </>
     );
   }
@@ -576,7 +576,7 @@ const FormattedMessageBase: React.FC<{
           },
           
           thead({ children }) {
-            return <thead className="bg-background/50 dark:bg-muted/50">{children}</thead>;
+            return <thead className="bg-background dark:bg-muted/50">{children}</thead>;
           },
           
           th({ children }) {
@@ -597,7 +597,7 @@ const FormattedMessageBase: React.FC<{
           
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
+              <blockquote className="border-l-4 border-primary bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
                 <div className="text-foreground/80 italic">{children}</div>
               </blockquote>
             );
@@ -1615,7 +1615,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               ? 'bg-green-500 text-white' 
               : toastType === 'error' 
                 ? 'bg-red-500 text-white' 
-                : 'bg-blue-500 text-white'
+                : 'bg-primary text-white'
           }`}>
             {toastMessage}
           </div>
@@ -1663,7 +1663,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
           </div>
 
           <div className="flex h-full shrink-0 items-center gap-0.5 sm:gap-1">
-            <div className="flex items-center bg-accent rounded-xl p-0.5 shrink-0">
+            <div className="flex items-center bg-accent rounded-lg p-0.5 shrink-0">
               <button
                 type="button"
                 aria-pressed={searchMode === 'llm'}
@@ -1774,7 +1774,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               aria-expanded={headerMenuOpen}
               onClick={() => setHeaderMenuOpen((open) => !open)}
               className={cn(
-                'inline-flex items-center justify-center rounded-xl hover:bg-accent/70 text-foreground/80',
+                'inline-flex items-center justify-center rounded-lg hover:bg-accent/70 text-foreground/80',
                 celestia.headerIcon,
                 headerMenuOpen && 'bg-accent text-foreground',
                 '@[42rem]/ragchat:hidden'
@@ -1850,8 +1850,8 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
       {/* Qwen3.6 настройки модальное окно */}
       {showQwenSettings && (
         <div className="fixed inset-0 modal-scrim flex items-center justify-center z-50 p-4" onClick={() => setShowQwenSettings(false)}>
-          <div className="max-w-md w-full rounded-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="glass-modal rounded-3xl">
+          <div className="max-w-md w-full rounded-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="glass-modal rounded-lg">
               <div className="flex justify-between items-center p-4 border-b border-border">
                 <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
                   <ThinkingIcon />
@@ -1952,10 +1952,10 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="rag-settings-title"
-            className="max-w-md w-full rounded-xl"
+            className="max-w-md w-full rounded-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="glass-modal rounded-3xl">
+            <div className="glass-modal rounded-lg">
               <div className="flex justify-between items-center p-4 border-b border-border">
                 <h3 id="rag-settings-title" className="text-base font-semibold">Настройки RAG-запроса</h3>
                 <button type="button" aria-label="Закрыть" onClick={() => setShowRagSettings(false)} className="p-1 hover:bg-accent/70 rounded-lg">
@@ -2231,7 +2231,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             {(compareMode ? compareDocumentSources : selectedDocumentSources).map((source) => (
               <span
                 key={source}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-accent dark:bg-accent text-foreground dark:text-muted-foreground"
               >
                 📄 {source.length > 24 ? `${source.slice(0, 24)}…` : source}
                 <button
@@ -2357,7 +2357,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               className={cn(
-                'rounded-3xl border-2 border-dashed p-5 sm:p-6 text-center transition-colors cursor-pointer glass-input',
+                'rounded-lg border-2 border-dashed p-5 sm:p-6 text-center transition-colors cursor-pointer glass-input',
                 dragActive ? 'border-foreground/40 bg-accent/50' : 'border-border'
               )}
             >
@@ -2388,7 +2388,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                 className="hidden"
               />
               <label htmlFor="rag-upload-file" className="cursor-pointer block">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-foreground">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-foreground">
                   <FolderIcon />
                 </span>
                 <p className="text-sm mt-3 break-words font-medium">
@@ -2409,7 +2409,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
             </div>
 
             {uploadType === 'vector' && !batchMode && selectedFile && (
-              <div className="rounded-2xl border border-border/70 p-3 text-xs bg-muted/40">
+              <div className="rounded-lg border border-border/70 p-3 text-xs bg-muted/40">
                 <div className="font-medium mb-1">Превью индексации</div>
                 {isPreviewLoading && <p className="text-muted-foreground">Анализ файла...</p>}
                 {!isPreviewLoading && documentPreview && (
@@ -2441,7 +2441,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   type="button"
                   onClick={() => handleUploadTypeChange('vector')}
                   className={cn(
-                    'flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors',
+                    'flex items-start gap-2.5 rounded-lg border p-3 text-left transition-colors',
                     uploadType === 'vector'
                       ? 'border-foreground/25 bg-accent shadow-sm'
                       : 'border-border hover:bg-accent/50'
@@ -2457,7 +2457,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   type="button"
                   onClick={() => handleUploadTypeChange('sql')}
                   className={cn(
-                    'flex items-start gap-2.5 rounded-2xl border p-3 text-left transition-colors',
+                    'flex items-start gap-2.5 rounded-lg border p-3 text-left transition-colors',
                     uploadType === 'sql'
                       ? 'border-foreground/25 bg-accent shadow-sm'
                       : 'border-border hover:bg-accent/50'
@@ -2482,7 +2482,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                   value={tableName}
                   onChange={(e) => setTableName(e.target.value)}
                   placeholder="plan_2026"
-                  className="rounded-2xl"
+                  className="rounded-lg"
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">
                   Латиница, цифры и _. Полное имя вида upload_… выдаст сервер, его не нужно собирать здесь.
@@ -2569,7 +2569,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
               {isUploading ? 'Обработка…' : 'Загрузить в базу данных'}
             </Button>
 
-            <div className="rounded-2xl border border-border/70 overflow-hidden">
+            <div className="rounded-lg border border-border/70 overflow-hidden">
               <button
                 type="button"
                 onClick={() => {
@@ -2606,7 +2606,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                     tables.filter((table) => table.name !== 'vector_store').map((table) => (
                       <div
                         key={table.name}
-                        className="rounded-xl bg-muted/40"
+                        className="rounded-lg bg-muted/40"
                       >
                         <div className="flex justify-between items-center p-2 gap-2 flex-wrap">
                           <input
@@ -2648,7 +2648,7 @@ const RAGChat: React.FC<RAGChatProps> = ({ isDarkMode }) => {
                             <button
                               type="button"
                               onClick={() => handleClearTable(table.name)}
-                              className="p-1.5 text-xs rounded-xl hover:bg-accent text-muted-foreground transition-colors"
+                              className="p-1.5 text-xs rounded-lg hover:bg-accent text-muted-foreground transition-colors"
                               title="Очистить таблицу"
                             >
                               <ClearIcon />

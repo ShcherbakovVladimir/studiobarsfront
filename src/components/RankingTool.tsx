@@ -87,7 +87,7 @@ const RankingTool: React.FC<RankingToolProps> = () => {
             {documents.map((doc, index) => {
               const ranked = rankingResult?.results?.find((r) => r.document === doc);
               return (
-                <div key={index} className="group rounded-xl border border-border bg-background/60 p-2.5">
+                <div key={index} className="group rounded-lg border border-border bg-background/60 p-2.5">
                   <div className="flex items-start gap-2">
                     <div className="flex flex-col gap-0.5 shrink-0">
                       <button
@@ -168,7 +168,7 @@ const RankingTool: React.FC<RankingToolProps> = () => {
                     .slice()
                     .sort((a, b) => a.rank - b.rank)
                     .map((result) => (
-                      <div key={result.rank} className="rounded-xl border border-border bg-background/60 p-2.5">
+                      <div key={result.rank} className="rounded-lg border border-border bg-background/60 p-2.5">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span className="text-xs font-semibold w-5">{result.rank}</span>
                           <span className="text-xs">score {result.score.toFixed(3)}</span>
@@ -188,11 +188,11 @@ const RankingTool: React.FC<RankingToolProps> = () => {
                       </div>
                     ))}
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl border border-border p-2">
+                    <div className="rounded-lg border border-border p-2">
                       <span className="text-muted-foreground block">Документов</span>
                       <span className="font-medium">{rankingResult.results.length}</span>
                     </div>
-                    <div className="rounded-xl border border-border p-2">
+                    <div className="rounded-lg border border-border p-2">
                       <span className="text-muted-foreground block">Средний score</span>
                       <span className="font-medium">
                         {(rankingResult.results.reduce((acc, r) => acc + r.score, 0) / rankingResult.results.length).toFixed(3)}

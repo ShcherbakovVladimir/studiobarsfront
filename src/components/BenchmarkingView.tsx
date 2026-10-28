@@ -63,7 +63,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         type="button"
         onClick={togglePolling}
         className={cn(
-          'h-8 px-2.5 rounded-xl text-xs transition-colors',
+          'h-8 px-2.5 rounded-lg text-xs transition-colors',
           isPolling ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent',
         )}
       >
@@ -73,14 +73,14 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         type="button"
         onClick={() => void fetchData()}
         disabled={isLoading}
-        className="h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40"
+        className="h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40"
       >
         {isLoading ? '…' : 'Обновить'}
       </button>
       <button
         type="button"
         onClick={() => clearHistory()}
-        className="h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        className="h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
       >
         Очистить
       </button>
@@ -120,28 +120,28 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
       {embedded && <div className="flex items-center justify-between gap-3">{headerActions}</div>}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="glass-panel border border-border rounded-xl p-4">
+        <div className="glass-panel border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">Генерация</div>
           <div className="text-2xl font-bold text-foreground">{formatNumber(inference.genTps)} ток/с</div>
           <div className="text-xs text-muted-foreground mt-1">
             макс. за сессию {formatNumber(stats?.maxGenTps)}
           </div>
         </div>
-        <div className="glass-panel border border-border rounded-xl p-4">
+        <div className="glass-panel border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">Промпт</div>
           <div className="text-2xl font-bold text-foreground">{formatNumber(inference.promptTps)} ток/с</div>
           <div className="text-xs text-muted-foreground mt-1">
             среднее {formatNumber(stats?.avgPromptTps)}
           </div>
         </div>
-        <div className="glass-panel border border-border rounded-xl p-4">
+        <div className="glass-panel border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">До первого токена</div>
           <div className="text-2xl font-bold text-foreground">{formatNumber(inference.ttftMs, 0)} мс</div>
           <div className="text-xs text-muted-foreground mt-1">
             полный ответ {formatNumber(inference.latencyMs, 0)} мс
           </div>
         </div>
-        <div className="glass-panel border border-border rounded-xl p-4">
+        <div className="glass-panel border border-border rounded-lg p-4">
           <div className="text-sm text-muted-foreground mb-2">Модель</div>
           <div className="text-lg font-bold text-foreground truncate" title={inference.modelName ?? ''}>
             {inference.available ? (inference.modelName ?? inference.modelId ?? '—') : 'не загружена'}
@@ -155,7 +155,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        <div className="glass-panel border border-border rounded-2xl p-6 shadow-sm dark:shadow-none">
+        <div className="glass-panel border border-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-foreground">Скорость инференса</h3>
             <span className="text-sm text-muted-foreground">
@@ -184,7 +184,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
           </ChartContainer>
         </div>
 
-        <div className="glass-panel border border-border rounded-2xl p-6 shadow-sm dark:shadow-none">
+        <div className="glass-panel border border-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-foreground">Температура и мощность</h3>
             <span className="text-sm text-muted-foreground">{gpus.length} карт</span>
@@ -213,7 +213,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
           </ChartContainer>
         </div>
 
-        <div className="glass-panel border border-border rounded-2xl p-6 shadow-sm dark:shadow-none">
+        <div className="glass-panel border border-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-bold text-foreground mb-6">Видеопамять (GB)</h3>
           <ChartContainer height={256}>
             <ResponsiveContainer width="100%" height={256} minWidth={0}>
@@ -230,7 +230,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
           </ChartContainer>
         </div>
 
-        <div className="glass-panel border border-border rounded-2xl p-6 shadow-sm dark:shadow-none">
+        <div className="glass-panel border border-border rounded-lg p-6 shadow-sm dark:shadow-none">
           <h3 className="text-lg font-bold text-foreground mb-6">Утилизация GPU</h3>
           <ChartContainer height={256}>
             <ResponsiveContainer width="100%" height={256} minWidth={0}>
@@ -250,7 +250,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         </div>
       </div>
 
-      <div className="glass-panel border border-border rounded-2xl overflow-hidden shadow-sm dark:shadow-none">
+      <div className="glass-panel border border-border rounded-lg overflow-hidden shadow-sm dark:shadow-none">
         <div className="px-6 py-4 border-b border-border">
           <h3 className="text-lg font-bold text-foreground">Карты (снимок nvidia-smi)</h3>
           <p className="text-xs text-muted-foreground mt-1">
@@ -260,7 +260,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="bg-background/50 dark:bg-muted/50 text-muted-foreground font-medium">
+              <tr className="bg-background dark:bg-muted/50 text-muted-foreground font-medium">
                 <th className="px-6 py-4">Устройство</th>
                 <th className="px-6 py-4">Утилизация</th>
                 <th className="px-6 py-4">Память</th>
@@ -274,18 +274,18 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
               {gpus.map((gpu) => {
                 const share = gpu.totalGb > 0 ? Math.min(100, (gpu.usedGb / gpu.totalGb) * 100) : 0;
                 return (
-                  <tr key={gpu.key} className="hover:bg-background/50 dark:hover:bg-muted/30 bg-blue-50/50 dark:bg-blue-900/10">
+                  <tr key={gpu.key} className="hover:bg-background dark:hover:bg-muted/30 bg-blue-50/50 dark:bg-blue-900/10">
                     <td className="px-6 py-4 font-medium text-foreground">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-blue-500" />
+                        <div className="w-3 h-3 rounded-full bg-primary" />
                         <span>{gpu.name}</span>
-                        <span className="px-2 py-0.5 bg-blue-500/10 text-primary text-xs rounded-full">{gpu.key}</span>
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">{gpu.key}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-border dark:bg-muted rounded-full h-2">
-                          <div className="h-full bg-purple-500 rounded-full" style={{ width: `${gpu.utilization}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${gpu.utilization}%` }} />
                         </div>
                         <span className="text-purple-600 dark:text-purple-400 font-medium text-sm">{formatNumber(gpu.utilization)}%</span>
                       </div>
@@ -293,7 +293,7 @@ const BenchmarkingView: FC<BenchmarkingViewProps> = ({ isDarkMode = true, embedd
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-border dark:bg-muted rounded-full h-2">
-                          <div className="h-full bg-blue-500 rounded-full" style={{ width: `${share}%` }} />
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${share}%` }} />
                         </div>
                         <span className="text-muted-foreground text-sm">
                           {formatNumber(gpu.usedGb, 2)} / {formatNumber(gpu.totalGb, 0)} GB

@@ -199,7 +199,7 @@ const RAGDataUpload: React.FC<RAGDataUploadProps> = ({ onUploadComplete }) => {
               </div>
               <div className="w-full bg-border dark:bg-muted rounded-full h-2 overflow-hidden">
                 <div
-                  className="bg-blue-500 h-full transition-all duration-300"
+                  className="bg-primary h-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>

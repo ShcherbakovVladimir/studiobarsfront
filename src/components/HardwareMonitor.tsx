@@ -288,7 +288,7 @@ export function HardwareMonitor({ embedded = false }: { embedded?: boolean }) {
             type="button"
             onClick={toggleAutoRefresh}
             className={cn(
-              'h-8 px-2.5 rounded-xl text-xs transition-colors',
+              'h-8 px-2.5 rounded-lg text-xs transition-colors',
               isAutoRefreshing
                 ? 'bg-accent text-foreground'
                 : 'text-muted-foreground hover:bg-accent'
@@ -435,7 +435,7 @@ export function HardwareMonitor({ embedded = false }: { embedded?: boolean }) {
 
       {/* Графики истории */}
       <Tabs value={historyTab} onValueChange={setHistoryTab} className="w-full min-w-0 space-y-4">
-        <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit max-w-full overflow-x-auto">
+        <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit max-w-full overflow-x-auto">
           <button
             type="button"
             aria-pressed={historyTab === 'cpu'}

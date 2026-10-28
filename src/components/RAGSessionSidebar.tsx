@@ -87,7 +87,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
     >
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
         <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare className="w-4 h-4 text-blue-500 shrink-0" />
+          <MessageSquare className="w-4 h-4 text-primary shrink-0" />
           <h2 className="text-sm font-semibold truncate">RAG-сессии ({sortedSessions.length})</h2>
         </div>
         <div className="flex items-center gap-1">
@@ -138,7 +138,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
             <button
               type="button"
               onClick={onNewSession}
-              className="text-sm px-3 py-1.5 rounded-lg btn-gradient text-white"
+              className="text-sm px-3 py-1.5 rounded-lg btn-gradient"
             >
               Начать новую
             </button>
@@ -155,7 +155,7 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
               key={session.sessionId}
               className={`workspace-list-item group relative rounded-lg border transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.99] ${
                 isActive
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
+                  ? 'border-primary bg-blue-50 dark:bg-blue-950/40 ring-1 ring-blue-500/40 shadow-sm'
                   : 'border-transparent hover:bg-accent dark:hover:bg-card'
               }`}
               style={{ animationDelay: `${Math.min(index, 12) * 28}ms` }}

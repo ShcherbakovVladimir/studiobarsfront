@@ -17,7 +17,7 @@ const dismissClasses: Record<AlertVariant, string> = {
   error: 'text-red-500 hover:text-red-700 dark:hover:text-red-300',
   success: 'text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300',
   warning: 'text-amber-500 hover:text-amber-700 dark:hover:text-amber-300',
-  info: 'text-blue-500 hover:text-blue-700 dark:hover:text-blue-300',
+  info: 'text-primary hover:text-blue-700 dark:hover:text-blue-300',
 };
 
 interface AlertBannerProps {

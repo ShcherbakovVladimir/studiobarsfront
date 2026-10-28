@@ -153,7 +153,7 @@ export const ChatList: React.FC<ChatListProps> = ({
       className={cn(
         celestia.workspaceDrawer,
         'left-0',
-        'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(72dvh,36rem)] max-md:!max-h-[72dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-[1.75rem] max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
+        'max-md:!inset-x-0 max-md:!top-auto max-md:!bottom-0 max-md:!h-[min(72dvh,36rem)] max-md:!max-h-[72dvh] max-md:w-full max-md:max-w-none max-md:rounded-t-lg max-md:rounded-b-none max-md:border-x-0 max-md:border-t max-md:pt-0 max-md:bg-card max-md:backdrop-blur-none',
         'md:top-0 md:max-xl:left-[calc(var(--spacing)*55)] md:h-full md:rounded-none',
         'md:max-xl:bg-card md:max-xl:backdrop-blur-none',
         'xl:bg-transparent xl:backdrop-blur-none',
@@ -179,7 +179,7 @@ export const ChatList: React.FC<ChatListProps> = ({
 
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2 max-md:h-11 max-md:border-b-0')}>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
             <MessageSquare className="w-3.5 h-3.5" />
           </span>
           <div className="min-w-0">
@@ -196,7 +196,7 @@ export const ChatList: React.FC<ChatListProps> = ({
               onClick={onRefresh}
               disabled={isLoading}
               aria-busy={isLoading}
-              className="p-2 rounded-xl hover:bg-accent text-muted-foreground disabled:pointer-events-none disabled:opacity-50"
+              className="p-2 rounded-lg hover:bg-accent text-muted-foreground disabled:pointer-events-none disabled:opacity-50"
               title="Обновить список"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -218,7 +218,7 @@ export const ChatList: React.FC<ChatListProps> = ({
               <button
                 type="button"
                 onClick={() => importRef.current?.click()}
-                className="p-2 rounded-xl hover:bg-accent text-muted-foreground"
+                className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
                 title="Импорт JSON"
               >
                 <Upload className="w-4 h-4" />
@@ -228,7 +228,7 @@ export const ChatList: React.FC<ChatListProps> = ({
           <button
             type="button"
             onClick={onCreateNew}
-            className="hidden xl:inline-flex p-2 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-transform active:scale-95"
+            className="hidden xl:inline-flex p-2 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 transition-transform active:scale-95"
             title="Новый чат"
           >
             <Plus className="w-4 h-4" />
@@ -240,7 +240,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 event.currentTarget.blur();
                 onClose();
               }}
-              className="p-2 rounded-xl hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
+              className="p-2 rounded-lg hover:bg-accent text-muted-foreground xl:hidden transition-transform active:scale-95"
               title="Закрыть"
             >
               <X className="w-4 h-4" />
@@ -273,7 +273,7 @@ export const ChatList: React.FC<ChatListProps> = ({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Поиск по чатам"
-            className="h-9 w-full rounded-xl border border-border bg-background/40 pl-8 pr-3 text-sm"
+            className="h-9 w-full rounded-lg border border-border bg-background/40 pl-8 pr-3 text-sm"
           />
         </label>
       </div>
@@ -285,7 +285,7 @@ export const ChatList: React.FC<ChatListProps> = ({
 
         {isLoaded && visibleChats.length === 0 && (
           <div className="flex flex-col items-center text-center py-10 px-4">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-muted-foreground mb-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent text-muted-foreground mb-3">
               <MessageSquare className="w-5 h-5" />
             </span>
             <p className="text-sm font-medium text-foreground">{needle ? 'Ничего не найдено' : 'Пока нет чатов'}</p>
@@ -306,7 +306,7 @@ export const ChatList: React.FC<ChatListProps> = ({
             <div
               key={chat.id}
               className={cn(
-                'workspace-list-item group relative rounded-2xl transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.99]',
+                'workspace-list-item group relative rounded-lg transition-[background-color,box-shadow,transform] duration-200 active:scale-[0.99]',
                 isActive
                   ? 'bg-primary/10 shadow-sm'
                   : 'hover:bg-accent/80'
@@ -326,7 +326,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                       if (e.key === 'Enter') saveRename(chat.id);
                       if (e.key === 'Escape') setEditingId(null);
                     }}
-                    className="w-full h-10 px-3 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-ring/40 glass-input"
+                    className="w-full h-10 px-3 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-ring/40 glass-input"
                     autoFocus
                   />
                 </div>
@@ -377,7 +377,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                           e.stopPropagation();
                           onTogglePin(chat.id);
                         }}
-                        className="p-2 rounded-xl hover:bg-accent text-muted-foreground"
+                        className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
                         title={isPinned ? 'Открепить' : 'Закрепить'}
                       >
                         <Pin className={cn('w-3.5 h-3.5', isPinned && 'fill-current text-primary')} />
@@ -389,7 +389,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                         e.stopPropagation();
                         startRename(chat);
                       }}
-                      className="p-2 rounded-xl hover:bg-accent text-muted-foreground"
+                      className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
                       title="Переименовать"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -425,7 +425,7 @@ export const ChatList: React.FC<ChatListProps> = ({
         <button
           type="button"
           onClick={handleCreate}
-          className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-2xl text-sm font-medium btn-gradient text-white active:scale-[0.99]"
+          className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-lg text-sm font-medium btn-gradient active:scale-[0.99]"
         >
           <Plus className="w-4 h-4" />
           Новый чат

@@ -91,7 +91,7 @@ export function DatePicker({
         <div className="flex items-center justify-between gap-2 px-1 pb-2">
           <button
             type="button"
-            className="p-1.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
             aria-label="Предыдущий месяц"
           >
@@ -102,7 +102,7 @@ export function DatePicker({
           </p>
           <button
             type="button"
-            className="p-1.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
             aria-label="Следующий месяц"
           >
@@ -132,7 +132,7 @@ export function DatePicker({
                   setOpen(false);
                 }}
                 className={cn(
-                  'h-8 rounded-xl text-xs transition-colors',
+                  'h-8 rounded-lg text-xs transition-colors',
                   isSelected && 'bg-primary/15 text-foreground font-medium',
                   !isSelected && isToday && 'border border-border text-foreground',
                   !isSelected && !isToday && 'text-foreground/80 hover:bg-accent'

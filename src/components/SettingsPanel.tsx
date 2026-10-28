@@ -45,7 +45,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
 
   if (compact) {
     return (
-      <div className="bg-background/50 dark:bg-muted/50 rounded-xl p-3 border border-border/50">
+      <div className="bg-background dark:bg-muted/50 rounded-lg p-3 border border-border/50">
         <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Параметры</h4>
         
         <div className="space-y-3">
@@ -94,7 +94,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ compact = false }) => {
   }
 
   return (
-    <div className="bg-background/50 dark:bg-muted/50 rounded-xl p-4 border border-border/50">
+    <div className="bg-background dark:bg-muted/50 rounded-lg p-4 border border-border/50">
       <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3">Параметры генерации</h4>
       
       <div className="space-y-4">

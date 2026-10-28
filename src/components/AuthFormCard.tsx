@@ -32,7 +32,7 @@ const AuthFormCard: React.FC<AuthFormCardProps> = ({
             alt=""
             className="h-full w-full object-cover object-[center_22%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
         </div>
       )}
       <header className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>

@@ -86,7 +86,7 @@ const InferenceAnalyticsPanel: React.FC<InferenceAnalyticsPanelProps> = ({
             />
             <button
               type="submit"
-              className="h-8 px-3 rounded-xl text-xs text-muted-foreground hover:bg-accent"
+              className="h-8 px-3 rounded-lg text-xs text-muted-foreground hover:bg-accent"
             >
               Фильтр
             </button>
@@ -118,7 +118,7 @@ const InferenceAnalyticsPanel: React.FC<InferenceAnalyticsPanelProps> = ({
       )}
 
       {analytics && analytics.byDay.length > 0 && (
-        <div className="rounded-2xl border border-border/60 p-3">
+        <div className="rounded-lg border border-border/60 p-3">
           <h3 className="text-sm font-medium mb-2">По дням</h3>
           <ChartContainer height={220}>
             <ResponsiveContainer width="100%" height="100%">
@@ -138,7 +138,7 @@ const InferenceAnalyticsPanel: React.FC<InferenceAnalyticsPanelProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {analytics && analytics.byModel.length > 0 && (
-          <div className="rounded-2xl border border-border/60 p-3">
+          <div className="rounded-lg border border-border/60 p-3">
             <h3 className="text-sm font-medium mb-2">По моделям</h3>
             <ChartContainer height={220}>
               <ResponsiveContainer width="100%" height="100%">
@@ -154,7 +154,7 @@ const InferenceAnalyticsPanel: React.FC<InferenceAnalyticsPanelProps> = ({
           </div>
         )}
         {modeRows.length > 0 && (
-          <div className="rounded-2xl border border-border/60 p-3">
+          <div className="rounded-lg border border-border/60 p-3">
             <h3 className="text-sm font-medium mb-2">По режиму</h3>
             <ChartContainer height={220}>
               <ResponsiveContainer width="100%" height="100%">
@@ -172,7 +172,7 @@ const InferenceAnalyticsPanel: React.FC<InferenceAnalyticsPanelProps> = ({
       </div>
 
       {analytics?.byUser && analytics.byUser.length > 0 && (
-        <div className="rounded-2xl border border-border/60 overflow-hidden">
+        <div className="rounded-lg border border-border/60 overflow-hidden">
           <h3 className="text-sm font-medium px-3 py-2 border-b border-border">По пользователям</h3>
           <table className="w-full text-sm">
             <thead>

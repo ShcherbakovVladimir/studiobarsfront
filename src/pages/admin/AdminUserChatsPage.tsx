@@ -306,7 +306,7 @@ const AdminUserChatsPage: React.FC = () => {
                     <li key={item.id}>
                       <div
                         className={cn(
-                          'flex items-start gap-2 rounded-xl border p-3 transition-colors min-w-0',
+                          'flex items-start gap-2 rounded-lg border p-3 transition-colors min-w-0',
                           active
                             ? 'border-primary/30 bg-primary/5'
                             : 'border-border hover:bg-accent/50'

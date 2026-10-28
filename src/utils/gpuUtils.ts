@@ -98,7 +98,7 @@ export function toGpuHardwareSnapshots(bundle?: GpuStatsBundle | null): GpuHardw
   }));
 }
 
-export const GPU_DOT_COLORS = ['bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-amber-500'] as const;
+export const GPU_DOT_COLORS = ['bg-green-500', 'bg-primary', 'bg-primary', 'bg-amber-500'] as const;
 
 export function gpuDotColor(index: number): string {
   return GPU_DOT_COLORS[index % GPU_DOT_COLORS.length] ?? 'bg-gray-500';

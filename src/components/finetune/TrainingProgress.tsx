@@ -42,7 +42,7 @@ const TrainingProgress: React.FC<TrainingProgressProps> = ({
   const getStatusColor = () => {
     switch (currentSession?.status) {
       case 'running': return 'bg-emerald-500';
-      case 'completed': return 'bg-blue-500';
+      case 'completed': return 'bg-primary';
       case 'failed': return 'bg-red-500';
       case 'stopped': return 'bg-amber-500';
       default: return 'bg-muted-foreground/40';
@@ -61,7 +61,7 @@ const TrainingProgress: React.FC<TrainingProgressProps> = ({
   };
 
   return (
-    <div className="glass-panel border border-border rounded-xl p-4 shadow-sm">
+    <div className="glass-panel border border-border rounded-lg p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-foreground flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full ${getStatusColor()} ${currentSession?.status === 'running' ? 'animate-pulse' : ''}`}></div>
@@ -80,13 +80,13 @@ const TrainingProgress: React.FC<TrainingProgressProps> = ({
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="p-2 bg-background/50 dark:bg-muted/50 rounded-lg border border-border/50">
+        <div className="p-2 bg-background dark:bg-muted/50 rounded-lg border border-border/50">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Эпоха</div>
           <div className="text-sm font-bold text-foreground">
             {currentEpoch || 0} <span className="text-muted-foreground font-normal">/ {totalEpochs || 1}</span>
           </div>
         </div>
-        <div className="p-2 bg-background/50 dark:bg-muted/50 rounded-lg border border-border/50">
+        <div className="p-2 bg-background dark:bg-muted/50 rounded-lg border border-border/50">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Шаги</div>
           <div className="text-sm font-bold text-foreground">
             {currentStep || 0} <span className="text-muted-foreground font-normal">/ {totalSteps > 0 ? totalSteps : '?'}</span>

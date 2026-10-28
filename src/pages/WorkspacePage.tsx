@@ -619,7 +619,7 @@ const WorkspacePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setFilesOpen(false)}
-                className="rounded-xl p-1.5 text-muted-foreground hover:bg-accent"
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"
                 aria-label="Закрыть"
               >
                 <X className="h-4 w-4" />
@@ -635,7 +635,7 @@ const WorkspacePage: React.FC = () => {
           <button
             type="button"
             onClick={() => setFilesOpen(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-xl px-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
           >
             <FolderOpen className="h-4 w-4" />
             Файлы
@@ -650,7 +650,7 @@ const WorkspacePage: React.FC = () => {
             <button
               type="button"
               onClick={newTask}
-              className="inline-flex h-8 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
               title="Начать задачу с чистой памятью. Файлы останутся."
             >
               <Plus className="h-4 w-4" />
@@ -682,7 +682,7 @@ const WorkspacePage: React.FC = () => {
                       key={suggestion}
                       type="button"
                       onClick={() => void send(suggestion)}
-                      className="rounded-2xl border border-border/70 px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent/60"
+                      className="rounded-lg border border-border/70 px-4 py-2.5 text-left text-sm transition-colors hover:bg-accent/60"
                     >
                       {suggestion}
                     </button>
@@ -703,7 +703,7 @@ const WorkspacePage: React.FC = () => {
         <div className={celestia.composerDock}>
           <div className={celestia.chatColumn}>
             {contextLimit && (
-              <div className="mb-2 flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              <div className="mb-2 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                 <span className="min-w-0 flex-1">{contextLimit.message}</span>
                 <button type="button" onClick={newTask} className="shrink-0 font-medium underline underline-offset-2">
                   Новая задача

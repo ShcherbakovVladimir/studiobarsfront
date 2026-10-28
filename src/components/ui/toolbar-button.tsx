@@ -3,13 +3,13 @@ import { cn } from '../../lib/utils';
 
 const variantClasses = {
   primary: 'btn-gradient',
-  success: 'bg-emerald-600/90 hover:bg-emerald-600 text-white backdrop-blur-sm',
-  danger: 'bg-red-600/90 hover:bg-red-600 text-white backdrop-blur-sm',
-  warning: 'bg-amber-600/90 hover:bg-amber-600 text-white backdrop-blur-sm',
-  emerald: 'bg-emerald-600/90 hover:bg-emerald-600 text-white backdrop-blur-sm',
-  purple: 'bg-violet-600/85 hover:bg-violet-600 text-white backdrop-blur-sm',
-  indigo: 'bg-indigo-600/85 hover:bg-indigo-600 text-white backdrop-blur-sm',
-  orange: 'bg-orange-600/85 hover:bg-orange-600 text-white backdrop-blur-sm',
+  success: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+  danger: 'bg-destructive hover:brightness-110 text-white',
+  warning: 'bg-amber-600 hover:bg-amber-500 text-white',
+  emerald: 'bg-emerald-600 hover:bg-emerald-500 text-white',
+  purple: 'btn-gradient',
+  indigo: 'bg-[#ea4b71] hover:bg-[#d63f64] text-white',
+  orange: 'bg-orange-600 hover:bg-orange-500 text-white',
   neutral: 'glass-input hover:bg-accent text-foreground',
 } as const;
 
@@ -23,7 +23,7 @@ export const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonPr
       ref={ref}
       type="button"
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:py-1.5 rounded-3xl text-sm font-medium transition-all disabled:opacity-50 text-center shadow-sm',
+        'inline-flex items-center justify-center gap-1.5 px-4 py-2 sm:py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-center shadow-sm',
         variantClasses[variant],
         className
       )}

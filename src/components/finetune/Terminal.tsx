@@ -34,7 +34,7 @@ const Terminal: React.FC<TerminalProps> = ({ logsEndRef }) => {
   };
 
   return (
-    <div className="h-full flex flex-col glass-panel rounded-xl border border-gray-200 dark:border-border shadow-inner overflow-hidden font-mono text-sm relative group">
+    <div className="h-full flex flex-col glass-panel rounded-lg border border-gray-200 dark:border-border shadow-inner overflow-hidden font-mono text-sm relative group">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-background border-b border-gray-200 dark:border-border">
         <div className="flex items-center gap-2">
@@ -73,7 +73,7 @@ const Terminal: React.FC<TerminalProps> = ({ logsEndRef }) => {
       
       {/* Overlay indicator for new logs if not auto-scrolling */}
       {!autoScroll && logs.length > 0 && (
-        <div className="absolute bottom-4 right-4 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-full shadow-lg cursor-pointer transition-colors">
+        <div className="absolute bottom-4 right-4 bg-primary hover:bg-primary text-white text-xs px-2 py-1 rounded-full shadow-lg cursor-pointer transition-colors">
           ↓ Новые сообщения
         </div>
       )}

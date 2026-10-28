@@ -304,7 +304,7 @@ const RAGExcelPanel: React.FC<RAGExcelPanelProps> = ({
         {compareError && <InlineError message={compareError} className="mb-3" />}
         {!compareLoading && (
           <div className="grid items-start gap-4 lg:grid-cols-2">
-            <section className="min-w-0 rounded-2xl border border-border/70">
+            <section className="min-w-0 rounded-lg border border-border/70">
               <h3 className="border-b border-border/60 px-3 py-2 text-sm font-medium">Файл</h3>
               <div className="max-h-[65vh] overflow-auto p-3">
                 {fileText ? (
@@ -318,7 +318,7 @@ const RAGExcelPanel: React.FC<RAGExcelPanelProps> = ({
                 )}
               </div>
             </section>
-            <section className="min-w-0 rounded-2xl border border-border/70">
+            <section className="min-w-0 rounded-lg border border-border/70">
               <h3 className="border-b border-border/60 px-3 py-2 text-sm font-medium">
                 Таблица{tableSnapshot?.name ? ` ${tableSnapshot.name}` : ''}
               </h3>

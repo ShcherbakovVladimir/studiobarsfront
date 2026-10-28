@@ -12,8 +12,8 @@ const SystemStats: React.FC<SystemStatsProps> = () => {
 
   // Helper to determine color based on usage
   const getUsageColor = (percentage: number) => {
-    if (percentage < 50) return 'bg-blue-500';
-    if (percentage < 80) return 'bg-purple-500';
+    if (percentage < 50) return 'bg-primary';
+    if (percentage < 80) return 'bg-primary';
     return 'bg-red-500';
   };
 

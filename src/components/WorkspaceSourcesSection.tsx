@@ -173,7 +173,7 @@ export function WorkspaceSourcesSection({
                     className={cn(
                       'flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:cursor-not-allowed',
                       highlightSource === source
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                        ? 'border-primary bg-blue-50 dark:bg-blue-950/30'
                         : selected
                           ? 'border-primary/50 bg-primary/10 dark:bg-primary/15'
                           : 'border-transparent hover:bg-accent disabled:hover:bg-transparent'
@@ -206,7 +206,7 @@ export function WorkspaceSourcesSection({
                       </span>
                       {state.kind === 'indexing' && (
                         <span className="mt-1.5 block h-1 w-full overflow-hidden rounded-full bg-border">
-                          <span className="block h-full bg-blue-500" style={{ width: `${state.percent}%` }} />
+                          <span className="block h-full bg-primary" style={{ width: `${state.percent}%` }} />
                         </span>
                       )}
                     </span>

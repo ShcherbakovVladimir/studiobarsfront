@@ -65,7 +65,7 @@ const EmbeddingTools: React.FC<EmbeddingToolsProps> = () => {
     <div className="space-y-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className={toolTitle}>Embeddings</h3>
-        <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit">
+        <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit">
           <button type="button" onClick={() => setActiveTab('embedding')} className={tabChip(activeTabId === 'embedding')}>
             Векторы
           </button>

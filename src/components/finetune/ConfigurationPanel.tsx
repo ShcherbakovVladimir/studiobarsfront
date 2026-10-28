@@ -31,10 +31,10 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
   const isDisabled = isTraining || isStarting || isStopping;
 
   return (
-    <div className="glass-panel border border-border rounded-xl p-4 md:p-5 shadow-sm">
+    <div className="glass-panel border border-border rounded-lg p-4 md:p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-bold text-foreground flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           Конфигурация
@@ -61,7 +61,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               value={config.modelName}
               onChange={(e) => handleChange('modelName', e.target.value)}
               disabled={isDisabled}
-              className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
               placeholder="my-fine-tuned-model"
             />
           </div>
@@ -81,7 +81,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               value={config.epochs}
               onChange={(e) => handleChange('epochs', parseInt(e.target.value) || 1)}
               disabled={isDisabled}
-              className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
             />
           </div>
           <div>
@@ -97,7 +97,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
               value={config.batchSize}
               onChange={(e) => handleChange('batchSize', parseInt(e.target.value) || 1)}
               disabled={isDisabled}
-              className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
+              className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
             />
           </div>
         </div>
@@ -114,7 +114,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
             value={config.learningRate}
             onChange={(e) => handleChange('learningRate', parseFloat(e.target.value) || 0.0001)}
             disabled={isDisabled}
-            className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50 font-mono"
+            className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50 font-mono"
           />
         </div>
 
@@ -136,7 +136,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   value={config.loraRank}
                   onChange={(e) => handleChange('loraRank', parseInt(e.target.value))}
                   disabled={isDisabled}
-                  className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
                 >
                   <option value="8">8</option>
                   <option value="16">16</option>
@@ -156,7 +156,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                   value={config.loraAlpha}
                   onChange={(e) => handleChange('loraAlpha', parseInt(e.target.value))}
                   disabled={isDisabled}
-                  className="w-full px-3 py-2 bg-background/50 dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-background dark:bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring/40 disabled:opacity-50"
                 />
               </div>
             </div>
@@ -194,7 +194,7 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {['q_proj', 'v_proj', 'k_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'].map((module) => (
-                    <label key={module} htmlFor={`finetune-target-module-${module.replace(/_/g, '-')}`} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background/50 dark:bg-muted px-2 py-1 rounded border border-border cursor-pointer">
+                    <label key={module} htmlFor={`finetune-target-module-${module.replace(/_/g, '-')}`} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-background dark:bg-muted px-2 py-1 rounded border border-border cursor-pointer">
                       <input
                         id={`finetune-target-module-${module.replace(/_/g, '-')}`}
                         name={`targetModule-${module}`}

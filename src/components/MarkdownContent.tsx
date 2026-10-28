@@ -184,7 +184,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
             );
           },
           thead({ children }) {
-            return <thead className="bg-background/50 dark:bg-muted/50">{children}</thead>;
+            return <thead className="bg-background dark:bg-muted/50">{children}</thead>;
           },
           th({ children }) {
             return (
@@ -202,7 +202,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
           },
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-4 border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
+              <blockquote className="border-l-4 border-primary bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
                 <div className="text-foreground/80 italic">{children}</div>
               </blockquote>
             );
@@ -303,7 +303,7 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
         {fenceTextTrees(content)}
       </ReactMarkdown>
       {isStreaming && (
-        <span className="inline-block w-2 h-4 ml-0.5 bg-blue-500 animate-pulse align-middle" />
+        <span className="inline-block w-2 h-4 ml-0.5 bg-primary animate-pulse align-middle" />
       )}
     </div>
   );

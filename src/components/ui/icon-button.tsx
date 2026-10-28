@@ -8,8 +8,8 @@ const variantClasses = {
 } as const;
 
 const sizeClasses = {
-  sm: 'p-1 rounded-xl',
-  md: 'p-1.5 rounded-xl',
+  sm: 'p-1 rounded-lg',
+  md: 'p-1.5 rounded-lg',
 } as const;
 
 interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

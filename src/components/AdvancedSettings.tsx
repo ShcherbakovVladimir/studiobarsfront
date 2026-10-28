@@ -40,7 +40,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ onSettingsChange })
 
   return (
     <div className={``}>
-      <div className="glass-panel border border-border rounded-xl p-5 mb-6">
+      <div className="glass-panel border border-border rounded-lg p-5 mb-6">
         <h3 className="text-lg font-bold text-foreground mb-4">Расширенные настройки генерации</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

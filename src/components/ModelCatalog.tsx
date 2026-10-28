@@ -472,7 +472,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
       onClick={handleRefresh}
       disabled={isLoading}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0',
+        'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium shrink-0',
         'bg-accent hover:bg-border text-foreground disabled:opacity-60'
       )}
       title="Обновить список моделей"
@@ -521,7 +521,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
           <button
             type="button"
             onClick={handleRetry}
-            className="h-8 px-3 rounded-xl text-xs font-medium bg-accent hover:bg-border"
+            className="h-8 px-3 rounded-lg text-xs font-medium bg-accent hover:bg-border"
           >
             Повторить попытку
           </button>
@@ -541,7 +541,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
           <button
             type="button"
             onClick={handleRetry}
-            className="h-8 px-3 rounded-xl text-xs font-medium bg-accent hover:bg-border"
+            className="h-8 px-3 rounded-lg text-xs font-medium bg-accent hover:bg-border"
           >
             Проверить снова
           </button>
@@ -575,14 +575,14 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
           )}
 
           {startingError && (
-            <div className="p-3 rounded-xl bg-destructive/10 text-sm text-destructive break-words">
+            <div className="p-3 rounded-lg bg-destructive/10 text-sm text-destructive break-words">
               Ошибка запуска: {startingError}
             </div>
           )}
         </div>
 
         {serverModels.length === 0 && !isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl px-4 min-w-0">
+          <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-lg px-4 min-w-0">
             <h4 className="text-sm font-semibold text-foreground mb-1">Модели не найдены</h4>
             <p className="text-sm text-muted-foreground max-w-md mb-4 break-words">
               Не удалось обнаружить модели на сервере. Убедитесь, что бэкенд запущен, есть каталог ~/models/ и файлы .gguf.
@@ -590,7 +590,7 @@ const ModelCatalog: React.FC<ModelCatalogProps> = ({ onSelectModel, onStartModel
             <button
               type="button"
               onClick={handleRetry}
-              className="h-8 px-3 rounded-xl text-xs font-medium bg-accent hover:bg-border"
+              className="h-8 px-3 rounded-lg text-xs font-medium bg-accent hover:bg-border"
             >
               Проверить снова
             </button>

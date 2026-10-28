@@ -203,7 +203,7 @@ export function ContextUsageRing({ usage, limitMessage, streaming = false }: Con
           )}
 
           {limited ? (
-            <p className="rounded-xl bg-destructive/10 px-2.5 py-2 text-xs text-destructive leading-relaxed">
+            <p className="rounded-lg bg-destructive/10 px-2.5 py-2 text-xs text-destructive leading-relaxed">
               {limitMessage}
             </p>
           ) : (

@@ -1,30 +1,18 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
-/** Static-ish backdrop: orbs use transform only; no live CSS blur. */
+/** Flat canvas backdrop: n8n-style dot grid, no floating orbs. */
 interface CelestiaBackgroundProps {
-  /** false — шары стоят на месте: под непрозрачными рабочими панелями анимация не видна, но грузит GPU каждый кадр. */
+  /** Kept for API compatibility; animation is unused. */
   animated?: boolean;
 }
 
-const CelestiaBackground: React.FC<CelestiaBackgroundProps> = ({ animated = true }) => {
-  useEffect(() => {
-    const sync = () => {
-      document.documentElement.classList.toggle('tab-hidden', document.hidden);
-    };
-    sync();
-    document.addEventListener('visibilitychange', sync);
-    return () => document.removeEventListener('visibilitychange', sync);
-  }, []);
-
+const CelestiaBackground: React.FC<CelestiaBackgroundProps> = () => {
   return (
     <div
-      className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden${animated ? '' : ' celestia-static'}`}
+      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       aria-hidden
     >
       <div className="absolute inset-0 bg-celestia-gradient" />
-      <div className="floating-orb floating-orb-1" />
-      <div className="floating-orb floating-orb-2" />
-      <div className="floating-orb floating-orb-3" />
     </div>
   );
 };

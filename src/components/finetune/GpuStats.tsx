@@ -85,7 +85,7 @@ function GpuCard({ gpuKey, index, stat, isMobile, chartColor }: GpuCardProps) {
   }, [chartColor]);
 
   return (
-    <div key={gpuKey} className="flex flex-col gap-2 p-3 bg-background/50 dark:bg-muted/50 rounded-lg">
+    <div key={gpuKey} className="flex flex-col gap-2 p-3 bg-background dark:bg-muted/50 rounded-lg">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground/80 flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${GPU_DOT_COLORS[index % GPU_DOT_COLORS.length]}`} />

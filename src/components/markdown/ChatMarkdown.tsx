@@ -178,7 +178,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
     },
 
     thead({ children }) {
-      return <thead className="bg-background/50 dark:bg-muted/50">{children}</thead>;
+      return <thead className="bg-background dark:bg-muted/50">{children}</thead>;
     },
 
     th({ children }) {
@@ -191,7 +191,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
 
     blockquote({ children }) {
       return (
-        <blockquote className="border-l-4 border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
+        <blockquote className="border-l-4 border-primary bg-blue-50/50 dark:bg-blue-950/20 pl-4 py-2 my-3 rounded-r-lg">
           <div className="text-foreground/80 italic">{children}</div>
         </blockquote>
       );
@@ -255,7 +255,7 @@ function buildComponents(isDarkMode: boolean, draftCode: boolean, loadImage?: Lo
 
     details({ children }) {
       return (
-        <details className="my-3 p-3 bg-background/50 dark:bg-muted/50 rounded-lg border border-border">{children}</details>
+        <details className="my-3 p-3 bg-background dark:bg-muted/50 rounded-lg border border-border">{children}</details>
       );
     },
 

@@ -405,7 +405,7 @@ const AdminUsersPage: React.FC = () => {
                     <div className="flex items-center gap-0.5">
                       <Link
                         to={`/admin/users/${user.id}/chats`}
-                        className="p-1.5 rounded-xl hover:bg-accent/70 text-muted-foreground hover:text-foreground"
+                        className="p-1.5 rounded-lg hover:bg-accent/70 text-muted-foreground hover:text-foreground"
                         title="Чаты пользователя"
                       >
                         <MessageSquare className="w-4 h-4" />
@@ -413,7 +413,7 @@ const AdminUsersPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => void handleResetPassword(user)}
-                        className="p-1.5 rounded-xl hover:bg-accent/70 text-muted-foreground hover:text-foreground"
+                        className="p-1.5 rounded-lg hover:bg-accent/70 text-muted-foreground hover:text-foreground"
                         title="Сбросить пароль"
                       >
                         <KeyRound className="w-4 h-4" />
@@ -440,7 +440,7 @@ const AdminUsersPage: React.FC = () => {
       {showCreate && (
         <div className="fixed inset-0 modal-scrim flex items-center justify-center z-50 p-4">
           <div
-            className="glass-modal rounded-2xl w-full max-w-md p-5 min-w-0"
+            className="glass-modal rounded-lg w-full max-w-md p-5 min-w-0"
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-user-title"
@@ -472,7 +472,7 @@ const AdminUsersPage: React.FC = () => {
                   hasError={fieldHasError('email')}
                   placeholder="user@example.com"
                   aria-invalid={fieldHasError('email')}
-                  className="rounded-xl h-9 py-0"
+                  className="rounded-lg h-9 py-0"
                 />
               </FormField>
 
@@ -498,7 +498,7 @@ const AdminUsersPage: React.FC = () => {
                   hasError={fieldHasError('password')}
                   placeholder="Минимум 8 символов"
                   aria-invalid={fieldHasError('password')}
-                  className="rounded-xl h-9 py-0"
+                  className="rounded-lg h-9 py-0"
                 />
               </FormField>
 
@@ -521,7 +521,7 @@ const AdminUsersPage: React.FC = () => {
                   hasError={fieldHasError('displayName')}
                   placeholder="Необязательно"
                   aria-invalid={fieldHasError('displayName')}
-                  className="rounded-xl h-9 py-0"
+                  className="rounded-lg h-9 py-0"
                 />
               </FormField>
 

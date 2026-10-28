@@ -78,7 +78,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
       return {
         color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
         text: '🌐 Информация',
-        badgeColor: 'bg-blue-500',
+        badgeColor: 'bg-primary',
         description: 'Оригинальная модель'
       };
     }
@@ -101,7 +101,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
         };
       } else if (isXlamModel) {
         return {
-          color: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300',
+          color: 'bg-accent dark:bg-accent text-foreground dark:text-muted-foreground',
           text: 'GGUF 🔧'
         };
       } else if (isQwenModel) {
@@ -179,7 +179,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
     <div 
       onClick={handleSelect}
       className={cn(
-        'group relative bg-background/50 border rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-colors duration-200 cursor-pointer flex flex-col min-w-0 overflow-hidden',
+        'group relative bg-background border rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-colors duration-200 cursor-pointer flex flex-col min-w-0 overflow-hidden',
         isActive
           ? 'border-green-200 dark:border-green-800'
           : 'border-border hover:border-border'
@@ -200,7 +200,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
           type="button"
           onClick={handleFavoriteClick}
           className={cn(
-            'p-1.5 rounded-xl shrink-0 transition-colors',
+            'p-1.5 rounded-lg shrink-0 transition-colors',
             isFavorite
               ? 'text-amber-500 bg-amber-400/10'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground'
@@ -262,27 +262,27 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
         
         <div className="mb-3 space-y-2">
           {isSaigaModel && (
-            <div className="p-2.5 rounded-xl bg-accent/60 text-xs text-muted-foreground break-words">
+            <div className="p-2.5 rounded-lg bg-accent/60 text-xs text-muted-foreground break-words">
               Русская Saiga — оптимизирована для диалогов на русском.
             </div>
           )}
           {isQwenModel && !isSaigaModel && (
-            <div className="p-2.5 rounded-xl bg-accent/60 text-xs text-muted-foreground break-words">
+            <div className="p-2.5 rounded-lg bg-accent/60 text-xs text-muted-foreground break-words">
               Qwen — мультиязычная instruct-модель, ChatML.
             </div>
           )}
           {isXlamModel && !isSaigaModel && !isQwenModel && (
-            <div className="p-2.5 rounded-xl bg-accent/60 text-xs text-muted-foreground break-words">
+            <div className="p-2.5 rounded-lg bg-accent/60 text-xs text-muted-foreground break-words">
               xLAM — вызов функций и инструменты.
             </div>
           )}
           {isLocalOnly && (
-            <div className="p-2.5 rounded-xl bg-accent/60 text-xs text-muted-foreground break-words">
+            <div className="p-2.5 rounded-lg bg-accent/60 text-xs text-muted-foreground break-words">
               Справочная модель. Для запуска используйте GGUF.
             </div>
           )}
           {isServerUnavailable && (
-            <div className="p-2.5 rounded-xl bg-destructive/10 text-xs text-destructive break-words">
+            <div className="p-2.5 rounded-lg bg-destructive/10 text-xs text-destructive break-words">
               Файл отсутствует. Загрузите .gguf в ~/models/
             </div>
           )}
@@ -324,7 +324,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
             onClick={handleStart}
             disabled={isStarting}
             className={cn(
-              'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0 w-full min-w-0 sm:w-auto',
+              'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium shrink-0 w-full min-w-0 sm:w-auto',
               isStarting
                 ? 'bg-accent text-muted-foreground cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -341,7 +341,7 @@ const ModelCard: React.FC<ModelCardProps> = ({ model, onSelect, onStart, isStart
                 onClick={handleStart}
                 disabled={isStarting}
                 title="Перезапустить llama-server с другими флагами"
-                className="inline-flex items-center h-8 px-2.5 rounded-xl text-xs font-medium border border-border hover:bg-accent disabled:opacity-50"
+                className="inline-flex items-center h-8 px-2.5 rounded-lg text-xs font-medium border border-border hover:bg-accent disabled:opacity-50"
               >
                 {isStarting ? 'Запуск…' : 'Перезапуск'}
               </button>

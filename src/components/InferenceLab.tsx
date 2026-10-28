@@ -323,7 +323,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
               </span>
             )}
           </div>
-          <div className="flex items-center bg-accent rounded-xl p-0.5 w-fit">
+          <div className="flex items-center bg-accent rounded-lg p-0.5 w-fit">
             {VISIBLE_TABS.map((tab) => (
               <button
                 key={tab}
@@ -347,7 +347,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
       {activeTabId === ACTIVE_TABS.INFERENCE && (
         <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-accent rounded-xl p-0.5">
+            <div className="flex items-center bg-accent rounded-lg p-0.5">
               {(['completion', 'chat'] as InferenceLabMode[]).map((item) => (
                 <button
                   key={item}
@@ -409,7 +409,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
             </label>
           )}
 
-          <section className="rounded-2xl border border-border/60 p-3 space-y-2">
+          <section className="rounded-lg border border-border/60 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium">Запрос</h3>
               <span className="text-[11px] text-muted-foreground">inference_requests</span>
@@ -432,7 +432,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
                   type="button"
                   onClick={() => void handleRun()}
                   disabled={!prompt.trim()}
-                  className="h-8 px-3 rounded-xl text-xs btn-gradient text-white disabled:opacity-40"
+                  className="h-8 px-3 rounded-lg text-xs btn-gradient disabled:opacity-40"
                 >
                   Запустить
                 </button>
@@ -440,7 +440,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border/60 p-3 space-y-2">
+          <section className="rounded-lg border border-border/60 p-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-medium">Ответ</h3>
               <span className="text-[11px] text-muted-foreground">inference_responses</span>
@@ -511,7 +511,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
               <button
                 type="button"
                 onClick={() => dispatch(fetchAdapters())}
-                className="h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent"
+                className="h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent"
               >
                 Обновить
               </button>
@@ -521,7 +521,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
             ) : (
               <div className="space-y-2">
                 {adapters.map((adapter) => (
-                  <div key={adapter.id} className="p-3 rounded-2xl border border-border flex justify-between items-center">
+                  <div key={adapter.id} className="p-3 rounded-lg border border-border flex justify-between items-center">
                     <div className="min-w-0">
                       <div className="font-medium text-sm truncate">{adapter.name}</div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -534,7 +534,7 @@ const InferenceLab: React.FC<InferenceLabProps> = ({ selectedModel }) => {
                         if (activeAdapter?.id === adapter.id) dispatch(unloadAdapter());
                         else dispatch(loadAdapter({ adapterId: adapter.id, modelId: selectedModel?.id }));
                       }}
-                      className="ml-2 h-8 px-2.5 rounded-xl text-xs hover:bg-accent"
+                      className="ml-2 h-8 px-2.5 rounded-lg text-xs hover:bg-accent"
                     >
                       {activeAdapter?.id === adapter.id ? 'Выгрузить' : 'Загрузить'}
                     </button>

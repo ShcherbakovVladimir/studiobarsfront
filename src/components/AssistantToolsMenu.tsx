@@ -57,7 +57,7 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
         title={enabled ? 'Инструменты включены — живой стрим отключён' : 'Инструменты выключены — живой стрим'}
         onClick={() => onEnabledChange(!enabled)}
         className={cn(
-          'inline-flex items-center gap-1 h-8 px-2 rounded-xl text-xs transition-all duration-150 active:scale-95 disabled:opacity-40',
+          'inline-flex items-center gap-1 h-8 px-2 rounded-lg text-xs transition-all duration-150 active:scale-95 disabled:opacity-40',
           enabled
             ? 'bg-accent text-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
@@ -75,7 +75,7 @@ export const AssistantToolsMenu: React.FC<AssistantToolsMenuProps> = ({
         title={pickerTitle}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'inline-flex items-center gap-1 h-8 px-2 rounded-xl border text-xs transition-all duration-150 active:scale-95 disabled:opacity-40',
+          'inline-flex items-center gap-1 h-8 px-2 rounded-lg border text-xs transition-all duration-150 active:scale-95 disabled:opacity-40',
           open
             ? 'border-border bg-accent text-foreground'
             : 'border-border/70 bg-background/70 text-muted-foreground hover:bg-accent hover:text-foreground hover:border-border'

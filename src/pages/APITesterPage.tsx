@@ -86,7 +86,7 @@ const EndpointCard: React.FC<{
   const showQuery = endpoint.queryKeys.length > 0 || queryEntries.length > 0;
 
   return (
-    <article className="rounded-xl border border-border glass-panel shadow-sm overflow-hidden min-w-0">
+    <article className="rounded-lg border border-border glass-panel shadow-sm overflow-hidden min-w-0">
       <div className="grid grid-cols-1 min-[480px]:grid-cols-[minmax(0,1fr)_auto] gap-3 p-3 sm:p-4">
         <button
           type="button"
@@ -131,7 +131,7 @@ const EndpointCard: React.FC<{
           type="button"
           onClick={onRun}
           disabled={running}
-          className="inline-flex items-center justify-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 w-full min-[480px]:w-auto self-start"
+          className="inline-flex items-center justify-center gap-1 h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40 w-full min-[480px]:w-auto self-start"
         >
           {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           Тест
@@ -139,7 +139,7 @@ const EndpointCard: React.FC<{
       </div>
 
       {expanded && (
-        <div className="border-t border-border p-3 sm:p-4 space-y-3 bg-background/50/80 dark:bg-background/40">
+        <div className="border-t border-border p-3 sm:p-4 space-y-3 bg-background/80 dark:bg-background/40">
           {endpoint.pathParams.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {endpoint.pathParams.map((name) => (
@@ -207,7 +207,7 @@ const EndpointCard: React.FC<{
               }
               error={result.success ? null : result.error}
             >
-              <pre className="mt-2 max-h-64 overflow-auto text-[11px] leading-relaxed whitespace-pre-wrap break-all surface-elevated p-2 rounded-xl">
+              <pre className="mt-2 max-h-64 overflow-auto text-[11px] leading-relaxed whitespace-pre-wrap break-all surface-elevated p-2 rounded-lg">
                 {stringifyResult(result)}
               </pre>
             </ResultPanel>
@@ -398,18 +398,18 @@ const APITesterPage: React.FC<{ embedded?: boolean }> = () => {
             >
               {loadingCatalog ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             </IconButton>
-            <button
+                    <button
               type="button"
               onClick={() => void runSafeBatch()}
               disabled={bulkRunning || loadingCatalog || safeCount === 0}
-              className="inline-flex items-center gap-1 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-40"
               title="Запустить безопасные GET"
             >
               {bulkRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
               GET ({safeCount})
-            </button>
-          </div>
-        </div>
+                    </button>
+                </div>
+              </div>
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
@@ -437,7 +437,7 @@ const APITesterPage: React.FC<{ embedded?: boolean }> = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center bg-accent rounded-xl p-0.5 max-w-full overflow-x-auto">
+          <div className="flex items-center bg-accent rounded-lg p-0.5 max-w-full overflow-x-auto">
             {METHOD_FILTERS.map((method) => (
               <button
                 key={method}
@@ -448,33 +448,33 @@ const APITesterPage: React.FC<{ embedded?: boolean }> = () => {
                 {method === 'all' ? 'Все' : method}
               </button>
             ))}
-          </div>
-          <button
+                      </div>
+                      <button
             type="button"
             onClick={() => setSafeOnly((value) => !value)}
             className={cn(
-              'h-8 px-2.5 rounded-xl text-xs inline-flex items-center gap-1 transition-colors',
+              'h-8 px-2.5 rounded-lg text-xs inline-flex items-center gap-1 transition-colors',
               safeOnly ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent'
             )}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
             Безопасные
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center bg-accent rounded-xl p-0.5 w-fit max-w-full">
+                      </button>
+                    </div>
+                    
+        <div className="flex flex-wrap items-center bg-accent rounded-lg p-0.5 w-fit max-w-full">
           {categories.map((key) => (
-            <button
+                            <button
               key={key}
-              type="button"
+                              type="button"
               onClick={() => setCategory(key)}
               className={filterChip(category === key)}
-            >
+                            >
               {getCategoryLabel(key)}
-            </button>
-          ))}
-        </div>
-      </div>
+                            </button>
+                ))}
+              </div>
+            </div>
 
       {catalogError && (
         <AlertBanner variant="error" className="mb-4" message={catalogError} />
@@ -500,7 +500,7 @@ const APITesterPage: React.FC<{ embedded?: boolean }> = () => {
                 {getCategoryLabel(group)}
               </h3>
               <span className="text-xs text-muted-foreground">{endpoints.length}</span>
-            </div>
+              </div>
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
               {endpoints.map((endpoint) => (
                 <EndpointCard
@@ -518,11 +518,11 @@ const APITesterPage: React.FC<{ embedded?: boolean }> = () => {
                   }
                   onRun={() => void runOne(endpoint)}
                 />
-              ))}
-            </div>
+                  ))}
+                </div>
           </section>
         ))}
-      </div>
+        </div>
       </div>
     </div>
   );

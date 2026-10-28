@@ -134,7 +134,7 @@ const InferenceHistoryPanel: React.FC<InferenceHistoryPanelProps> = ({
           placeholder="По дату"
           className="w-[9.5rem]"
         />
-        <button type="submit" className="h-8 px-3 rounded-xl text-xs hover:bg-accent">
+        <button type="submit" className="h-8 px-3 rounded-lg text-xs hover:bg-accent">
           Найти
         </button>
       </form>
@@ -149,7 +149,7 @@ const InferenceHistoryPanel: React.FC<InferenceHistoryPanelProps> = ({
           return (
             <div
               key={item.id}
-              className={`rounded-2xl border p-3 ${
+              className={`rounded-lg border p-3 ${
                 selectedId === item.id ? 'border-primary/60 bg-accent/40' : 'border-border'
               }`}
             >

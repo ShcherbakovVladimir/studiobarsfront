@@ -5,15 +5,15 @@ import { cn } from '../../lib/utils';
 import { celestia } from '../../lib/celestia';
 
 export const adminBtn =
-  'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-xl text-xs font-medium shrink-0 transition-colors disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium shrink-0 transition-colors disabled:opacity-50 disabled:pointer-events-none';
 
-export const adminBtnPrimary = `${adminBtn} btn-gradient text-white`;
+export const adminBtnPrimary = `${adminBtn} btn-gradient`;
 export const adminBtnGhost = `${adminBtn} bg-accent hover:bg-border text-foreground`;
 export const adminBtnDanger = `${adminBtn} text-destructive hover:bg-destructive/10 border border-destructive/20`;
 export const adminInput =
-  'h-8 w-full min-w-0 px-2.5 rounded-xl text-xs glass-input disabled:opacity-70';
+  'h-8 w-full min-w-0 px-2.5 rounded-lg text-xs glass-input disabled:opacity-70';
 export const adminTextarea =
-  'w-full min-w-0 px-2.5 py-2 rounded-xl text-xs glass-input disabled:opacity-70';
+  'w-full min-w-0 px-2.5 py-2 rounded-lg text-xs glass-input disabled:opacity-70';
 
 export const AdminError: React.FC<{ message: string; className?: string }> = ({
   message,
@@ -80,7 +80,7 @@ interface AdminCardProps {
 
 export function AdminCard({ title, children, className }: AdminCardProps) {
   return (
-    <div className={cn('min-w-0 rounded-2xl border border-border bg-background/50 p-3 sm:p-4', className)}>
+    <div className={cn('min-w-0 rounded-lg border border-border bg-background p-3 sm:p-4', className)}>
       {title && <h3 className="text-sm font-semibold mb-3 text-foreground">{title}</h3>}
       {children}
     </div>

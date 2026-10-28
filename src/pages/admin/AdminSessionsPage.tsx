@@ -320,7 +320,7 @@ const AdminSessionsPage: React.FC = () => {
               </p>
               {history.length === 0 && <p className="text-xs text-muted-foreground">Нет истории</p>}
               {history.map((message, index) => (
-                <div key={`${index}-${message.role}`} className="rounded-xl border border-border/60 p-2">
+                <div key={`${index}-${message.role}`} className="rounded-lg border border-border/60 p-2">
                   <p className="text-[10px] uppercase text-muted-foreground">{message.role}</p>
                   <p className="text-xs whitespace-pre-wrap break-words">{message.content}</p>
                 </div>

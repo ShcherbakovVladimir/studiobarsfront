@@ -77,7 +77,7 @@ const AppPageLayout: React.FC<AppPageLayoutProps> = ({
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-muted-foreground hover:bg-accent rounded-xl transition-colors"
+              className="p-2 -ml-2 text-muted-foreground hover:bg-accent rounded-lg transition-colors"
               aria-label="Открыть меню"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

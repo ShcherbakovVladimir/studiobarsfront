@@ -28,7 +28,7 @@ const RagPreviewDialog: React.FC<RagPreviewDialogProps> = ({
       if (!nextOpen) onClose();
     }}
   >
-    <DialogContent className="flex h-[min(92vh,56rem)] w-[min(96vw,72rem)] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:rounded-3xl">
+    <DialogContent className="flex h-[min(92vh,56rem)] w-[min(96vw,72rem)] max-w-6xl flex-col gap-0 overflow-hidden p-0 sm:rounded-lg">
       <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-4 pr-12 text-left">
         <DialogTitle className="truncate text-base sm:text-lg">{title}</DialogTitle>
         {description ? <DialogDescription>{description}</DialogDescription> : null}

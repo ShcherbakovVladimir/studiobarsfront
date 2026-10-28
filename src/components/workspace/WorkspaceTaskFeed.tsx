@@ -46,7 +46,7 @@ function StepList({ steps, streaming }: { steps: WorkspaceStep[]; streaming: boo
   const hidden = !expanded && !streaming && steps.length > COLLAPSE_AFTER ? steps.length - COLLAPSE_AFTER : 0;
   const visible = hidden ? steps.slice(-COLLAPSE_AFTER) : steps;
   return (
-    <div className="mb-2 rounded-2xl border border-border/60 bg-muted/30 px-3 py-2">
+    <div className="mb-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
       {hidden > 0 && (
         <button
           type="button"
@@ -83,7 +83,7 @@ function ChangeList({ changes, onOpenFile }: { changes: WorkspaceChange[]; onOpe
   const merged = mergeChanges(changes);
   if (merged.length === 0) return null;
   return (
-    <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 px-3 py-2">
+    <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2">
       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
         Что изменилось в папке
       </p>
@@ -138,7 +138,7 @@ function ConfirmationCard({
   return (
     <div
       className={cn(
-        'mt-3 rounded-2xl border px-3 py-2.5',
+        'mt-3 rounded-lg border px-3 py-2.5',
         settled
           ? 'border-border/60 bg-muted/30'
           : destructive
@@ -168,7 +168,7 @@ function ConfirmationCard({
             type="button"
             disabled={confirmation.state === 'busy'}
             onClick={() => onResolve(false)}
-            className="h-8 rounded-xl px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+            className="h-8 rounded-lg px-3 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
           >
             Отмена
           </button>
@@ -177,7 +177,7 @@ function ConfirmationCard({
             disabled={confirmation.state === 'busy'}
             onClick={() => onResolve(true)}
             className={cn(
-              'inline-flex h-8 items-center gap-1.5 rounded-xl px-3 text-xs font-medium disabled:opacity-50',
+              'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium disabled:opacity-50',
               destructive ? 'bg-destructive text-white hover:bg-destructive/90' : 'btn-gradient'
             )}
           >
@@ -231,7 +231,7 @@ function AssistantMessage({
       ))}
       {!streaming && <ChangeList changes={message.changes ?? []} onOpenFile={onOpenFile} />}
       {message.error && (
-        <p className="mt-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {message.error}
         </p>
       )}

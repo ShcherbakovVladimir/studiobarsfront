@@ -93,7 +93,7 @@ function TreeRow({ node, depth, expanded, toggle, props }: NodeProps) {
             props.onTargetFolder(open && isTarget ? '' : node.path);
           }}
           className={cn(
-            'flex w-full items-center gap-1.5 rounded-xl py-1.5 pr-2 text-left text-sm transition-colors hover:bg-accent/60',
+            'flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors hover:bg-accent/60',
             isTarget && 'bg-accent/50'
           )}
           style={indent}
@@ -130,7 +130,7 @@ function TreeRow({ node, depth, expanded, toggle, props }: NodeProps) {
         type="button"
         onClick={() => props.onOpen(node.path)}
         className={cn(
-          'group flex w-full items-center gap-1.5 rounded-xl py-1.5 pr-2 text-left text-sm transition-colors',
+          'group flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors',
           selected ? 'bg-primary/10 text-foreground' : 'hover:bg-accent/60'
         )}
         style={{ paddingLeft: `${1.375 + depth * 0.875}rem` }}
@@ -194,7 +194,7 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl btn-gradient px-3 text-xs font-medium"
+          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg btn-gradient px-3 text-xs font-medium"
           title={`PDF, Word, Excel, PowerPoint, txt, md, csv, json, html, xml, rtf · до ${WORKSPACE_MAX_MB} МБ`}
         >
           <Upload className="h-3.5 w-3.5" />
@@ -203,7 +203,7 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
         <button
           type="button"
           onClick={onCreate}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Новый текстовый файл"
           aria-label="Новый текстовый файл"
         >
@@ -212,7 +212,7 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
         <button
           type="button"
           onClick={onRefresh}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Обновить список"
           aria-label="Обновить список"
         >
@@ -263,7 +263,7 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1.5 py-2">
         {error && tree.length > 0 && (
-          <div className="mx-1 mb-2 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+          <div className="mx-1 mb-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
             <span className="min-w-0 flex-1 truncate" title={error}>
               Список мог устареть: {error}
             </span>
@@ -306,7 +306,7 @@ export function WorkspaceFileTree(props: WorkspaceFileTreeProps) {
       </div>
 
       {dragging && (
-        <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary/60 bg-background/80 text-sm font-medium text-primary">
+        <div className="pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-dashed border-primary/60 bg-background text-sm font-medium text-primary">
           Отпустите, чтобы загрузить{targetFolder ? ` в ${targetFolder}/` : ''}
         </div>
       )}
