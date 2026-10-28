@@ -1,34 +1,32 @@
-/* /home/user/projects/studioxlam/src/tsconfig.json */
 {
   "compilerOptions": {
     "target": "ES2022",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "typeRoots": ["../node_modules/@types"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "jsx": "react-jsx",
     "jsxImportSource": "react",
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
+    "resolveJsonModule": true,
     "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
-    "**/*"
-  ]
+    "./**/*.ts",
+    "./**/*.tsx",
+    "./react-jsx.d.ts",
+    "./vite-env.d.ts"
+  ],
+  "exclude": ["node_modules"]
 }

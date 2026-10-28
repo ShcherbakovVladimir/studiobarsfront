@@ -1,21 +1,21 @@
-import type * as React from 'react';
-
 /**
- * React 19 держит HTML-теги в `React.JSX`, а не в глобальном `JSX`.
- * Языковой сервер редактора сверяет `<img>` с глобальным пространством имён,
- * поэтому без этой связки `JSX.IntrinsicElements` пустой по всему проекту.
+ * React 19 keeps HTML tag types on `React.JSX`, not the global `JSX` namespace.
+ * Editor language services still check JSX against global `JSX.IntrinsicElements`,
+ * so this bridge mirrors the official `react/jsx-runtime` shapes.
  */
+import type { JSX as ReactJSX } from 'react';
+
 declare global {
   namespace JSX {
-    type ElementType = React.JSX.ElementType;
-    type Element = React.JSX.Element;
-    type ElementClass = React.JSX.ElementClass;
-    type ElementAttributesProperty = React.JSX.ElementAttributesProperty;
-    type ElementChildrenAttribute = React.JSX.ElementChildrenAttribute;
-    type LibraryManagedAttributes<C, P> = React.JSX.LibraryManagedAttributes<C, P>;
-    type IntrinsicAttributes = React.JSX.IntrinsicAttributes;
-    type IntrinsicClassAttributes<T> = React.JSX.IntrinsicClassAttributes<T>;
-    type IntrinsicElements = React.JSX.IntrinsicElements;
+    type ElementType = ReactJSX.ElementType;
+    interface Element extends ReactJSX.Element {}
+    interface ElementClass extends ReactJSX.ElementClass {}
+    interface ElementAttributesProperty extends ReactJSX.ElementAttributesProperty {}
+    interface ElementChildrenAttribute extends ReactJSX.ElementChildrenAttribute {}
+    type LibraryManagedAttributes<C, P> = ReactJSX.LibraryManagedAttributes<C, P>;
+    interface IntrinsicAttributes extends ReactJSX.IntrinsicAttributes {}
+    interface IntrinsicClassAttributes<T> extends ReactJSX.IntrinsicClassAttributes<T> {}
+    interface IntrinsicElements extends ReactJSX.IntrinsicElements {}
   }
 }
 
