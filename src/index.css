@@ -219,11 +219,8 @@ body {
 }
 
 /* ---------- Level 2: typography ---------- */
+/* Fluid sizes only on explicit page titles — not bare h1–h4 (breaks compact UI). */
 .font-display,
-h1,
-h2,
-h3,
-h4,
 .page-title {
   font-family: var(--font-display);
   font-weight: 600;
@@ -232,20 +229,30 @@ h4,
   color: var(--foreground);
 }
 
-h1,
-.page-title {
+.page-title,
+h1.page-title {
   font-size: var(--fluid-h1);
   line-height: 1.15;
 }
 
-h2 {
+h2.page-title {
   font-size: var(--fluid-h2);
   line-height: 1.2;
 }
 
-h3 {
+h3.page-title {
   font-size: var(--fluid-h3);
   line-height: 1.25;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
 }
 
 .font-mono,

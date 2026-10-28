@@ -87,8 +87,10 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
     >
       <div className={cn(celestia.appHeaderBar, 'justify-between gap-2')}>
         <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare className="w-4 h-4 text-primary shrink-0" />
-          <h2 className="text-sm font-semibold truncate">RAG-сессии ({sortedSessions.length})</h2>
+          <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
+          <h2 className="text-xs font-semibold truncate leading-tight">
+            RAG-сессии ({sortedSessions.length})
+          </h2>
         </div>
         <div className="flex items-center gap-1">
           {onRefresh && (
@@ -182,15 +184,15 @@ const RAGSessionSidebar: React.FC<RAGSessionSidebarProps> = ({
                   <button
                     type="button"
                     onClick={() => onSelectSession(session.sessionId)}
-                    className="w-full text-left p-3 pr-16"
+                    className="w-full text-left px-2.5 py-2 pr-14"
                   >
                     <div
-                      className={`text-sm truncate ${isActive ? 'font-semibold text-primary' : 'font-medium'}`}
+                      className={`text-xs truncate leading-snug font-sans ${isActive ? 'font-semibold text-primary' : 'font-medium text-foreground'}`}
                       title={session.title}
                     >
                       {session.title || 'Без названия'}
                     </div>
-                    <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-2">
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5 meta-text leading-tight">
                       <span>{formatSessionDate(session.updatedAt)}</span>
                       {count > 0 && <span>· {count} сообщ.</span>}
                     </div>
