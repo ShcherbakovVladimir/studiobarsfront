@@ -11,6 +11,10 @@ export const PALETTE_IDS = [
   'lime',
   'copper',
   'steel',
+  'deepseek',
+  'grok',
+  'gpt',
+  'cursor',
 ] as const;
 
 export type PaletteId = (typeof PALETTE_IDS)[number];
@@ -28,6 +32,10 @@ export const PALETTE_LABELS: Record<PaletteId, string> = {
   lime: 'Лайм',
   copper: 'Медь',
   steel: 'Сталь',
+  deepseek: 'DeepSeek',
+  grok: 'Grok',
+  gpt: 'GPT',
+  cursor: 'Cursor',
 };
 
 /** Swatch for picker UI (light-mode primary). */
@@ -42,6 +50,10 @@ export const PALETTE_SWATCH: Record<PaletteId, string> = {
   lime: '#65a30d',
   copper: '#c2410c',
   steel: '#0e7490',
+  deepseek: '#4d6bfe',
+  grok: '#1a1a1a',
+  gpt: '#10a37f',
+  cursor: '#f54e00',
 };
 
 type AccentTokens = {
@@ -167,6 +179,54 @@ const LIGHT: Record<PaletteId, AccentTokens> = {
     chart1: '#0e7490',
     chart2: '#155e75',
   },
+  /** DeepSeek brand blue */
+  deepseek: {
+    primary: '#4d6bfe',
+    primaryForeground: '#ffffff',
+    primaryHover: '#3b5bdb',
+    primaryActive: '#2f4ac4',
+    accent: '#eef1ff',
+    accentForeground: '#1e2a6b',
+    ring: '#4d6bfe',
+    chart1: '#4d6bfe',
+    chart2: '#3b5bdb',
+  },
+  /** Grok / xAI — stark black */
+  grok: {
+    primary: '#1a1a1a',
+    primaryForeground: '#fafafa',
+    primaryHover: '#000000',
+    primaryActive: '#0a0a0a',
+    accent: '#f4f4f5',
+    accentForeground: '#18181b',
+    ring: '#3f3f46',
+    chart1: '#1a1a1a',
+    chart2: '#52525b',
+  },
+  /** ChatGPT green */
+  gpt: {
+    primary: '#10a37f',
+    primaryForeground: '#ffffff',
+    primaryHover: '#0d8c6d',
+    primaryActive: '#0a7359',
+    accent: '#e7f8f3',
+    accentForeground: '#0a3d32',
+    ring: '#10a37f',
+    chart1: '#10a37f',
+    chart2: '#0d8c6d',
+  },
+  /** Cursor — warm orange accent */
+  cursor: {
+    primary: '#f54e00',
+    primaryForeground: '#ffffff',
+    primaryHover: '#d94300',
+    primaryActive: '#b83900',
+    accent: '#fff1eb',
+    accentForeground: '#5c1f00',
+    ring: '#f54e00',
+    chart1: '#f54e00',
+    chart2: '#d94300',
+  },
 };
 
 const DARK: Record<PaletteId, AccentTokens> = {
@@ -279,6 +339,50 @@ const DARK: Record<PaletteId, AccentTokens> = {
     ring: '#22d3ee',
     chart1: '#22d3ee',
     chart2: '#06b6d4',
+  },
+  deepseek: {
+    primary: '#6b85ff',
+    primaryForeground: '#0b1240',
+    primaryHover: '#4d6bfe',
+    primaryActive: '#3b5bdb',
+    accent: '#1a2258',
+    accentForeground: '#eef1ff',
+    ring: '#6b85ff',
+    chart1: '#6b85ff',
+    chart2: '#4d6bfe',
+  },
+  grok: {
+    primary: '#fafafa',
+    primaryForeground: '#0a0a0a',
+    primaryHover: '#e4e4e7',
+    primaryActive: '#d4d4d8',
+    accent: '#27272a',
+    accentForeground: '#fafafa',
+    ring: '#a1a1aa',
+    chart1: '#fafafa',
+    chart2: '#a1a1aa',
+  },
+  gpt: {
+    primary: '#1fc79a',
+    primaryForeground: '#042f26',
+    primaryHover: '#10a37f',
+    primaryActive: '#0d8c6d',
+    accent: '#0a3d32',
+    accentForeground: '#e7f8f3',
+    ring: '#1fc79a',
+    chart1: '#1fc79a',
+    chart2: '#10a37f',
+  },
+  cursor: {
+    primary: '#ff6a2a',
+    primaryForeground: '#2a0e00',
+    primaryHover: '#f54e00',
+    primaryActive: '#d94300',
+    accent: '#3d1600',
+    accentForeground: '#fff1eb',
+    ring: '#ff6a2a',
+    chart1: '#ff6a2a',
+    chart2: '#f54e00',
   },
 };
 

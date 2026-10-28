@@ -53,8 +53,10 @@ export function PalettePicker({ className, variant = 'full' }: PalettePickerProp
   return (
     <div className={cn('space-y-2', className)}>
       <p className="text-sm font-medium text-foreground">Цветовая схема</p>
-      <p className="text-xs text-muted-foreground">10 акцентов. Светлая/тёмная база переключается отдельно.</p>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2" role="listbox" aria-label="Цветовая схема">
+      <p className="text-xs text-muted-foreground">
+        {PALETTE_IDS.length} акцентов. Светлая/тёмная база переключается отдельно.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2" role="listbox" aria-label="Цветовая схема">
         {PALETTE_IDS.map((id) => {
           const active = id === paletteId;
           return (

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store/store';
@@ -18,7 +18,7 @@ import { PalettePicker } from '../components/PalettePicker';
 
 type ProfileTab = 'profile' | 'password' | 'settings' | 'api-keys' | 'security' | 'shortcuts' | 'webhooks';
 
-const ProfilePage: React.FC = () => {
+const ProfilePage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
 
