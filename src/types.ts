@@ -236,6 +236,24 @@ export interface AdminOidcSettings {
   source?: string;
 }
 
+export interface AdminBitrix24Settings {
+  enabled?: boolean;
+  clientId?: string;
+  webhookUrl?: string;
+  portalDomain?: string;
+  status?: string;
+}
+
+export interface AdminFinetuneIntegrationSettings {
+  wsUrl?: string;
+  status?: string;
+}
+
+export interface AdminIntegrationsSettings {
+  bitrix24?: AdminBitrix24Settings;
+  finetune?: AdminFinetuneIntegrationSettings;
+}
+
 export interface AdminReindexStatus {
   status?: string;
   progress?: number;

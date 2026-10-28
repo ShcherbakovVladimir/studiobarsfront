@@ -52,28 +52,17 @@ export async function login(email: string, password: string): Promise<{ user: Us
 }
 
 export async function completeMfa(mfaToken: string, code: string): Promise<{ user: User; accessToken: string }> {
-  const paths = ['/auth/2fa/verify', '/auth/mfa', '/auth/login/mfa'];
-  let last: unknown;
-  for (const path of paths) {
-    try {
-      const data = await api<SessionResponse>(path, {
-        method: 'POST',
-        body: JSON.stringify({ mfaToken, code }),
-      });
-      if (!data.accessToken || !data.user) {
-        throw new ApiError('Сервер не выдал токен входа', 401, 'UNAUTHORIZED');
-      }
-      setToken(data.accessToken);
-      const user = normalizeUser(data.user);
-      setChatSyncUserId(user.id);
-      return { user, accessToken: data.accessToken };
-    } catch (error) {
-      last = error;
-      if (error instanceof ApiError && error.status === 404) continue;
-      throw error;
-    }
+  const data = await api<SessionResponse>('/auth/2fa/verify', {
+    method: 'POST',
+    body: JSON.stringify({ mfaToken, code }),
+  });
+  if (!data.accessToken || !data.user) {
+    throw new ApiError('Сервер не выдал токен входа', 401, 'UNAUTHORIZED');
   }
-  throw last instanceof Error ? last : new ApiError('Второй фактор не подтверждён', 404, 'MFA_REQUIRED');
+  setToken(data.accessToken);
+  const user = normalizeUser(data.user);
+  setChatSyncUserId(user.id);
+  return { user, accessToken: data.accessToken };
 }
 
 export async function register(

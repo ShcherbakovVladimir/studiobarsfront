@@ -7,6 +7,7 @@ import type {
   AdminDashboardData,
   AdminMailSettings,
   AdminOidcSettings,
+  AdminIntegrationsSettings,
   AdminMaintenanceSettings,
   AdminReindexStatus,
   AdminSessionRow,
@@ -242,11 +243,15 @@ async function downloadAdminFile(path: string, filename: string): Promise<void> 
     throw new ApiError(data.error ?? res.statusText, res.status, data.code, data);
   }
 
+  const disposition = res.headers.get('content-disposition') ?? '';
+  const matched = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(disposition);
+  const downloadName = matched?.[1] ? decodeURIComponent(matched[1].replace(/"/g, '')) : filename;
+
   const blob = await res.blob();
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = objectUrl;
-  anchor.download = filename;
+  anchor.download = downloadName;
   anchor.click();
   URL.revokeObjectURL(objectUrl);
 }
@@ -603,7 +608,31 @@ export const adminService = {
   downloadBackup: (backupId: string, filename?: string) =>
     downloadAdminFile(`/backups/${backupId}/download`, filename ?? `backup-${backupId}.zip`),
 
-  exportReport: (format: 'pdf' | 'json' = 'pdf') =>
+  getIntegrations: () =>
+    api<{ success: boolean } & AdminIntegrationsSettings>(adminPath('/integrations')),
+
+  updateIntegrations: (patch: {
+    bitrix24?: Record<string, unknown>;
+    finetune?: Record<string, unknown>;
+  }) =>
+    api<{ success: boolean } & AdminIntegrationsSettings>(adminPath('/integrations'), {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+
+  testBitrix24: () =>
+    api<{ success: boolean; message?: string; error?: string }>(adminPath('/integrations/bitrix24/test'), {
+      method: 'POST',
+      body: '{}',
+    }),
+
+  testFinetune: (wsUrl?: string) =>
+    api<{ success: boolean; message?: string; error?: string }>(adminPath('/integrations/finetune/test'), {
+      method: 'POST',
+      body: JSON.stringify(wsUrl ? { wsUrl } : {}),
+    }),
+
+  exportReport: (format: 'pdf' | 'csv' | 'json' = 'pdf') =>
     downloadAdminFile(`/reports/export?format=${format}`, `report.${format}`),
 };
 

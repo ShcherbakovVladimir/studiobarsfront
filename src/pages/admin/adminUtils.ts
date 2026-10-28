@@ -37,6 +37,12 @@ export function getErrorMessage(error: unknown): string {
   if (raw.includes('INVALID_ROLE') || (error instanceof ApiError && error.code === 'INVALID_ROLE')) {
     return 'Недопустимая роль. Допустимы: user, employee, admin.';
   }
+  if (
+    raw.includes('PDF_PREREQUISITES_MISSING')
+    || (error instanceof ApiError && error.code === 'PDF_PREREQUISITES_MISSING')
+  ) {
+    return 'PDF недоступен: на сервере нет Chrome/Puppeteer. Скачайте CSV или установите браузер на API.';
+  }
   if (raw.includes('users_role_check')) {
     return 'База ещё не принимает роль «сотрудник». Обновите constraint users_role_check: role IN (\'user\', \'admin\', \'employee\').';
   }

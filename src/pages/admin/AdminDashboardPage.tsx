@@ -24,6 +24,7 @@ const AdminDashboardPage: React.FC = () => {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,11 +42,20 @@ const AdminDashboardPage: React.FC = () => {
     void load();
   }, [load]);
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'pdf' | 'csv') => {
+    setExporting(format);
+    setError(null);
     try {
-      await adminService.exportReport('pdf');
+      await adminService.exportReport(format);
     } catch (err) {
-      setError(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setError(
+        message.includes('PDF_PREREQUISITES_MISSING') || message.includes('Puppeteer') || message.includes('Chrome')
+          ? 'PDF недоступен: на сервере нет Chrome/Puppeteer. Скачайте CSV или установите браузер на API.'
+          : message
+      );
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -83,9 +93,23 @@ const AdminDashboardPage: React.FC = () => {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Обновить
           </button>
-          <button type="button" onClick={() => void handleExport()} className={adminBtnPrimary}>
+          <button
+            type="button"
+            disabled={exporting != null}
+            onClick={() => void handleExport('csv')}
+            className={adminBtnGhost}
+          >
             <FileDown className="w-3.5 h-3.5" />
-            PDF-отчёт
+            {exporting === 'csv' ? 'CSV…' : 'CSV'}
+          </button>
+          <button
+            type="button"
+            disabled={exporting != null}
+            onClick={() => void handleExport('pdf')}
+            className={adminBtnPrimary}
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            {exporting === 'pdf' ? 'PDF…' : 'PDF'}
           </button>
         </>
       }

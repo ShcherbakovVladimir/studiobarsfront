@@ -1234,39 +1234,6 @@ export const ragService = {
     }
   },
 
-  // Прямой поиск по базе данных (без LLM)
-  async directSearch(query: string, limit: number = 100): Promise<{
-    success: boolean;
-    query: string;
-    results: UnknownRecord[];
-    sql?: string;
-    execution_time: number;
-    error?: string;
-  }> {
-    try {
-      const response = await ragFetch('/direct-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Direct search error:', error);
-      return {
-        success: false,
-        query,
-        results: [],
-        execution_time: 0,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  },
-
   // Получить историю запросов
   async getHistory(sessionId: string, limit: number = 20): Promise<RAGHistoryResponse> {
     try {
@@ -1577,22 +1544,6 @@ export const ragService = {
     files.forEach((file) => formData.append('files', file));
     formData.append('tableNamePrefix', tableNamePrefix);
     return uploadWithProgress<BatchUploadResponse>(buildRagUrl('/upload/batch'), formData);
-  },
-
-  // Получить список загруженных файлов
-  async getUploadedFiles(): Promise<{ success: boolean; files: Array<{ name: string; rowCount: number }>; count: number }> {
-    try {
-      const response = await ragFetch('/files');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Get uploaded files error:', error);
-      return { success: false, files: [], count: 0 };
-    }
   },
 
   // Удалить таблицу

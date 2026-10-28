@@ -42,6 +42,7 @@ const AdminInferenceLabPage = lazyWithRetry(() => import('./pages/admin/AdminInf
 const AdminHelpPage = lazyWithRetry(() => import('./pages/admin/AdminHelpPage'));
 const AdminChatDeskPage = lazyWithRetry(() => import('./pages/admin/AdminChatDeskPage'));
 const AdminOidcPage = lazyWithRetry(() => import('./pages/admin/AdminOidcPage'));
+const AdminIntegrationsPage = lazyWithRetry(() => import('./pages/admin/AdminIntegrationsPage'));
 const OidcCallbackPage = lazyWithRetry(() => import('./pages/OidcCallbackPage'));
 
 function RouteFallback() {
@@ -115,6 +116,7 @@ const App: React.FC = () => {
               <Route path="maintenance" element={<AdminMaintenancePage />} />
               <Route path="mail" element={<AdminMailPage />} />
               <Route path="oidc" element={<AdminOidcPage />} />
+              <Route path="integrations" element={<AdminIntegrationsPage />} />
               <Route path="backups" element={<AdminBackupsPage />} />
               <Route path="audit" element={<AdminAuditPage />} />
               <Route path="system" element={<AdminSystemPage />} />
